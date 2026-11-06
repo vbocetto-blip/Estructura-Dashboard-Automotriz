@@ -1,0 +1,13 @@
+name = "ansar-consignaciones"
+pages_build_output_dir = "public"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ansar-consignaciones"
+database_id = "a2492447-a915-42c6-a946-b9ba8ca0a3b4"
+
+# Login con Cloudflare Access. Completar al crear la aplicación de Access:
+[vars]
+ACCESS_TEAM_DOMAIN = ""   # ej. ansar.cloudflareaccess.com
+ACCESS_AUD = ""           # "Application Audience (AUD) Tag" de la aplicación

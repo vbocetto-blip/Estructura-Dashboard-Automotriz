@@ -976,10 +976,10 @@ async function savePfb(btn){
 function vEquipo(){
   return `<section class="sec-head"><h2>Equipo de consignación</h2><p>Nombres para asignar responsables</p></section>
   <div class="two"><section class="panel" style="align-content:start">
-    <div class="team">${S.equipo.length?S.equipo.map((p,i)=>`<div class="row"><span>${esc(p)}</span>${S.canWrite?`<button class="btn" type="button" data-delp="${i}">Quitar</button>`:""}</div>`).join(""):`<p class="none">Agrega a las personas del equipo.</p>`}</div>
+    <div class="team">${S.equipo.length?S.equipo.map((p,i)=>`<div class="row"><span>${esc(p)}</span>${(S.isAdmin&&S.canWrite)?`<button class="btn" type="button" data-delp="${i}">Quitar</button>`:""}</div>`).join(""):`<p class="none">Agrega a las personas del equipo.</p>`}</div>
     <div class="sec-head" style="margin-top:14px"><h2 style="font-size:17px">Equipo virtual</h2><p>Consignadoras en teletrabajo. Trabajan la pestaña Virtual y sus llamadas y mandatos se cuentan aparte.</p></div>
-    <div class="vtog">${S.equipo.length?S.equipo.map(p=>`<button type="button" class="btn" data-vtog="${esc(p)}" aria-pressed="${S.virtuales.includes(p)}" ${S.canWrite?"":"disabled"}>${esc(p)}${S.virtuales.includes(p)?" · Virtual":""}</button>`).join(""):`<p class="none">Primero agrega a las personas.</p>`}</div>
-    ${S.canWrite?`<form id="teamForm" style="display:flex;gap:8px;margin-top:14px"><div class="field" style="flex:1"><label for="newp">Nombre</label><input id="newp" placeholder="ej. Camila" maxlength="40"></div><button class="btn primary" style="align-self:end" type="submit">Agregar</button></form>`:""}
+    <div class="vtog">${S.equipo.length?S.equipo.map(p=>`<button type="button" class="btn" data-vtog="${esc(p)}" aria-pressed="${S.virtuales.includes(p)}" ${(S.isAdmin&&S.canWrite)?"":"disabled"}>${esc(p)}${S.virtuales.includes(p)?" · Virtual":""}</button>`).join(""):`<p class="none">Primero agrega a las personas.</p>`}</div>
+    ${(S.isAdmin&&S.canWrite)?`<form id="teamForm" style="display:flex;gap:8px;margin-top:14px"><div class="field" style="flex:1"><label for="newp">Nombre</label><input id="newp" placeholder="ej. Camila" maxlength="40"></div><button class="btn primary" style="align-self:end" type="submit">Agregar</button></form>`:""}
   </section>
   <section class="panel guide"><h2 style="font-size:20px">Reglas de la tabla</h2><ol>
     <li><b>Ingresa el auto el mismo día</b> que se tasa, aunque falten datos. Los campos en naranjo te dicen qué falta.</li>
@@ -1017,11 +1017,11 @@ function usuariosHtml(){
   if(!S.usuarios&&!S.usrLoading)cargarUsuarios();
   const us=S.usuarios||[];
   return `<section class="panel"><div class="sec-head"><h2 style="font-size:20px">Usuarios del sitio</h2><p>Quién entra y qué ve</p></div>
-  <p style="margin:0">Administrador ve todo. Virtual ve solo Consignación virtual. Una persona nueva entra con “Primer acceso” y crea su contraseña; hazlo apenas la agregues para que nadie más pueda usar su correo.</p>
-  ${!S.usuarios?`<p class="none">Cargando…</p>`:`<div class="tbl"><table><thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>${us.map(x=>`<tr><td>${esc(x.email)}</td><td>${esc(x.nombre)}</td><td>${x.rol==="admin"?"Administrador":"Virtual"}</td><td>${!x.activo?'<span class="pill st-Retirado">Inactivo</span>':x.tiene_clave?'<span class="pill st-Vendido">Activo</span>':'<span class="pill st-Mandato-pendiente">Sin contraseña</span>'}</td><td style="white-space:nowrap">${x.tiene_clave?`<button type="button" class="btn sm" data-ureset="${esc(x.email)}">Reiniciar contraseña</button>`:""} <button type="button" class="btn sm" data-uact="${esc(x.email)}" data-on="${x.activo?0:1}">${x.activo?"Desactivar":"Activar"}</button></td></tr>`).join("")}</tbody></table></div>`}
+  <p style="margin:0">Administrador ve y administra todo (usuarios, respaldo, equipo). Equipo trabaja todas las pestañas, sin administrar. Virtual ve solo Consignación virtual. Una persona nueva entra con “Primer acceso” y crea su contraseña; hazlo apenas la agregues para que nadie más pueda usar su correo.</p>
+  ${!S.usuarios?`<p class="none">Cargando…</p>`:`<div class="tbl"><table><thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>${us.map(x=>`<tr><td>${esc(x.email)}</td><td>${esc(x.nombre)}</td><td>${x.rol==="admin"?"Administrador":x.rol==="equipo"?"Equipo":"Virtual"}</td><td>${!x.activo?'<span class="pill st-Retirado">Inactivo</span>':x.tiene_clave?'<span class="pill st-Vendido">Activo</span>':'<span class="pill st-Mandato-pendiente">Sin contraseña</span>'}</td><td style="white-space:nowrap">${x.tiene_clave?`<button type="button" class="btn sm" data-ureset="${esc(x.email)}">Reiniciar contraseña</button>`:""} <button type="button" class="btn sm" data-uact="${esc(x.email)}" data-on="${x.activo?0:1}">${x.activo?"Desactivar":"Activar"}</button></td></tr>`).join("")}</tbody></table></div>`}
   <form id="usrForm" class="filters"><div class="field" style="flex:2 1 220px"><label for="u_email">Correo</label><input id="u_email" type="email" required autocomplete="off"></div>
    <div class="field" style="flex:1 1 140px"><label for="u_nombre">Nombre</label><input id="u_nombre" type="text" maxlength="60" autocomplete="off"></div>
-   <div class="field" style="flex:1 1 140px"><label for="u_rol">Rol</label><select id="u_rol"><option value="virtual">Virtual</option><option value="admin">Administrador</option></select></div>
+   <div class="field" style="flex:1 1 140px"><label for="u_rol">Rol</label><select id="u_rol"><option value="equipo">Equipo (trabaja todo, no administra)</option><option value="virtual">Virtual (solo Consignación virtual)</option><option value="admin">Administrador</option></select></div>
    <button class="btn primary" type="submit" style="align-self:end">Agregar o actualizar</button></form></section>`;
 }
 async function usrPost(path,body,ok){
@@ -1607,7 +1607,7 @@ async function rMove(id,btn){
 }
 /* Un aviso del radar marcado como virtual (por ejemplo, por la carga diaria) se copia a la colección virtual cuando lo abre alguien con acceso de Editor. */
 function syncVirt(){
-  if(!S.isAdmin||!S.db||!S.presMap||!S.virtMap)return;
+  if((window.__ANSAR_SITE?window.__ANSAR_ROL==="virtual":!S.isAdmin)||!S.db||!S.presMap||!S.virtMap)return;
   S.vSync=S.vSync||new Set();
   Object.values(S.presMap).forEach(r=>{if(r.equipo==="virtual"&&!S.virtMap[r._id]&&!S.vSync.has(r._id)){S.vSync.add(r._id);const {_id,_col,...data}=r;S.db.collection("virtual").doc(_id).set({...data,equipo:"virtual",copiadoDeRadar:new Date().toISOString()}).catch(()=>S.vSync.delete(_id))}});
 }
@@ -2338,7 +2338,7 @@ render();
   const [db,user]=await Promise.all([C.use("db"),C.use("user")]);
   if(!db){setStatus("err","Sin acceso a la base del equipo");S.canWrite=false;S.soloVirtual=true;S.accesoListo=true;S.offline=window.__ANSAR_SITE?"Ingresa con tu correo y contraseña para ver y editar la tabla.":"Inicia sesión en claude.ai con la cuenta invitada para ver y editar la tabla.";render();return}
   S.db=db;
-  if(user){try{S.uid=await user.id();S.isAdmin=(await user.canEdit())===true;S.soloVirtual=!S.isAdmin;
+  if(user){try{S.uid=await user.id();S.isAdmin=(await user.canEdit())===true;S.soloVirtual=window.__ANSAR_SITE?window.__ANSAR_ROL==="virtual":!S.isAdmin;
     const cw=await user.can("data.write");if(cw===false){S.canWrite=false;if(S.soloVirtual)S.sinAccesoVirtual=true}}catch(_){S.soloVirtual=true}}
   else S.soloVirtual=true;
   S.accesoListo=true;

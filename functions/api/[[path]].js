@@ -88,11 +88,12 @@ async function authRoutes(path, request, env) {
 }
 
 function canRead(rol, col, id) {
-  if (rol === "admin") return true;
+  if (rol === "admin" || rol === "equipo") return true;
   return VIRTUAL_RW.has(col) || VIRTUAL_RO.has(`${col}/${id}`);
 }
 function canWrite(rol, col) {
   if (rol === "admin") return true;
+  if (rol === "equipo") return col !== "config";
   return VIRTUAL_RW.has(col);
 }
 const validName = s => typeof s === "string" && /^[A-Za-z0-9_\-.:@+~]{1,200}$/.test(s);
@@ -128,7 +129,7 @@ export async function onRequest(ctx) {
           env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,id) VALUES (?,?,?,?)").bind(t, u.email, "reset_clave", em)]);
         return json({ ok: true });
       }
-      const rol = b.rol === "admin" ? "admin" : "virtual", nombre = String(b.nombre || "").trim().slice(0, 60) || em, activo = b.activo === false ? 0 : 1;
+      const rol = ["admin", "equipo", "virtual"].includes(b.rol) ? b.rol : "virtual", nombre = String(b.nombre || "").trim().slice(0, 60) || em, activo = b.activo === false ? 0 : 1;
       if (em === u.email && (rol !== "admin" || !activo)) return json({ error: "no_puedes_quitarte_admin" }, 400);
       await env.DB.batch([
         env.DB.prepare("INSERT INTO usuarios (email,nombre,rol,activo,creado_en) VALUES (?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET nombre=excluded.nombre, rol=excluded.rol, activo=excluded.activo").bind(em, nombre, rol, activo, t),

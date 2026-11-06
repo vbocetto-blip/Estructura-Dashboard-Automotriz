@@ -63,6 +63,35 @@ h1{font-family:var(--f-display);font-size:28px;margin:0;line-height:1.05}
 .zl{font-family:var(--f-display);font-weight:700;fill:var(--ink)}
 .zc{font-family:var(--f-body);font-weight:700;fill:var(--muted)}
 @media (prefers-reduced-motion:reduce){.live i,.burst,.toast{animation:none}}
+
+/* ===== Tema sala de control ===== */
+:root:root{--bg:#060A0F;--surface:rgba(16,24,33,.78);--sunk:#0E1620;--ink:#E6F1F7;--muted:#8CA3B3;--line:rgba(94,234,212,.18);--accent:#2EE6C5;--on-accent:#04110E;--warn:#FFB547;--bad:#FF5C7A;--good:#5CFF9D;
+--asphalt:#111A23;--asphalt2:#0B1219;--mark:#2EE6C5;--lot:#0A1118;--z-tas:rgba(64,150,255,.10);--z-man:rgba(186,120,255,.10);--z-pre:rgba(255,170,70,.10);--z-exh:rgba(46,230,197,.10);--z-neg:rgba(255,92,122,.10);color-scheme:dark}
+body{background:radial-gradient(1200px 600px at 70% -10%,rgba(46,230,197,.10),transparent 60%),radial-gradient(900px 500px at 0% 110%,rgba(64,150,255,.10),transparent 60%),var(--bg)}
+h1{letter-spacing:.02em;background:linear-gradient(90deg,#E6F1F7,#2EE6C5);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi,.panel,.mapbox{backdrop-filter:blur(10px);box-shadow:0 0 0 1px rgba(46,230,197,.06),0 10px 40px rgba(0,0,0,.45)}
+.kpi .v{text-shadow:0 0 18px currentColor}
+.btn{background:rgba(16,24,33,.9)}
+.map{background-image:linear-gradient(rgba(46,230,197,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(46,230,197,.05) 1px,transparent 1px);background-size:2.5% 3.9%;border-radius:10px;overflow:hidden}
+.map::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(46,230,197,.07) 50%,transparent);height:30%;animation:scan 6s linear infinite}
+@keyframes scan{from{transform:translateY(-100%)}to{transform:translateY(400%)}}
+.car svg{filter:drop-shadow(0 0 6px rgba(46,230,197,.35)) drop-shadow(0 3px 3px rgba(0,0,0,.6))}
+.car .age{position:absolute;inset:-28% -10%;border-radius:40%;border:2px solid transparent;pointer-events:none}
+.car.ok .age{border-color:rgba(92,255,157,.55)}
+.car.warn .age{border-color:var(--warn);box-shadow:0 0 10px var(--warn)}
+.car.stuck .age{border-color:var(--bad);box-shadow:0 0 14px var(--bad);animation:alarm 1.4s ease-in-out infinite}
+@keyframes alarm{50%{opacity:.35;transform:scale(1.12)}}
+.car.moving svg{filter:drop-shadow(0 0 10px var(--accent)) drop-shadow(14px 0 10px rgba(255,243,176,.35))}
+.car .dd{position:absolute;right:-14%;top:-46%;font:700 9px/1 var(--f-body);background:var(--bad);color:#fff;border-radius:6px;padding:2px 4px;pointer-events:none}
+.car.warn .dd{background:var(--warn);color:#1a1000}
+.alerts{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:360px;overflow:auto}
+.alerts li{display:grid;gap:2px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,92,122,.35);background:rgba(255,92,122,.08);cursor:pointer;font-size:13px}
+.alerts li.w{border-color:rgba(255,181,71,.35);background:rgba(255,181,71,.07)}
+.alerts li b{font-size:13.5px}.alerts li .ac{color:var(--accent);font-weight:600}
+.alerts li small{color:var(--muted)}
+.cap{height:4px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}.cap i{display:block;height:100%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.zl{fill:#E6F1F7!important;letter-spacing:.04em}
+@media (prefers-reduced-motion:reduce){.map::after,.car.stuck .age{animation:none}}
 </style>
 </head>
 <body>
@@ -90,6 +119,7 @@ h1{font-family:var(--f-display);font-size:28px;margin:0;line-height:1.05}
       <div class="legend" id="legend"></div>
     </section>
     <aside class="side">
+      <section class="panel"><h2>Acciones ahora</h2><p class="none" id="alSub">Autos detenidos más tiempo del sano en su etapa.</p><ul class="alerts" id="alerts"></ul></section>
       <section class="panel det" id="det"><h2>Detalle</h2><p class="none">Toca un auto en el mapa para ver su ficha.</p></section>
       <section class="panel"><h2>Movimientos</h2><ul class="feed" id="feed"><li><span class="ic">·</span><span>Esperando movimientos…<small>Cada cambio de estado en Autos aparece aquí al instante.</small></span></li></ul></section>
     </aside>
@@ -134,7 +164,7 @@ function drawBase(){
   s+=`<g><rect x="${GATE_OUT.x-58}" y="526" width="116" height="24" rx="6" fill="${css("--good")}"/><text x="${GATE_OUT.x}" y="543" text-anchor="middle" font-size="12" font-weight="700" style="fill:#fff;font-family:var(--f-body)">ENTREGA ▼</text></g>`;
   // zonas
   for(const [k,z] of Object.entries(ZONES)){
-    s+=`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="12" fill="${css(z.fill)}" stroke="${css("--line")}" stroke-width="1.5"/>`;
+    s+=`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="12" fill="${css(z.fill)}" stroke="${({tas:"#4096FF",man:"#BA78FF",pre:"#FFAA46",exh:"#2EE6C5",neg:"#FF5C7A"})[k]}" stroke-opacity=".55" stroke-width="1.5"/>`;
     s+=`<text x="${z.x+14}" y="${z.y+24}" class="zl" font-size="15">${z.t}</text><text x="${z.x+z.w-14}" y="${z.y+24}" text-anchor="end" class="zc" font-size="15" id="cnt_${k}">0</text>`;
     // estacionamientos
     slotsOf(k).forEach(p=>{s+=`<rect x="${p.x-30}" y="${p.y-16}" width="60" height="32" rx="4" fill="none" stroke="${css("--line")}" stroke-width="1" stroke-dasharray="3 3"/>`});
@@ -168,7 +198,7 @@ function carSvg(col){
 function label(d){return [d.marca,d.modelo].filter(Boolean).join(" ")||"Auto sin datos"}
 function makeCar(id,d,demo){
   const el=document.createElement("button");el.type="button";el.className="car"+(demo?" demo":"");
-  el.innerHTML=carSvg(carColor(d,id))+(demo?`<span class="tag">DEMO</span>`:"");
+  el.innerHTML=`<span class="age"></span>`+carSvg(carColor(d,id))+(demo?`<span class="tag">DEMO</span>`:"")+`<span class="dd" hidden></span>`;
   el.setAttribute("aria-label",`${label(d)} ${d.anio||""}, ${d.estado||""}`);
   el.onclick=()=>select(id);
   map.appendChild(el);return el;
@@ -239,8 +269,21 @@ function burst(p,cls,txt){
   const b=document.createElement("div");b.className="burst "+(cls||"");Object.assign(b.style,pct(p));map.appendChild(b);setTimeout(()=>b.remove(),1300);
   if(txt){const t=document.createElement("div");t.className="toast";t.textContent=txt;Object.assign(t.style,pct(p));map.appendChild(t);setTimeout(()=>t.remove(),2300)}
 }
-function counts(){for(const k of Object.keys(ZONES)){const n=[...cars.values()].filter(c=>c.zone===k&&!c.leaving).length;const el=document.getElementById("cnt_"+k);if(el)el.textContent=n}}
+function counts(){setTimeout(()=>typeof paintAges==="function"&&paintAges(),0);for(const k of Object.keys(ZONES)){const n=[...cars.values()].filter(c=>c.zone===k&&!c.leaving).length;const el=document.getElementById("cnt_"+k);if(el)el.textContent=n}}
 
+
+const RULE={"Tasación":[1,2,"Enviar propuesta y agendar firma de mandato"],"Mandato pendiente":[2,3,"Llamar al dueño y cerrar la firma del mandato con rango de precio"],"En preparación":[3,5,"Apurar taller y fotos: cada día sin publicar es venta perdida"],"Publicado":[20,30,"Revisar precio contra la media y proponer ajuste al dueño"],"Con oferta":[2,3,"Contraofertar o cerrar: la oferta se enfría"],"Reservado":[3,5,"Confirmar financiamiento y fecha de entrega"]};
+function etapaDias(d){const ref=String(d.estadoDesde||d.updatedAt||d.fechaIngreso||"").slice(0,10);return dias(ref)??0}
+function salud(d){const r=RULE[d.estado];if(!r)return ["",0];const n=etapaDias(d);return [n>=r[1]?"stuck":n>=r[0]?"warn":"ok",n]}
+function paintAges(){
+  cars.forEach(c=>{if(c.leaving)return;const [k,n]=salud(c.data);c.el.classList.remove("ok","warn","stuck");if(k)c.el.classList.add(k);const dd=c.el.querySelector(".dd");if(dd){dd.hidden=!(k==="warn"||k==="stuck");dd.textContent=n+"d"}});
+  const L=[...cars.values()].filter(c=>!c.leaving).map(c=>({c,s:salud(c.data)})).filter(x=>x.s[0]==="stuck"||x.s[0]==="warn").sort((a,b)=>(b.s[0]==="stuck")-(a.s[0]==="stuck")||b.s[1]-a.s[1]);
+  const ul=$("alerts");
+  ul.innerHTML=L.length?L.map(x=>{const d=x.c.data;return `<li class="${x.s[0]==="stuck"?"":"w"}" data-id="${esc(x.c.id)}"><b>${esc(label(d))} ${esc(d.anio||"")}${x.c.demo?" · DEMO":""}</b><small>${esc(d.estado)} hace ${x.s[1]} día${x.s[1]===1?"":"s"}${d.responsable?" · "+esc(d.responsable):""}</small><span class="ac">→ ${RULE[d.estado][2]}</span></li>`}).join(""):`<li class="w" style="cursor:default;border-color:var(--line);background:none"><b>Todo fluye</b><small>Ningún auto supera el tiempo sano de su etapa.</small></li>`;
+  ul.querySelectorAll("li[data-id]").forEach(li=>li.onclick=()=>select(li.dataset.id));
+  $("alSub").textContent=L.length?`${L.filter(x=>x.s[0]==="stuck").length} detenidos · ${L.filter(x=>x.s[0]==="warn").length} por vencer. Toca uno para verlo en el mapa.`:"Autos detenidos más tiempo del sano en su etapa.";
+  for(const k of Object.keys(ZONES)){const n=[...cars.values()].filter(c=>c.zone===k&&!c.leaving).length,el=document.getElementById("cnt_"+k);if(el)el.textContent=n+"/"+slotsOf(k).length}
+}
 /* ---------- datos ---------- */
 let real=new Map(),demo=new Map(),first=true,selId=null;
 function zoneOf(d){return EST2Z[d.estado]||(d.estado==="Vendido"||d.estado==="Retirado"?null:"tas")}
@@ -266,7 +309,7 @@ function sync(all,isFirst){
     if(selId===id)select(id);
   }
   for(const [id,c] of cars){if(!all.has(id)&&!c.leaving){c.el.remove();cars.delete(id)}}
-  counts();kpis();
+  counts();kpis();paintAges();
 }
 function merged(){const m=new Map();real.forEach((d,id)=>m.set(id,{data:d,demo:false}));demo.forEach((d,id)=>m.set(id,{data:d,demo:true}));return m}
 function kpis(){
@@ -307,12 +350,12 @@ function demoTick(){
   const r=Math.random();
   if(live.length<9&&(r<0.32||live.length<3)){
     const a=DEMO_AUTOS[demoN++%DEMO_AUTOS.length];
-    demo.set("demo-"+demoN,{marca:a[0],modelo:a[1],anio:a[2],color:a[3],estado:"Tasación",fechaIngreso:hoy(),tasacion:(14+Math.floor(Math.random()*12))*1e6,patente:"DEMO"+demoN});
+    demo.set("demo-"+demoN,{marca:a[0],modelo:a[1],anio:a[2],color:a[3],estado:"Tasación",estadoDesde:new Date(Date.now()-Math.floor(Math.random()*4)*864e5).toISOString(),fechaIngreso:hoy(),tasacion:(14+Math.floor(Math.random()*12))*1e6,patente:"DEMO"+demoN});
   }else if(live.length){
     const [id,d]=live[Math.floor(Math.random()*live.length)];
     let i=SEQ.indexOf(d.estado);let next=SEQ[Math.min(SEQ.length-1,i+1)];
     if(d.estado==="Publicado"&&Math.random()<0.12)next="Retirado";
-    const nd={...d,estado:next};if(next==="Vendido"){nd.fechaVenta=hoy();nd.precioVenta=(d.tasacion||15e6)+1.2e6}
+    const nd={...d,estado:next,estadoDesde:new Date(Date.now()-Math.floor(Math.random()*40)*864e5).toISOString()};if(next==="Vendido"){nd.fechaVenta=hoy();nd.precioVenta=(d.tasacion||15e6)+1.2e6}
     demo.set(id,nd);
   }
   for(const [id,d] of [...demo])if((d.estado==="Vendido"||d.estado==="Retirado")&&!cars.has(id))demo.delete(id);

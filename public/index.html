@@ -427,6 +427,33 @@ details:not([open]) .chev{transform:rotate(-90deg)}
 .sgtiles .ptile{cursor:pointer;border-width:2px}
 .sgtiles .ptile[aria-expanded="true"]{box-shadow:0 0 0 3px var(--zc);filter:none}
 .ptile .pgo{margin-top:6px;font-size:12.5px;font-weight:700;color:var(--zc)}
+.sgprog{display:grid;gap:8px;padding:14px 16px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line)}
+.sgpt{font-size:15px}.sgbar{display:block;height:10px;border-radius:999px;background:var(--sunk);overflow:hidden}.sgbar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.sgb{display:grid;gap:10px}.sgbh{display:flex;gap:12px;align-items:flex-start}.sgbh h3{margin:0;font-size:17px}.sgbh p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+.sgbn{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--surface);font-weight:700;font-size:14px}
+.sgkpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px}
+.sgk{display:grid;gap:4px;align-content:start;padding:12px 14px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);min-width:0}
+.sgk.big{grid-column:span 2}@media(max-width:560px){.sgk.big{grid-column:auto}}
+.sgk .l{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--muted)}
+.sgk .v{font-family:var(--f-display);font-size:30px;font-weight:700;line-height:1.05}.sgk .v.alarm{color:var(--bad)}.sgk .s{font-size:12.5px;color:var(--muted)}
+.sgstack{display:flex;height:14px;border-radius:999px;overflow:hidden;gap:2px;margin-top:6px}.sgstack i{display:block;min-width:4px}
+.sgstack .c,.sglg i.c{background:var(--accent)}.sgstack .t,.sglg i.t{background:var(--warn)}.sgstack .f,.sglg i.f{background:var(--muted)}.sgstack .e{background:var(--sunk)}
+.sglg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted)}.sglg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
+.sgheat td,.sgheat th{text-align:center}.sgheat th[scope=row]{text-align:left}
+.sgheat td.h1{background:var(--good-soft,var(--sunk))}.sgheat td.h2{background:var(--warn-soft,var(--sunk));font-weight:700}.sgheat td.h3{background:var(--bad-soft);color:var(--bad);font-weight:700}
+.sgprep ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+.sgday{display:grid;gap:8px}.sgday h3{margin:0;font-size:16px}
+.sgvs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px}
+.sgv{display:flex;gap:12px;padding:12px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);min-width:0}
+.sgvd{flex:0 0 72px;display:grid;align-content:center;justify-items:center;text-align:center;border-radius:8px;background:var(--sunk);padding:6px}
+.sgvd b{font-family:var(--f-display);font-size:26px;line-height:1}.sgvd span{font-size:11.5px;color:var(--muted)}
+.sgvd.hoy{background:var(--accent);color:var(--on-accent)}.sgvd.hoy span{color:inherit}.sgvd.bad{background:var(--bad-soft);color:var(--bad)}.sgvd.bad span{color:inherit}.sgvd.sem{border:2px solid var(--accent)}
+.sgvb{display:grid;gap:4px;min-width:0}.sgvb h4{margin:0;font-size:15.5px}.sgvm{margin:0;font-size:13px;color:var(--muted)}
+.sgsrc{display:grid;gap:10px}.sgsr{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 54px;gap:12px;align-items:center}
+.sgsr .ctr{justify-content:flex-start}
+.sgsl{display:grid;font-weight:600}.sgsl small{font-weight:400;color:var(--muted)}.sgsv{text-align:right;font-weight:700;font-size:18px}
+.sgtop{margin:0;padding:0;list-style:none;display:grid;gap:10px}.sgtop li{display:flex;gap:12px;align-items:flex-start}.sgtop p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.sgtp{flex:0 0 auto;min-width:52px;padding:4px 8px;border-radius:8px;background:var(--sunk);font-weight:700;text-align:center}
 .sghint{margin:4px 0 0;color:var(--muted);font-size:13.5px}
 .sgpanel{display:grid;gap:16px;scroll-margin-top:12px}
 .sgph{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
@@ -1829,23 +1856,111 @@ function vSeg(){
     <button type="button" class="ptile z-res" data-sgt="man" aria-expanded="${F.tile==="man"}" aria-controls="sgpanel"><span class="pl">Mandatos esperados</span><span class="pv num">${esp.toLocaleString("es-CL",{maximumFractionDigits:1})}</span><span class="ps">suma de probabilidades · ${ganMes} firmado${ganMes===1?"":"s"} este mes</span><span class="pgo" aria-hidden="true">${F.tile==="man"?"Ocultar ▴":"Ver detalle ▾"}</span></button>
   </nav>
   ${(()=>{
-    const ctrl=`<section class="panel"><div class="rbar"><div class="field"><label for="sg_cons">Quién contacta</label><select id="sg_cons" data-rcons="1" ${ro}><option value="">—</option>${uniq([...S.equipo,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>
-    <div class="field"><label for="sg_fcons">Ver interesados de</label><select id="sg_fcons" data-sgcons="1"><option value="">Todo el equipo</option>${nombres.map(p=>`<option ${p===F.cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>
-    </div><div class="chips">${[["radar","Solo del Radar"],["todas","Radar y llamadas directas"]].map(([k,l])=>`<button type="button" data-sgo="${k}" aria-pressed="${F.orig===k}">${l}</button>`).join("")}</div></section>`;
-    const lista=(arr,vacio)=>!S.segLoaded&&S.db?`<p class="none">Cargando llamadas…</p>`:arr.length?`<div class="rlist">${arr.map(sgCard).join("")}</div>`:`<div class="empty"><h3>${vacio[0]}</h3><p>${vacio[1]}</p></div>`;
-    const sinInt=["Aún no hay interesados","Cuando registres en el Radar “Interesado · seguimiento”, “Tiene prenda” o “Agendó tasación”, el contacto aparece aquí con su puntaje y su próxima fecha."];
     if(!F.tile)return `<p class="sghint">Toca un cuadro para ver su detalle.</p>`;
+    if(!S.segLoaded&&S.db)return `<p class="none">Cargando llamadas…</p>`;
+    const auto=x=>`${[x.g.last.marca,x.g.last.modelo].filter(Boolean).join(" ")||"Vehículo sin datos"} ${x.g.last.anio||""}`.trim();
+    const dSin=x=>dias(x.g.last.fecha,t);
+    const temp=x=>x.sc.label==="CALIENTE"?["Caliente","hoy"]:x.sc.label==="TIBIO"?["Tibio","sem"]:["Frío","tar"];
+    const ctrlCons=`<div class="field"><label for="sg_cons">Quién contacta</label><select id="sg_cons" data-rcons="1" ${ro}><option value="">—</option>${uniq([...S.equipo,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`;
+    const ctrlVer=`<div class="field"><label for="sg_fcons">Ver interesados de</label><select id="sg_fcons" data-sgcons="1"><option value="">Todo el equipo</option>${nombres.map(p=>`<option ${p===F.cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`;
+    const ctrlOrig=`<div class="chips">${[["radar","Solo del Radar"],["todas","Radar y llamadas directas"]].map(([k,l])=>`<button type="button" data-sgo="${k}" aria-pressed="${F.orig===k}">${l}</button>`).join("")}</div>`;
+    const ctrl=(conCons)=>`<section class="panel"><div class="rbar">${conCons?ctrlCons:""}${ctrlVer}</div>${ctrlOrig}</section>`;
+    const vacio=(h,p)=>`<div class="empty"><h3>${h}</h3><p>${p}</p></div>`;
     let head,body;
-    if(F.tile==="hoy"){head=["Para hoy","Vencidos, sin fecha y los que tocan hoy, del más urgente al menos urgente."];
-      body=`${frios||sinFecha||ciclo?`<div class="fixes">${sinFecha?`<span class="fix on"><b class="num">${sinFecha}</b>sin próxima fecha</span>`:""}${frios?`<span class="fix on"><b class="num">${frios}</b>se enfrían: 2+ días sin contacto</span>`:""}${ciclo?`<span class="fix on"><b class="num">${ciclo}</b>con 3 intentos sin respuesta</span>`:""}</div>`:""}${ctrl}${lista(cola.slice().sort((a,b)=>b.p-a.p||b.sc.total-a.sc.total),rows.length?["Nada pendiente para hoy","Todos los interesados tienen su próximo contacto más adelante. Usa el tiempo para el Radar."]:sinInt)}<div class="sgcols">${sgRut("d-"+t,"Rutina diaria",fmtD(t),[["venc","Atender primero los vencidos y los sin fecha",venc],["conf","Confirmar las tasaciones de hoy y mañana",confirmar],["frio","Escribir a los que se enfrían: un mensaje, una sola pregunta",frios],["reg","Registrar cada contacto aquí, no solo en WhatsApp",null],["fecha","Cerrar el día con todos los interesados con próxima fecha",sinFecha]])}</div>`}
-    else if(F.tile==="cap"){head=["Interesados activos","Todos los que siguen en juego, ordenados por puntaje."];
-      body=`${ctrl}${lista(rows.slice().sort((a,b)=>b.sc.total-a.sc.total),sinInt)}<section class="zone z-res"><header class="zh"><span class="zn">2</span><div class="zt"><h2>Por consignador</h2><p>Quién convierte interés en tasación.</p></div></header>
-    <div class="zb">${consTbl}<p class="zfoot">Se cuenta a quien registró el primer interés.</p></div></section>`}
-    else if(F.tile==="agen"){head=["Tasaciones agendadas","Ordenadas por fecha de la visita. Confirma las de hoy y mañana."];
-      body=`${ctrl}${lista(agen.slice().sort((a,b)=>(a.g.prox||"0").localeCompare(b.g.prox||"0")),["Sin tasaciones agendadas","Cuando alguien registre “Agendó tasación” con la fecha de la visita, aparece aquí."])}`}
-    else{head=["Mandatos esperados","Dónde se cae el embudo, la revisión de la semana y del mes, y cómo se calcula la probabilidad."];
-      body=`<section class="zone z-cap"><header class="zh"><span class="zn">1</span><div class="zt"><h2>Embudo de interesados</h2><p>Objetivo: que cada interesado llegue a tasación y la tasación a mandato.</p></div></header>
-    <div class="zb">${embudo}</div></section><div class="sgcols">${sgRut("w-"+lun,"Revisión semanal","semana del "+fmtD(lun),[["emb","Mirar dónde se cae el embudo",peor>0?fun[peor-1][0]+" → "+fun[peor][0]:"sin datos"],["ciclo","Cerrar ciclo con quien lleva 3 intentos sin respuesta",ciclo],["cons","Comparar el % a tasación por consignador y copiar lo que funciona",null],["sem","Anotar la objeción y el experimento en la pestaña Semanas",null]])}${sgRut("m-"+mk,"Revisión mensual",MESES[pd(t).getMonth()],[["prob","Revisar si la probabilidad propia ya reemplaza a la referencia",resueltos+" casos cerrados"],["fuente","Decidir qué fuente del Radar escalar y cuál cortar",null],["plant","Convertir el mensaje que más tasaciones agenda en plantilla",null]])}</div>  <details class="zone z-det" data-gopen="sg_metodo" ${S.gopen.sg_metodo?"open":""}>
+
+    if(F.tile==="hoy"){
+      /* Objetivo: atender hoy a todos los que tocan, en el orden correcto. Única vista con fichas para registrar. */
+      head=["Para hoy","Tu lista de trabajo: en qué orden llamar y qué hacer con cada uno. Registra aquí mismo cada contacto."];
+      const hechos=rows.filter(x=>x.g.last.fecha===t&&!cola.includes(x)).length,tot=hechos+cola.length;
+      const used=new Set(),take=f=>{const a=cola.filter(x=>!used.has(x)&&f(x)).sort((a,b)=>b.p-a.p||b.sc.total-a.sc.total);a.forEach(x=>used.add(x));return a};
+      const B=[
+        ["Tasaciones de hoy y mañana","Confirma la hora por WhatsApp. Una visita sin confirmar es la que más se cae.",take(x=>x.g.etapa>=3&&(x.g.prox===t||x.g.prox===man))],
+        ["Vencidos","Tenían fecha y no se llamaron. Primero el más atrasado.",take(x=>x.g.prox&&x.g.prox<t)],
+        ["Sin próxima fecha","Llámalos y deja una fecha antes de colgar.",take(x=>!x.g.prox)],
+        ["Tocan hoy o se están enfriando","Un mensaje corto con una sola pregunta.",take(()=>true)]];
+      body=`<div class="sgprog"><div class="sgpt"><b class="num">${hechos} de ${tot}</b> atendidos hoy${cola.length?` · faltan <b class="num">${cola.length}</b>`:tot?" · <b>¡día al día!</b>":""}</div><span class="sgbar" role="img" aria-label="${pct(hechos,tot)}% atendido"><i style="width:${pct(hechos,tot)}%"></i></span></div>
+        ${ctrl(true)}
+        ${cola.length?B.filter(b=>b[2].length).map(([h,tip,a],i)=>`<section class="sgb"><div class="sgbh"><span class="sgbn num">${i+1}</span><div><h3>${h} <span class="num">· ${a.length}</span></h3><p>${tip}</p></div></div><div class="rlist">${a.map(sgCard).join("")}</div></section>`).join(""):vacio(rows.length?"Nada pendiente para hoy":"Aún no hay interesados",rows.length?"Todos los interesados tienen su próximo contacto más adelante. Usa el tiempo para el Radar.":"Cuando registres en el Radar “Interesado · seguimiento”, “Tiene prenda” o “Agendó tasación”, el contacto aparece aquí.")}
+        <div class="sgcols">${sgRut("d-"+t,"Rutina diaria",fmtD(t),[["venc","Atender primero los vencidos y los sin fecha",venc],["conf","Confirmar las tasaciones de hoy y mañana",confirmar],["frio","Escribir a los que se enfrían: un mensaje, una sola pregunta",frios],["reg","Registrar cada contacto aquí, no solo en WhatsApp",null],["fecha","Cerrar el día con todos los interesados con próxima fecha",sinFecha]])}</div>`;
+    }
+
+    else if(F.tile==="cap"){
+      /* Objetivo: diagnosticar la salud de la cartera: dónde está el interés y cuánto se está enfriando. Sin fichas: vista de conjunto. */
+      head=["Interesados activos","La salud de la cartera: qué tan calientes están, en qué etapa y cuánto tiempo llevan sin contacto."];
+      const T={c:rows.filter(x=>x.sc.label==="CALIENTE").length,ti:rows.filter(x=>x.sc.label==="TIBIO").length,f:rows.filter(x=>x.sc.label==="FRÍO").length},n=Math.max(1,rows.length);
+      const COLS=[["0–1 día",0,1],["2–7 días",2,7],["8–14 días",8,14],["15+ días",15,1e9]];
+      const cell=(e,c)=>rows.filter(x=>x.g.etapa===e&&dSin(x)>=c[1]&&dSin(x)<=c[2]).length;
+      const prenda=rows.filter(x=>x.g.cs.some(c=>c.resultado==="Tiene prenda")).length;
+      const enfr=rows.filter(x=>dSin(x)>=8).length;
+      const tbl=rows.slice().sort((a,b)=>dSin(b)-dSin(a)||b.sc.total-a.sc.total);
+      body=`${ctrl(false)}
+        <div class="sgkpis">
+          <div class="sgk"><span class="l">Temperatura</span>
+            <span class="sgstack" role="img" aria-label="${T.c} calientes, ${T.ti} tibios, ${T.f} fríos">${T.c?`<i class="c" style="flex:${T.c}"></i>`:""}${T.ti?`<i class="t" style="flex:${T.ti}"></i>`:""}${T.f?`<i class="f" style="flex:${T.f}"></i>`:""}${rows.length?"":`<i class="e" style="flex:1"></i>`}</span>
+            <span class="sglg"><span><i class="c"></i>Calientes <b class="num">${T.c}</b></span><span><i class="t"></i>Tibios <b class="num">${T.ti}</b></span><span><i class="f"></i>Fríos <b class="num">${T.f}</b></span></span></div>
+          <div class="sgk"><span class="l">Se están enfriando</span><span class="v num${enfr?" alarm":""}">${enfr}</span><span class="s">${pct(enfr,n)}% lleva 8 días o más sin contacto</span></div>
+          <div class="sgk"><span class="l">Con prenda</span><span class="v num">${prenda}</span><span class="s">requieren revisar deuda antes del mandato</span></div>
+          <div class="sgk"><span class="l">3 intentos sin respuesta</span><span class="v num">${ciclo}</span><span class="s">cerrar ciclo si no hay razón nueva</span></div>
+        </div>
+        <section class="panel"><div class="sec-head"><h2 style="font-size:18px">Etapa × días sin contacto</h2><p>Mientras más a la derecha, más se enfría. Rojo = hay que moverlo ya.</p></div>
+          <div class="tbl"><table class="sgheat"><thead><tr><th>Etapa</th>${COLS.map(c=>`<th>${c[0]}</th>`).join("")}<th>Total</th></tr></thead><tbody>
+          ${[2,3,4].map(e=>`<tr><th scope="row">${SG_ET[e]}</th>${COLS.map((c,i)=>{const v=cell(e,c);return `<td class="num ${v?(i>=2?"h3":i===1?"h2":"h1"):""}">${v||"·"}</td>`}).join("")}<td class="num"><b>${rows.filter(x=>x.g.etapa===e).length}</b></td></tr>`).join("")}
+          </tbody></table></div></section>
+        <section class="panel"><div class="sec-head"><h2 style="font-size:18px">Toda la cartera</h2><p>Ordenada por días sin contacto: arriba los que más riesgo tienen de perderse.</p></div>
+          ${tbl.length?`<div class="tbl"><table><thead><tr><th>Auto</th><th>Etapa</th><th>Temperatura</th><th>Puntaje</th><th>Sin contacto</th><th>Próximo contacto</th><th>Quién</th><th>% mandato</th></tr></thead><tbody>
+          ${tbl.map(x=>{const b=temp(x),d=dSin(x);return `<tr><td>${esc(auto(x))}</td><td>${SG_ET[x.g.etapa]}</td><td><span class="bd ${b[1]}">${b[0]}</span></td><td class="num">${x.sc.total}</td><td class="num"${d>=8?' style="color:var(--bad);font-weight:700"':""}>${d} d</td><td${x.g.prox&&x.g.prox<t||!x.g.prox?' style="color:var(--bad)"':""}>${x.g.prox?fmtD(x.g.prox)+(x.g.prox<t?" · vencido":""):"sin fecha"}</td><td>${esc(x.g.last.consignador||"—")}</td><td class="num">${Math.round(x.pr*100)}%</td></tr>`}).join("")}
+          </tbody></table></div>`:`<p class="none">Aún no hay interesados activos.</p>`}
+          <p class="zfoot">Para registrar un contacto, usa el cuadro Para hoy.</p></section>
+        <section class="zone z-res"><header class="zh"><span class="zn">⇄</span><div class="zt"><h2>Por consignador</h2><p>Quién convierte interés en tasación.</p></div></header>
+          <div class="zb">${consTbl}<p class="zfoot">Se cuenta a quien registró el primer interés.</p></div></section>`;
+    }
+
+    else if(F.tile==="agen"){
+      /* Objetivo: que cada visita ocurra y termine en mandato. Vista de agenda por día + tasadas sin mandato. */
+      head=["Tasaciones agendadas","La agenda de visitas por día, con el mensaje de confirmación listo, y las tasaciones que ya se hicieron y esperan mandato."];
+      const lim=sgPlus(t,7),srt=a=>a.slice().sort((a,b)=>(a.g.prox||"9").localeCompare(b.g.prox||"9"));
+      const D=[["La visita ya pasó: registra si se hizo","bad",agen.filter(x=>x.g.prox&&x.g.prox<t)],["Hoy","hoy",agen.filter(x=>x.g.prox===t)],["Mañana","sem",agen.filter(x=>x.g.prox===man)],
+        ["Próximos 7 días","",agen.filter(x=>x.g.prox>man&&x.g.prox<=lim)],["Más adelante","",agen.filter(x=>x.g.prox>lim)],["Sin fecha: fíjala","bad",agen.filter(x=>!x.g.prox)]];
+      const hechas=rows.filter(x=>x.g.etapa===4).sort((a,b)=>dSin(b)-dSin(a));
+      const a3=gs.filter(g=>g.maxN>=3),a4=a3.filter(g=>g.maxN>=4),a5=a3.filter(g=>g.maxN>=5);
+      const wd=k=>{const d=pd(k);return d?d.toLocaleDateString("es-CL",{weekday:"short"}):""};
+      const visita=(x,tipo)=>{const L=x.g.last,r=x.g.r;return `<article class="sgv"><div class="sgvd ${tipo}"><b class="num">${x.g.prox?pd(x.g.prox).getDate():"?"}</b><span>${x.g.prox?wd(x.g.prox)+" "+MES3[pd(x.g.prox).getMonth()]:"sin fecha"}</span></div>
+        <div class="sgvb"><h4>${esc(auto(x))}</h4><p class="sgvm">${esc(L.consignador||"—")}${L.precioPide?` · pide <span class="num">${clp(L.precioPide)}</span>`:""}${r&&r.med?` · media <span class="num">${clp(r.med)}</span>`:""}${r&&r.comuna?` · ${esc(r.comuna)}`:""}${L.fuente?` · ${esc(L.fuente)}`:""}</p>
+        <div class="racts">${x.g.prox&&x.g.prox>=t?`<button type="button" class="btn sm" data-sgconf="${esc(x.g.k)}">Copiar mensaje de confirmación</button>`:""}${r&&r.url?`<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}${S.canWrite?`<button type="button" class="btn sm" data-sgauto="${esc(x.g.k)}">Pasar a Autos</button>`:""}</div></div></article>`};
+      body=`<div class="sgkpis">
+          <div class="sgk"><span class="l">Agendadas</span><span class="v num">${agen.length}</span><span class="s">${confirmar} por confirmar hoy o mañana</span></div>
+          <div class="sgk"><span class="l">Se hicieron</span><span class="v num">${a3.length?pct(a4.length,a3.length)+"%":"—"}</span><span class="s">${a4.length} de ${a3.length} agendadas históricas</span></div>
+          <div class="sgk"><span class="l">Terminaron en mandato</span><span class="v num">${a3.length?pct(a5.length,a3.length)+"%":"—"}</span><span class="s">${a5.length} de ${a3.length} agendadas</span></div>
+          <div class="sgk"><span class="l">Tasadas sin mandato</span><span class="v num${hechas.length?" alarm":""}">${hechas.length}</span><span class="s">el paso más caro de perder</span></div>
+        </div>
+        <section class="panel sgprep"><h2 style="font-size:16px;margin:0">Antes de cada visita</h2><ul><li>Confirma la hora el día anterior o la misma mañana.</li><li>Lleva el rango de precio referencial y el mandato listo para firmar.</li><li>Revisa estado, daños y pinturas frente al dueño y anótalo.</li><li>Pregunta por prenda o deuda antes de hablar de precio final.</li></ul></section>
+        ${agen.length?D.filter(d=>d[2].length).map(([h,tipo,a])=>`<section class="sgday"><h3>${h} <span class="num">· ${a.length}</span></h3><div class="sgvs">${srt(a).map(x=>visita(x,tipo)).join("")}</div></section>`).join(""):vacio("Sin tasaciones agendadas","Cuando alguien registre “Agendó tasación” con la fecha de la visita, aparece aquí en su día.")}
+        <section class="sgday"><h3>Tasadas, falta el mandato <span class="num">· ${hechas.length}</span></h3>
+          ${hechas.length?`<div class="sgvs">${hechas.map(x=>`<article class="sgv"><div class="sgvd ${dSin(x)>=3?"bad":""}"><b class="num">${dSin(x)}</b><span>días desde la tasación</span></div><div class="sgvb"><h4>${esc(auto(x))}</h4><p class="sgvm">${esc(x.g.last.consignador||"—")} · ${Math.round(x.pr*100)}% de probabilidad de mandato</p><p class="sgvm">Siguiente paso: acordar el rango de precio y firmar el mandato. La tasación es referencial; dilo así.</p></div></article>`).join("")}</div>`:`<p class="none">Ninguna tasación hecha esperando mandato.</p>`}</section>
+        <p class="zfoot">Para registrar el resultado de una visita, usa el cuadro Para hoy: las visitas de hoy, mañana y las vencidas aparecen ahí primero.</p>`;
+    }
+
+    else{
+      /* Objetivo: pronóstico. Cuántos mandatos vienen, de dónde y qué los está bajando. */
+      head=["Mandatos esperados","El pronóstico: cuántos mandatos deberían salir de la cartera actual, de qué etapa vienen y cuánto se pierde por no contactar a tiempo."];
+      const porEt=[2,3,4].map(e=>{const a=rows.filter(x=>x.g.etapa===e);const s=a.reduce((z,x)=>z+x.pr,0);return {e,n:a.length,s,p:a.length?s/a.length:0}});
+      const potencial=rows.reduce((z,x)=>z+R[x.g.etapa].p,0),perdida=Math.max(0,potencial-esp);
+      const top=rows.slice().sort((a,b)=>b.pr-a.pr).slice(0,5);
+      const paso={2:"Agendar la tasación",3:"Confirmar y hacer la tasación",4:"Acordar rango de precio y firmar mandato"};
+      const f1=n=>n.toLocaleString("es-CL",{maximumFractionDigits:1});
+      body=`<div class="sgkpis">
+          <div class="sgk big"><span class="l">Mandatos esperados de la cartera</span><span class="v num">≈ ${f1(esp)}</span><span class="s">suma de probabilidades de ${rows.length} interesado${rows.length===1?"":"s"} activo${rows.length===1?"":"s"}</span></div>
+          <div class="sgk"><span class="l">Firmados este mes</span><span class="v num">${ganMes}</span><span class="s">mandatos que salieron de Seguimiento</span></div>
+          <div class="sgk"><span class="l">Perdido por demora</span><span class="v num${perdida>=0.3?" alarm":""}">${f1(perdida)}</span><span class="s">mandatos que se recuperan contactando a tiempo a los atrasados</span></div>
+        </div>
+        <section class="panel"><div class="sec-head"><h2 style="font-size:18px">De dónde vienen</h2><p>Cada etapa aporta interesados × su probabilidad.</p></div>
+          <div class="sgsrc">${porEt.map(o=>`<div class="sgsr"><span class="sgsl">${SG_ET[o.e]}<small>${o.n} × ${Math.round(o.p*100)}% promedio</small></span><span class="ctr"><i class="c${o.e-1}" style="width:${esp?Math.max(o.s?3:0,o.s/esp*100):0}%"></i></span><span class="sgsv num">${f1(o.s)}</span></div>`).join("")}</div></section>
+        <section class="panel"><div class="sec-head"><h2 style="font-size:18px">Dónde está el próximo mandato</h2><p>Los 5 con más probabilidad y el paso que falta para cada uno.</p></div>
+          ${top.length?`<ol class="sgtop">${top.map(x=>{const ry=[dSin(x)>2?`${dSin(x)} días sin contacto`:"",x.g.prox&&x.g.prox<t?"fecha vencida":"",x.g.trail>=3?"3 intentos sin respuesta":""].filter(Boolean);return `<li><span class="sgtp num">${Math.round(x.pr*100)}%</span><div><b>${esc(auto(x))}</b> · ${SG_ET[x.g.etapa]} · ${esc(x.g.last.consignador||"—")}<p>Falta: <b>${paso[x.g.etapa]}</b>${ry.length?` · <span style="color:var(--bad)">lo baja: ${ry.join(", ")}</span>`:""}</p></div></li>`}).join("")}</ol>`:`<p class="none">Sin interesados activos todavía.</p>`}</section>
+        <section class="zone z-cap"><header class="zh"><span class="zn">↓</span><div class="zt"><h2>Embudo de interesados</h2><p>Dónde se cae el paso de interés a mandato.</p></div></header>
+          <div class="zb">${embudo}</div></section>
+        <div class="sgcols">${sgRut("w-"+lun,"Revisión semanal","semana del "+fmtD(lun),[["emb","Mirar dónde se cae el embudo",peor>0?fun[peor-1][0]+" → "+fun[peor][0]:"sin datos"],["ciclo","Cerrar ciclo con quien lleva 3 intentos sin respuesta",ciclo],["cons","Comparar el % a tasación por consignador y copiar lo que funciona",null],["sem","Anotar la objeción y el experimento en la pestaña Semanas",null]])}${sgRut("m-"+mk,"Revisión mensual",MESES[pd(t).getMonth()],[["prob","Revisar si la probabilidad propia ya reemplaza a la referencia",resueltos+" casos cerrados"],["fuente","Decidir qué fuente del Radar escalar y cuál cortar",null],["plant","Convertir el mensaje que más tasaciones agenda en plantilla",null]])}</div>
+        <details class="zone z-det" data-gopen="sg_metodo" ${S.gopen.sg_metodo?"open":""}>
    <summary class="zh"><span class="zn">?</span><div class="zt"><h2>Cómo se calcula</h2><p>Puntaje, probabilidad y fechas sugeridas</p></div><span class="chev" aria-hidden="true">▾</span></summary>
    <div class="zb">
     <ul class="insights"><li><b>Puntaje 0–100:</b> intención según la etapa (interesado 20, tasación agendada 32, tasación hecha 40) + rapidez del último contacto (hasta 20) + calidad del aviso según su rate de consignación (hasta 25) + tener próxima fecha vigente (15). Caliente desde 70, tibio desde 45.</li>
@@ -1853,7 +1968,8 @@ function vSeg(){
     <li><b>Fecha sugerida:</b> cadencia de 1, 3, 7, 14 y 30 días desde el primer interés, sin domingos. Para “Agendó tasación” hay que poner la fecha de la visita.</li>
     <li>La tasación y el precio son siempre referenciales; dilo así al dueño.</li></ul>
     ${probTbl}
-   </div></details>`}
+   </div></details>`;
+    }
     return `<section id="sgpanel" class="sgpanel" aria-label="${head[0]}"><div class="sgph"><div><h2>${head[0]}</h2><p>${head[1]}</p></div><button type="button" class="btn sm" data-sgt="${F.tile}">Cerrar</button></div>${body}</section>`;
   })()}`;
 }
@@ -2206,6 +2322,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.ctsort){const k=t.dataset.ctsort;if(S.ctSort===k)S.ctDir=-(S.ctDir||-1);else{S.ctSort=k;S.ctDir=k==="k"?1:-1}render();return}
   if(t.dataset.ctexp){ctSaveExp(t);return}
   if(t.dataset.sgv){S.sgf.vista=t.dataset.sgv;render();return}
+  if(t.dataset.sgconf){const g=S.sgMap&&S.sgMap.get(t.dataset.sgconf);if(g){const L=g.last,a=[L.marca,L.modelo].filter(Boolean).join(" ")||"auto",tt=hoy(),c=g.prox===tt?"hoy":g.prox===sgPlus(tt,1)?"mañana":"el "+fmtD(g.prox);copyText(`Hola, te escribo de Ansar Automotriz para confirmar la tasación de tu ${a} ${c}. ¿Sigue en pie a la hora que acordamos? La tasación es referencial y sin compromiso.`,"Mensaje de confirmación copiado")}return}
   if(t.dataset.sgt){S.sgf.tile=S.sgf.tile===t.dataset.sgt?"":t.dataset.sgt;render();return}
   if(t.dataset.sgo){S.sgf.orig=t.dataset.sgo;render();return}
   if(t.dataset.sgreg){regSeg(t.dataset.sgreg,t);return}

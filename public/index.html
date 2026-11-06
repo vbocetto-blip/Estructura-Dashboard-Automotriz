@@ -1003,9 +1003,12 @@ const esSitio=()=>!!window.__ANSAR_SITE;
 function respaldoHtml(){
   return `<section class="panel"><div class="sec-head"><h2 style="font-size:20px">Respaldo y traspaso</h2><p>Solo administradores</p></div>
   ${esSitio()?`<p style="margin:0">Carga aquí el archivo de respaldo descargado desde el tablero de Claude. Los registros con el mismo identificador se reemplazan; no se borra nada.</p>
-    <div class="filters"><input type="file" id="respFile" accept=".json,application/json"><button type="button" class="btn primary" id="btnImport">Importar respaldo</button></div>`
+    <div class="filters"><input type="file" id="respFile" accept=".json,application/json"></div>
+    <div class="field"><label for="respPaste">O pega aquí el respaldo copiado desde el tablero de Claude</label><textarea id="respPaste" rows="4" placeholder="Pega el respaldo (Ctrl+V)"></textarea></div>
+    <div class="filters"><button type="button" class="btn primary" id="btnImport">Importar respaldo</button></div>`
   :`<p style="margin:0">Descarga todos los datos del tablero (autos, llamadas, radar, virtual, semanas y configuración) en un archivo JSON. Sirve como respaldo y para traspasarlos al sitio propio. Contiene datos personales de clientes: guárdalo en un lugar seguro y no lo compartas.</p>
-    <div class="filters"><button type="button" class="btn primary" id="btnExport">Descargar respaldo completo</button></div>`}
+    <div class="filters"><button type="button" class="btn primary" id="btnExport">Descargar respaldo completo</button><button type="button" class="btn" id="btnCopyResp">Copiar respaldo</button></div>
+    <textarea id="respOut" rows="4" readonly hidden aria-label="Respaldo para copiar"></textarea>`}
   <p class="none" id="respMsg" style="font-style:normal;margin:0"></p></section>`;
 }
 /* ---------- Usuarios del sitio propio (solo administradores) ---------- */
@@ -1026,12 +1029,25 @@ async function usrPost(path,body,ok){
     if(!r.ok){toast(j.error==="no_puedes_quitarte_admin"?"No puedes quitarte tu propio acceso de administrador":j.error==="correo_invalido"?"Revisa el correo":"No se pudo guardar");return false}
     toast(ok);await cargarUsuarios();return true}catch(_){toast("Sin conexión");return false}
 }
+async function armarRespaldo(){
+  const out={formato:"ansar-respaldo-1",exportadoEn:new Date().toISOString(),colecciones:{}};let n=0;
+  for(const c of RESP_COLS){const snap=await S.db.collection(c).get();out.colecciones[c]={};snap.docs.forEach(d=>{out.colecciones[c][d.id]=d.data();n++})}
+  out.colecciones.config={};for(const id of RESP_CONFIG){const d=await S.db.doc("config/"+id).get();if(d.exists){out.colecciones.config[id]=d.data();n++}}
+  return {out,n};
+}
+async function copiarRespaldo(btn){
+  if(!S.db)return;btn.disabled=true;const msg=$("#respMsg"),ta=$("#respOut");if(msg)msg.textContent="Reuniendo datos…";
+  try{const {out,n}=await armarRespaldo();const txt=JSON.stringify(out);
+    if(ta){ta.value=txt;ta.hidden=false}
+    try{await navigator.clipboard.writeText(txt);if(msg)msg.textContent=`Respaldo copiado: ${n} registros. Ahora pégalo en el sitio nuevo.`}
+    catch(_){if(ta){ta.focus();ta.select()}if(msg)msg.textContent=`Respaldo listo (${n} registros): está seleccionado en el cuadro; cópialo con Ctrl+C.`}
+  }catch(e){if(msg)msg.textContent="No se pudo armar el respaldo. Inténtalo de nuevo."}
+  btn.disabled=false;
+}
 async function exportarRespaldo(btn){
   if(!S.db)return;btn.disabled=true;const msg=$("#respMsg");if(msg)msg.textContent="Reuniendo datos…";
   try{
-    const out={formato:"ansar-respaldo-1",exportadoEn:new Date().toISOString(),colecciones:{}};let n=0;
-    for(const c of RESP_COLS){const snap=await S.db.collection(c).get();out.colecciones[c]={};snap.docs.forEach(d=>{out.colecciones[c][d.id]=d.data();n++})}
-    out.colecciones.config={};for(const id of RESP_CONFIG){const d=await S.db.doc("config/"+id).get();if(d.exists){out.colecciones.config[id]=d.data();n++}}
+    const {out,n}=await armarRespaldo();
     const dl=await window.claude.use("downloads");if(!dl){if(msg)msg.textContent="Esta vista no permite descargar archivos. Ábrela desde claude.ai.";btn.disabled=false;return}
     await dl.save({filename:`respaldo-consignaciones-${hoy()}.json`,data:new Blob([JSON.stringify(out)])});
     if(msg)msg.textContent=`Respaldo descargado: ${n} registros.`;
@@ -1039,10 +1055,10 @@ async function exportarRespaldo(btn){
   btn.disabled=false;
 }
 async function importarRespaldo(btn){
-  const f=($("#respFile")||{}).files?.[0],msg=$("#respMsg");if(!f){toast("Elige el archivo de respaldo");return}
+  const f=($("#respFile")||{}).files?.[0],pegado=(($("#respPaste")||{}).value||"").trim(),msg=$("#respMsg");if(!f&&!pegado){toast("Elige el archivo o pega el respaldo");return}
   btn.disabled=true;if(msg)msg.textContent="Importando…";
   try{
-    const j=JSON.parse(await f.text());if(j.formato!=="ansar-respaldo-1")throw new Error("formato");
+    const j=JSON.parse(f?await f.text():pegado);if(j.formato!=="ansar-respaldo-1")throw new Error("formato");
     const r=await fetch("/api/import",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify(j)});
     const res=await r.json();if(!r.ok)throw new Error(res.error||r.status);
     if(msg)msg.textContent=`Importados ${res.total} registros. La pantalla se actualiza sola en unos segundos.`;toast("Respaldo importado");
@@ -2227,6 +2243,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.tf){S.tomaFiltro=t.dataset.tf;render();return}
   if(t.id==="btnPfb"){savePfb(t);return}
   if(t.id==="btnExport"){exportarRespaldo(t);return}
+  if(t.id==="btnCopyResp"){copiarRespaldo(t);return}
   if(t.dataset.ureset){usrPost("usuarios/reset",{email:t.dataset.ureset},"Contraseña reiniciada: la persona entra con “Primer acceso”");return}
   if(t.dataset.uact){const x=(S.usuarios||[]).find(u=>u.email===t.dataset.uact);if(x)usrPost("usuarios",{email:x.email,nombre:x.nombre,rol:x.rol,activo:t.dataset.on==="1"},t.dataset.on==="1"?"Usuario activado":"Usuario desactivado");return}
   if(t.id==="btnImport"){importarRespaldo(t);return}

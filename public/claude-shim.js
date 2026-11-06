@@ -132,6 +132,15 @@
     };
     draw(); document.body.appendChild(box);
   }
+  /* Prueba de rendimiento: marca un minuto activo si la pestaña está visible y hubo interacción en los últimos 2 minutos. */
+  function latidos() {
+    if (window.__ansarLatido) return; window.__ansarLatido = true;
+    let ult = Date.now();
+    ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach(ev => addEventListener(ev, () => { ult = Date.now(); }, { passive: true, capture: true }));
+    const pag = location.pathname.includes("patio") ? "patio" : "tablero";
+    const tick = () => { if (document.visibilityState === "visible" && Date.now() - ult < 120000) fetch("/api/latido", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ pagina: pag }), keepalive: true }).catch(() => {}); };
+    setInterval(tick, 60000); setTimeout(tick, 5000);
+  }
   function logoutButton() {
     const row = document.querySelector(".toprow"); if (!row || document.getElementById("btnSalir")) return;
     const b = document.createElement("button"); b.className = "btn"; b.id = "btnSalir"; b.type = "button"; b.textContent = "Salir";
@@ -142,7 +151,7 @@
     const go = fn => document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", fn) : fn();
     if (!j) { go(() => loginScreen()); return null; }
     if (j._sinAcceso) { go(() => loginScreen("Tu correo no está autorizado. Pide acceso a un administrador.")); return null; }
-    me = j; window.__ANSAR_ROL = j.rol; window.__ANSAR_NOMBRE = j.nombre || ""; go(logoutButton); return j;
+    me = j; window.__ANSAR_ROL = j.rol; window.__ANSAR_NOMBRE = j.nombre || ""; go(logoutButton); latidos(); return j;
   }).catch(() => null);
   window.__ANSAR_SITE = true;
   window.claude = { use: async name => { const m = await ready; if (!m) return null; return name === "db" ? db : name === "user" ? user : null; } };

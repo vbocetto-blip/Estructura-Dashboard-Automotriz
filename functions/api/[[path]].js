@@ -111,6 +111,20 @@ export async function onRequest(ctx) {
 
   if (path === "me") return json({ email: u.email, nombre: u.nombre, rol: u.rol });
 
+  /* Prueba de rendimiento: un latido por minuto activo (pestaña visible + interacción reciente). Solo minuto sí/no, sin contenido. */
+  if (path === "latido" && request.method === "POST") {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()).map(x => [x.type, x.value]));
+    let pag = ""; try { pag = String((await request.json()).pagina || "").slice(0, 20); } catch {}
+    await env.DB.prepare("INSERT INTO actividad (email,dia,minuto,pagina) VALUES (?,?,?,?) ON CONFLICT DO NOTHING").bind(u.email, `${p.year}-${p.month}-${p.day}`, `${p.hour === "24" ? "00" : p.hour}:${p.minute}`, pag).run();
+    return json({ ok: true });
+  }
+  if (path === "actividad" && request.method === "GET") {
+    if (u.rol !== "admin") return json({ error: "sin_permiso" }, 403);
+    const desde = /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get("desde") || "") ? url.searchParams.get("desde") : "2000-01-01";
+    const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, COUNT(*) AS minutos, MIN(a.minuto) AS desde, MAX(a.minuto) AS hasta FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.dia>=? GROUP BY a.email, a.dia ORDER BY a.dia").bind(desde).all();
+    return json({ filas: rs.results });
+  }
+
   if (path === "usuarios" || path === "usuarios/reset") {
     if (u.rol !== "admin") return json({ error: "sin_permiso" }, 403);
     if (request.method === "GET" && path === "usuarios") {

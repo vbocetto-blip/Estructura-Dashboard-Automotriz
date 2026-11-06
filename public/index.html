@@ -424,6 +424,7 @@ details:not([open]) .chev{transform:rotate(-90deg)}
 .z-res .bar.in{background:var(--info)} .z-res .bar.out{background:var(--good)}
 .z-res .bar{width:30%}
 /* Seguimiento */
+a.btn{text-decoration:none;color:inherit}
 .lbl3{font-size:12px;font-weight:600;color:var(--muted)}.consfijo{display:grid;padding:6px 10px;border-radius:8px;background:var(--sunk);font-weight:700;min-width:160px}.consfijo small{font-weight:400;font-size:11.5px;color:var(--muted)}
 .sgtiles .ptile{cursor:pointer;border-width:2px}
 .sgtiles .ptile[aria-expanded="true"]{box-shadow:0 0 0 3px var(--zc);filter:none}
@@ -1029,12 +1030,41 @@ function vEquipo(){
     <li><b>Consignación virtual = consignadoras en teletrabajo.</b> Trabajan la pestaña Virtual con avisos propios, distintos de los del Radar: particulares de la IV Región con motor Consignar y rate de consignación 70 o más. Llaman, escriben y agendan la visita; el equipo en piso recibe al dueño en Ansar, tasa y firma el mandato. El auto entra como cualquier consignación y en Autos queda con origen “Equipo virtual”. Las consignadoras virtuales se invitan como Colaboradoras: solo ven y registran la pestaña Virtual. Quien deba ver todo el tablero necesita acceso de Editor.</li>
     <li><b>Todo interesado lleva próxima fecha.</b> Los que responden con interés, con prenda o agendan tasación se trabajan en Seguimiento hasta que firman mandato o se pierden. Para “Agendó tasación”, la fecha es la de la visita.</li>
     <li>Cada lunes, completen la semana en la pestaña Semanas: meta de mandatos, objeción, un experimento y qué dejar de hacer.</li>
-  </ol></section></div>${critHtml()}${S.isAdmin&&esSitio()?usuariosHtml():""}${S.isAdmin?respaldoHtml():""}`;
+  </ol></section></div>${critHtml()}${S.isAdmin&&esSitio()?usuariosHtml():""}${S.isAdmin&&esSitio()?rendHtml():""}${S.isAdmin?respaldoHtml():""}`;
 }
 /* ---------- Respaldo y traspaso al sitio propio ---------- */
 const RESP_COLS=["autos","semanas","llamadas","radar","virtual","virtualLlamadas","pedidos","pilotoFeedback","segRutina"];
 const RESP_CONFIG=["criterios","equipo","virtual"];
 const esSitio=()=>!!window.__ANSAR_SITE;
+
+/* ===== Prueba: rendimiento por hora activa (solo administrador, solo sitio) ===== */
+function rendLoad(force){
+  if(S.rendBusy||(!force&&S.rend&&Date.now()-S.rend.at<120000))return;S.rendBusy=true;
+  const d=pd(hoy());d.setDate(d.getDate()-27);const desde=d.toISOString().slice(0,10);
+  fetch("/api/actividad?desde="+desde,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{S.rend={at:Date.now(),filas:j.filas||[]};S.rendBusy=false;safeRender()}).catch(()=>{S.rendBusy=false});
+}
+function rendHtml(){
+  rendLoad(false);
+  const sem=S.rendSem||0,t=hoy(),lun0=(()=>{const d=pd(t);const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w-7*sem);return d})();
+  const ini=lun0.toISOString().slice(0,10),fin=sgPlus(ini,6);
+  const filas=(S.rend?S.rend.filas:[]).filter(f=>f.dia>=ini&&f.dia<=fin);
+  const calls=(S.segCalls&&S.segCalls.length?S.segCalls:S.llamadas||[]).filter(c=>(c.fecha||"")>=ini&&(c.fecha||"")<=fin);
+  const rad=S.radarMap||{};
+  const per=new Map();
+  filas.forEach(f=>{const n=f.nombre||f.email;const o=per.get(n)||{n,min:0,dias:new Set(),jor:0,cont:0,tas:0,man:0,ges:[]};o.min+=f.minutos;o.dias.add(f.dia);const [h1,m1]=f.desde.split(":").map(Number),[h2,m2]=f.hasta.split(":").map(Number);o.jor+=Math.max(1,(h2*60+m2)-(h1*60+m1)+1);per.set(n,o)});
+  calls.forEach(c=>{const n=c.consignador;if(!n)return;const o=per.get(n)||{n,min:0,dias:new Set(),jor:0,cont:0,tas:0,man:0,ges:[]};const v=sgNiv(c);o.cont++;if(v>=3)o.tas++;if(v>=5)o.man++;
+    const r=c.radarId&&rad[c.radarId];if(r&&r.asignadoEn&&c.creadoEn){const g=(new Date(c.creadoEn)-new Date(r.asignadoEn))/60000;if(g>0&&g<240)o.ges.push(g)}per.set(n,o)});
+  const med=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y);return b[Math.floor(b.length/2)]};
+  const rows=[...per.values()].map(o=>{const h=o.min/60;return {...o,h,act:o.jor?Math.round(o.min/o.jor*100):null,tph:h?o.tas/h:null,mph:h?o.man/h:null,mpt:o.tas&&o.min?Math.round(o.min/o.tas):null,idx:h?(o.tas+3*o.man)/h:null,ges:med(o.ges)}}).sort((a,b)=>(b.idx??-1)-(a.idx??-1));
+  const f1=x=>x==null?"—":x.toLocaleString("es-CL",{maximumFractionDigits:2});
+  const tot=rows.reduce((a,o)=>({h:a.h+o.h,tas:a.tas+o.tas,man:a.man+o.man}),{h:0,tas:0,man:0});
+  return `<section class="panel" style="margin-top:16px"><div class="sec-head"><h2>Rendimiento por hora activa <span style="vertical-align:middle;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted)">PRUEBA</span></h2><p>Solo tú lo ves. Hora activa = minutos con el tablero visible y uso en los últimos 2 min. Las conversiones salen de Llamadas.</p></div>
+  <div class="chips">${[0,1,2,3].map(i=>`<button type="button" data-rsem="${i}" aria-pressed="${sem===i}">${i===0?"Esta semana":i===1?"Semana pasada":"Hace "+i+" semanas"}</button>`).join("")}<button type="button" data-rref="1">↻</button></div>
+  ${!S.rend?`<p class="none">Cargando actividad…</p>`:rows.length?`<div class="tbl"><table><thead><tr><th>Persona</th><th>Horas activas</th><th>% jornada activa</th><th>Contactos</th><th>Tasaciones</th><th>Mandatos</th><th>Tasaciones / hora</th><th>Min. por tasación</th><th>Min. por gestión</th><th>Índice de piso</th></tr></thead><tbody>
+  ${rows.map(o=>`<tr><td>${esc(o.n)}${o.tas<10?' <small style="color:var(--muted)">(muestra chica)</small>':""}</td><td class="num">${f1(o.h)}</td><td class="num">${o.act==null?"—":o.act+"%"}</td><td class="num">${o.cont}</td><td class="num">${o.tas}</td><td class="num">${o.man}</td><td class="num"><b>${f1(o.tph)}</b></td><td class="num">${o.mpt??"—"}</td><td class="num">${o.ges==null?"—":Math.round(o.ges)}</td><td class="num"><b>${f1(o.idx)}</b></td></tr>`).join("")}
+  </tbody><tfoot><tr><th>Equipo</th><td class="num">${f1(tot.h)}</td><td></td><td></td><td class="num">${tot.tas}</td><td class="num">${tot.man}</td><td class="num"><b>${f1(tot.h?tot.tas/tot.h:null)}</b></td><td></td><td></td><td class="num"><b>${f1(tot.h?(tot.tas+3*tot.man)/tot.h:null)}</b></td></tr></tfoot></table></div>`:`<p class="none">Sin actividad registrada en esta semana todavía. Se empieza a medir desde hoy, a medida que el equipo usa el sitio.</p>`}
+  <p class="zfoot">Índice de piso = (tasaciones + 3 × mandatos) ÷ horas activas. Min. por gestión = mediana entre «Lo tomo» y el registro del resultado (solo avisos del Radar). Con menos de 10 tasaciones por persona, las diferencias pueden ser suerte. Avisa al equipo qué se mide y para qué.</p></section>`;
+}
 function respaldoHtml(){
   return `<section class="panel"><div class="sec-head"><h2 style="font-size:20px">Respaldo y traspaso</h2><p>Solo administradores</p></div>
   ${esSitio()?`<p style="margin:0">Carga aquí el archivo de respaldo descargado desde el tablero de Claude. Los registros con el mismo identificador se reemplazan; no se borra nada.</p>
@@ -2326,6 +2356,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.ctexp){ctSaveExp(t);return}
   if(t.dataset.sgv){S.sgf.vista=t.dataset.sgv;render();return}
   if(t.dataset.sgconf){const g=S.sgMap&&S.sgMap.get(t.dataset.sgconf);if(g){const L=g.last,a=[L.marca,L.modelo].filter(Boolean).join(" ")||"auto",tt=hoy(),c=g.prox===tt?"hoy":g.prox===sgPlus(tt,1)?"mañana":"el "+fmtD(g.prox);copyText(`Hola, te escribo de Ansar Automotriz para confirmar la tasación de tu ${a} ${c}. ¿Sigue en pie a la hora que acordamos? La tasación es referencial y sin compromiso.`,"Mensaje de confirmación copiado")}return}
+  if(t.dataset.rsem!=null){S.rendSem=Number(t.dataset.rsem);render();return}
+  if(t.dataset.rref){rendLoad(true);return}
   if(t.dataset.sgt){S.sgf.tile=S.sgf.tile===t.dataset.sgt?"":t.dataset.sgt;render();return}
   if(t.dataset.sgo){S.sgf.orig=t.dataset.sgo;render();return}
   if(t.dataset.sgreg){regSeg(t.dataset.sgreg,t);return}

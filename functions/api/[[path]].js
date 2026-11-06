@@ -56,6 +56,23 @@ export async function onRequest(ctx) {
     return json({ rows, more: rs.results.length === 2000, serverTime: now() });
   }
 
+  if (path === "import" && request.method === "POST") {
+    if (u.rol !== "admin") return json({ error: "sin_permiso" }, 403);
+    let body; try { body = await request.json(); } catch { return json({ error: "json_invalido" }, 400); }
+    if (body.formato !== "ansar-respaldo-1" || !body.colecciones) return json({ error: "formato_invalido" }, 400);
+    const t = now(), stmts = [];
+    for (const [col, docs] of Object.entries(body.colecciones)) {
+      if (!validName(col) || !docs || typeof docs !== "object") continue;
+      for (const [id, data] of Object.entries(docs)) {
+        if (!validName(id) || !data || typeof data !== "object") continue;
+        stmts.push(env.DB.prepare("INSERT INTO docs (col,id,data,version,updated_at,updated_by,deleted) VALUES (?,?,?,1,?,?,0) ON CONFLICT(col,id) DO UPDATE SET data=excluded.data, version=docs.version+1, updated_at=excluded.updated_at, updated_by=excluded.updated_by, deleted=0").bind(col, id, JSON.stringify(data), t, u.email));
+      }
+    }
+    for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100));
+    await env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,col,id) VALUES (?,?,?,?,?)").bind(t, u.email, "import", "*", String(stmts.length)).run();
+    return json({ ok: true, total: stmts.length });
+  }
+
   if (path === "doc") {
     let body = {};
     if (request.method !== "GET") { try { body = await request.json(); } catch { return json({ error: "json_invalido" }, 400); } }

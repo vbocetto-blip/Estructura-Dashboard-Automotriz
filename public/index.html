@@ -994,7 +994,42 @@ function vEquipo(){
     <li><b>Consignación virtual = consignadoras en teletrabajo.</b> Trabajan la pestaña Virtual con avisos propios, distintos de los del Radar: particulares de la IV Región con motor Consignar y rate de consignación 70 o más. Llaman, escriben y agendan la visita; el equipo en piso recibe al dueño en Ansar, tasa y firma el mandato. El auto entra como cualquier consignación y en Autos queda con origen “Equipo virtual”. Las consignadoras virtuales se invitan como Colaboradoras: solo ven y registran la pestaña Virtual. Quien deba ver todo el tablero necesita acceso de Editor.</li>
     <li><b>Todo interesado lleva próxima fecha.</b> Los que responden con interés, con prenda o agendan tasación se trabajan en Seguimiento hasta que firman mandato o se pierden. Para “Agendó tasación”, la fecha es la de la visita.</li>
     <li>Cada lunes, completen la semana en la pestaña Semanas: meta de mandatos, objeción, un experimento y qué dejar de hacer.</li>
-  </ol></section></div>${critHtml()}`;
+  </ol></section></div>${critHtml()}${S.isAdmin?respaldoHtml():""}`;
+}
+/* ---------- Respaldo y traspaso al sitio propio ---------- */
+const RESP_COLS=["autos","semanas","llamadas","radar","virtual","virtualLlamadas","pedidos","pilotoFeedback","segRutina"];
+const RESP_CONFIG=["criterios","equipo","virtual"];
+const esSitio=()=>!!window.__ANSAR_SITE;
+function respaldoHtml(){
+  return `<section class="panel"><div class="sec-head"><h2 style="font-size:20px">Respaldo y traspaso</h2><p>Solo administradores</p></div>
+  ${esSitio()?`<p style="margin:0">Carga aquí el archivo de respaldo descargado desde el tablero de Claude. Los registros con el mismo identificador se reemplazan; no se borra nada.</p>
+    <div class="filters"><input type="file" id="respFile" accept=".json,application/json"><button type="button" class="btn primary" id="btnImport">Importar respaldo</button></div>`
+  :`<p style="margin:0">Descarga todos los datos del tablero (autos, llamadas, radar, virtual, semanas y configuración) en un archivo JSON. Sirve como respaldo y para traspasarlos al sitio propio. Contiene datos personales de clientes: guárdalo en un lugar seguro y no lo compartas.</p>
+    <div class="filters"><button type="button" class="btn primary" id="btnExport">Descargar respaldo completo</button></div>`}
+  <p class="none" id="respMsg" style="font-style:normal;margin:0"></p></section>`;
+}
+async function exportarRespaldo(btn){
+  if(!S.db)return;btn.disabled=true;const msg=$("#respMsg");if(msg)msg.textContent="Reuniendo datos…";
+  try{
+    const out={formato:"ansar-respaldo-1",exportadoEn:new Date().toISOString(),colecciones:{}};let n=0;
+    for(const c of RESP_COLS){const snap=await S.db.collection(c).get();out.colecciones[c]={};snap.docs.forEach(d=>{out.colecciones[c][d.id]=d.data();n++})}
+    out.colecciones.config={};for(const id of RESP_CONFIG){const d=await S.db.doc("config/"+id).get();if(d.exists){out.colecciones.config[id]=d.data();n++}}
+    const dl=await window.claude.use("downloads");if(!dl){if(msg)msg.textContent="Esta vista no permite descargar archivos. Ábrela desde claude.ai.";btn.disabled=false;return}
+    await dl.save({filename:`respaldo-consignaciones-${hoy()}.json`,data:new Blob([JSON.stringify(out)])});
+    if(msg)msg.textContent=`Respaldo descargado: ${n} registros.`;
+  }catch(e){if(msg)msg.textContent=e&&e.code==="declined"?"Descarga cancelada.":"No se pudo descargar el respaldo. Inténtalo de nuevo."}
+  btn.disabled=false;
+}
+async function importarRespaldo(btn){
+  const f=($("#respFile")||{}).files?.[0],msg=$("#respMsg");if(!f){toast("Elige el archivo de respaldo");return}
+  btn.disabled=true;if(msg)msg.textContent="Importando…";
+  try{
+    const j=JSON.parse(await f.text());if(j.formato!=="ansar-respaldo-1")throw new Error("formato");
+    const r=await fetch("/api/import",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify(j)});
+    const res=await r.json();if(!r.ok)throw new Error(res.error||r.status);
+    if(msg)msg.textContent=`Importados ${res.total} registros. La pantalla se actualiza sola en unos segundos.`;toast("Respaldo importado");
+  }catch(e){if(msg)msg.textContent=String(e.message)==="formato"?"Ese archivo no es un respaldo del tablero.":"No se pudo importar: "+(e.message||"error")}
+  btn.disabled=false;
 }
 
 function critHtml(){
@@ -2173,6 +2208,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.est){S.filtro.estado=t.dataset.est;render();return}
   if(t.dataset.tf){S.tomaFiltro=t.dataset.tf;render();return}
   if(t.id==="btnPfb"){savePfb(t);return}
+  if(t.id==="btnExport"){exportarRespaldo(t);return}
+  if(t.id==="btnImport"){importarRespaldo(t);return}
   if(t.dataset.pfbf){S.pfbFiltro=t.dataset.pfbf;render();return}
   if(t.dataset.pfbe&&t.dataset.pfbid){if(S.db)S.db.collection("pilotoFeedback").doc(t.dataset.pfbid).update({estado:t.dataset.pfbe,updatedAt:new Date().toISOString(),updatedBy:S.uid||null}).then(()=>toast("Estado: "+t.dataset.pfbe)).catch(handleWriteErr);return}
   if(t.hasAttribute("data-callall")){S.gopen.call_all=!S.gopen.call_all;render();return}

@@ -92,5 +92,6 @@
     profiles: async ids => Object.fromEntries(ids.map(i => [i, { name: "" }]))
   };
   const ready = fetch("/api/me", { credentials: "same-origin" }).then(r => r.ok ? r.json() : null).then(j => { me = j; return j; }).catch(() => null);
+  window.__ANSAR_SITE = true;
   window.claude = { use: async name => { const m = await ready; if (!m) return null; return name === "db" ? db : name === "user" ? user : null; } };
 })();

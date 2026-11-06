@@ -424,6 +424,7 @@ details:not([open]) .chev{transform:rotate(-90deg)}
 .z-res .bar.in{background:var(--info)} .z-res .bar.out{background:var(--good)}
 .z-res .bar{width:30%}
 /* Seguimiento */
+.lbl3{font-size:12px;font-weight:600;color:var(--muted)}.consfijo{display:grid;padding:6px 10px;border-radius:8px;background:var(--sunk);font-weight:700;min-width:160px}.consfijo small{font-weight:400;font-size:11.5px;color:var(--muted)}
 .sgtiles .ptile{cursor:pointer;border-width:2px}
 .sgtiles .ptile[aria-expanded="true"]{box-shadow:0 0 0 3px var(--zc);filter:none}
 .ptile .pgo{margin-top:6px;font-size:12.5px;font-weight:700;color:var(--zc)}
@@ -1129,7 +1130,7 @@ const diaSem=c=>{const d=pd(c.fecha);return d?DIAS[d.getDay()]:""};
 const ORD_DIA=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo","Sin dato"];
 const lsGet=k=>{try{return localStorage.getItem(k)||""}catch(_){return ""}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}};
-function cfDefault(){return {consignador:lsGet("ansar_cons"),ruta:lsGet("ansar_ruta"),fuente:"",fecha:hoy(),telefono:"",contacto:"",perfil:"",marca:"",modelo:"",anio:"",precioPide:"",resultado:"",proximaFecha:"",notas:"",veh:""}}
+function cfDefault(){return {consignador:rCons(),ruta:lsGet("ansar_ruta"),fuente:"",fecha:hoy(),telefono:"",contacto:"",perfil:"",marca:"",modelo:"",anio:"",precioPide:"",resultado:"",proximaFecha:"",notas:"",veh:""}}
 const CF_RG=[["Sin contacto",["No contesta","Número equivocado"],"rg0"],["Se cierra",["Contestó · no le interesa","Contestó · ya vendió","Pidió no ser contactado","Descartado"],"rg1"],["Avanza",["Interesado · seguimiento","Tiene prenda","Agendó tasación","Tasación hecha","Mandato firmado"],"rg2"]];
 const cfCierra=r=>!!r&&((NIVEL[r]??0)===1||(NIVEL[r]??0)>=5||r==="Número equivocado");
 function parseVeh(v){
@@ -1337,7 +1338,7 @@ function vLlamadas(){
     <summary class="zh"><span class="zn">+</span><div class="zt"><h2>${S.cfEdit?"Editar llamada":"Registrar llamada"}</h2><p>Teléfono, auto y resultado. Quién, ruta y fuente quedan recordados. Enter guarda.</p></div><span class="chev" aria-hidden="true">▾</span></summary>
     <div class="zb cf" id="callForm">
      <div class="cfctx">
-      <label class="sgdl" for="c_consignador">Quién<select id="c_consignador" ${ro}><option value="">—</option>${uniq([...S.equipo,cf.consignador]).map(p=>`<option ${p===cf.consignador?"selected":""}>${esc(p)}</option>`).join("")}</select></label>
+      ${miNombre()&&!S.isAdmin?`<span class="sgdl">Quién <b>${esc(cf.consignador||miNombre())}</b></span>`:`<label class="sgdl" for="c_consignador">Quién<select id="c_consignador" ${ro}><option value="">—</option>${uniq([...S.equipo,cf.consignador]).map(p=>`<option ${p===cf.consignador?"selected":""}>${esc(p)}</option>`).join("")}</select></label>`}
       <label class="sgdl" for="c_fecha">Fecha<input id="c_fecha" type="date" value="${esc(cf.fecha)}" ${ro}></label>
       <div class="chips" role="group" aria-label="Ruta del contacto">${RUTAS.map(([v,sub])=>`<button type="button" data-cset="ruta" data-val="${esc(v)}" aria-pressed="${cf.ruta===v}" title="${esc(sub)}" ${ro}>${esc(v)}</button>`).join("")}</div>
       <label class="sgdl" for="c_fuente">Fuente<select id="c_fuente" ${ro}><option value="">—</option>${uniq([...FUENTES,...S.llamadas.map(c=>c.fuente),cf.fuente]).map(f=>`<option ${f===cf.fuente?"selected":""}>${esc(f)}</option>`).join("")}</select></label>
@@ -1408,7 +1409,9 @@ async function delCall(btn){
 /* ---------- Radar ---------- */
 const MOTORES=["Comprar","Retoma","Consignar"];
 const RRES=[["No contesta","Mensaje enviado · sin respuesta"],["Contestó · no le interesa","Respondió · no le interesa"],["Contestó · ya vendió","Ya lo vendió"],["Pidió no ser contactado","Pidió no ser contactado"],["Descartado","Descartado"],["Interesado · seguimiento","Interesado · seguimiento"],["Tiene prenda","Tiene prenda"],["Agendó tasación","Agendó tasación"],["Tasación hecha","Tasación hecha"],["Mandato firmado","Mandato firmado"]];
-const rCons=()=>S.rcons??lsGet("ansar_cons");
+const miNombre=()=>window.__ANSAR_SITE&&window.__ANSAR_NOMBRE?window.__ANSAR_NOMBRE:"";
+const rCons=()=>miNombre()||(S.rcons??lsGet("ansar_cons"));
+const consFijo=(id,lbl)=>`<div class="field"><span class="lbl3" id="${id}_l">${lbl}</span><span class="consfijo" aria-labelledby="${id}_l">${esc(miNombre())}<small>según tu correo</small></span></div>`;
 const rBand=s=>s==null||s===""?null:Number(s)>=75?["Llamar hoy","hoy"]:Number(s)>=60?["Esta semana","sem"]:["Si sobra tiempo","tar"];
 const rNivel=r=>r.nivel==null||r.nivel===""?-1:Number(r.nivel);
 function rGrupo(r){
@@ -1529,7 +1532,7 @@ function vRadar(team){
   </div>
   ${remStrip(team)}
   <section class="panel"><div class="rbar">
-    <div class="field"><label for="r_cons_${team}">Quién contacta</label><select id="r_cons_${team}" data-rcons="1" ${ro}><option value="">—</option>${uniq([...miembros,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>
+    ${miNombre()?consFijo("r_cons_"+team,"Quién contacta"):`<div class="field"><label for="r_cons_${team}">Quién contacta</label><select id="r_cons_${team}" data-rcons="1" ${ro}><option value="">—</option>${uniq([...miembros,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`}
     <p class="none" style="font-style:normal;flex:1;min-width:220px;margin:0">${intro}</p></div>
     <details class="pmsg guion" data-gopen="__reglas" ${S.gopen.__reglas?"open":""}><summary>Cómo llevar la llamada con un cliente difícil · 8 reglas</summary><div class="pbody"><ol class="greglas">${GREGLAS.map(x=>`<li>${x}</li>`).join("")}</ol><p class="gwhy">Cada aviso trae su guion paso a paso con los datos de ese auto. Ábrelo antes de marcar.</p></div></details>
     <div class="chips">${vistas.map(([k,l])=>`<button type="button" data-rv="${k}" data-team="${team}" aria-pressed="${F.vista===k}">${l} <span class="num">${k==="todos"?all.length:cnt(k)}</span></button>`).join("")}</div>
@@ -1861,7 +1864,7 @@ function vSeg(){
     const auto=x=>`${[x.g.last.marca,x.g.last.modelo].filter(Boolean).join(" ")||"Vehículo sin datos"} ${x.g.last.anio||""}`.trim();
     const dSin=x=>dias(x.g.last.fecha,t);
     const temp=x=>x.sc.label==="CALIENTE"?["Caliente","hoy"]:x.sc.label==="TIBIO"?["Tibio","sem"]:["Frío","tar"];
-    const ctrlCons=`<div class="field"><label for="sg_cons">Quién contacta</label><select id="sg_cons" data-rcons="1" ${ro}><option value="">—</option>${uniq([...S.equipo,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`;
+    const ctrlCons=miNombre()?consFijo("sg_cons","Quién contacta"):`<div class="field"><label for="sg_cons">Quién contacta</label><select id="sg_cons" data-rcons="1" ${ro}><option value="">—</option>${uniq([...S.equipo,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`;
     const ctrlVer=`<div class="field"><label for="sg_fcons">Ver interesados de</label><select id="sg_fcons" data-sgcons="1"><option value="">Todo el equipo</option>${nombres.map(p=>`<option ${p===F.cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`;
     const ctrlOrig=`<div class="chips">${[["radar","Solo del Radar"],["todas","Radar y llamadas directas"]].map(([k,l])=>`<button type="button" data-sgo="${k}" aria-pressed="${F.orig===k}">${l}</button>`).join("")}</div>`;
     const ctrl=(conCons)=>`<section class="panel"><div class="rbar">${conCons?ctrlCons:""}${ctrlVer}</div>${ctrlOrig}</section>`;

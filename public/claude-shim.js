@@ -142,7 +142,7 @@
     const go = fn => document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", fn) : fn();
     if (!j) { go(() => loginScreen()); return null; }
     if (j._sinAcceso) { go(() => loginScreen("Tu correo no está autorizado. Pide acceso a un administrador.")); return null; }
-    me = j; window.__ANSAR_ROL = j.rol; go(logoutButton); return j;
+    me = j; window.__ANSAR_ROL = j.rol; window.__ANSAR_NOMBRE = j.nombre || ""; go(logoutButton); return j;
   }).catch(() => null);
   window.__ANSAR_SITE = true;
   window.claude = { use: async name => { const m = await ready; if (!m) return null; return name === "db" ? db : name === "user" ? user : null; } };

@@ -185,6 +185,16 @@ export async function onRequest(ctx) {
     if (request.method === "POST") {
       const data = body.data;
       if (!data || typeof data !== "object" || Array.isArray(data)) return json({ error: "datos_invalidos" }, 400);
+      /* Quién contacta = el dueño del correo. Solo el administrador puede corregir registros ajenos. */
+      if (u.rol !== "admin" && u.nombre) {
+        if (col === "llamadas" || col === "virtualLlamadas") {
+          const prev = await env.DB.prepare("SELECT json_extract(data,'$.consignador') AS c FROM docs WHERE col=? AND id=? AND deleted=0").bind(col, id).first();
+          if (!prev) data.consignador = u.nombre;
+          else if ("consignador" in data) data.consignador = prev.c ?? u.nombre;
+        } else if ((col === "radar" || col === "virtual") && "consignador" in data && data.consignador) {
+          data.consignador = u.nombre;
+        }
+      }
       const s = JSON.stringify(data);
       if (s.length > 256 * 1024) return json({ error: "muy_grande" }, 413);
       if (body.mode === "update") {

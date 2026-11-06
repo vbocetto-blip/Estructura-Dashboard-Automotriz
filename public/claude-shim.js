@@ -91,7 +91,59 @@
     isOwner: async () => me.rol === "admin", canEdit: async () => me.rol === "admin", can: async () => true,
     profiles: async ids => Object.fromEntries(ids.map(i => [i, { name: "" }]))
   };
-  const ready = fetch("/api/me", { credentials: "same-origin" }).then(r => r.ok ? r.json() : null).then(j => { me = j; return j; }).catch(() => null);
+  /* Pantalla de ingreso: correo + contraseña. "Primer acceso" crea la contraseña de un correo autorizado que aún no tiene. */
+  function loginScreen(motivo) {
+    const st = document.createElement("style");
+    st.textContent = `.lg{position:fixed;inset:0;z-index:100;background:var(--bg,#EEF2F0);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px)) 24px max(16px,env(safe-area-inset-right,0px));overflow:auto}
+.lg form{background:var(--surface,#fff);border:1px solid var(--line,#CFD8D4);border-radius:12px;padding:22px;width:min(400px,100%);display:grid;gap:12px;color:var(--ink,#15201D);font-family:var(--f-body,system-ui)}
+.lg h1{font-family:var(--f-display,system-ui);font-size:28px;margin:0;line-height:1}.lg p{margin:0;font-size:13.5px;color:var(--muted,#596864)}
+.lg label{display:grid;gap:4px;font-size:12px;font-weight:600;color:var(--muted,#596864)}.lg input{border:1px solid var(--line,#CFD8D4);background:var(--surface,#fff);color:inherit;border-radius:8px;padding:10px;font:inherit;font-size:16px}
+.lg button{border:0;border-radius:8px;padding:11px;font:inherit;font-weight:700;background:var(--accent,#0D6656);color:var(--on-accent,#fff);cursor:pointer}.lg button:disabled{opacity:.6}
+.lg .alt{background:none;color:var(--accent,#0D6656);padding:2px;font-weight:600;justify-self:start}.lg .err{color:var(--bad,#B2261B);font-weight:600;min-height:1em}`;
+    document.head.appendChild(st);
+    const box = document.createElement("div"); box.className = "lg";
+    let modo = "login";
+    const draw = () => {
+      box.innerHTML = `<form novalidate><h1>Consignaciones Ansar</h1>
+        <p>${modo === "login" ? "Ingresa con tu correo y contraseña." : "Primer acceso: crea tu contraseña. Solo funciona para correos autorizados que aún no tienen una."}</p>
+        <label for="lg_email">Correo<input id="lg_email" type="email" autocomplete="username" required></label>
+        <label for="lg_pass">${modo === "login" ? "Contraseña" : "Contraseña nueva (mínimo 10 caracteres)"}<input id="lg_pass" type="password" autocomplete="${modo === "login" ? "current-password" : "new-password"}" required></label>
+        ${modo === "login" ? "" : `<label for="lg_pass2">Repite la contraseña<input id="lg_pass2" type="password" autocomplete="new-password" required></label>`}
+        <p class="err" id="lg_err" role="alert">${motivo || ""}</p>
+        <button type="submit" id="lg_btn">${modo === "login" ? "Entrar" : "Crear contraseña y entrar"}</button>
+        <button type="button" class="alt" id="lg_alt">${modo === "login" ? "¿Primera vez? Crea tu contraseña" : "Ya tengo contraseña"}</button></form>`;
+      motivo = "";
+      box.querySelector("#lg_alt").onclick = () => { modo = modo === "login" ? "primer" : "login"; draw(); };
+      box.querySelector("form").onsubmit = async e => {
+        e.preventDefault();
+        const em = box.querySelector("#lg_email").value.trim(), pw = box.querySelector("#lg_pass").value, out = box.querySelector("#lg_err"), btn = box.querySelector("#lg_btn");
+        if (!em || !pw) { out.textContent = "Escribe tu correo y contraseña."; return; }
+        if (modo === "primer") { if (pw.length < 10) { out.textContent = "La contraseña debe tener al menos 10 caracteres."; return; } if (pw !== box.querySelector("#lg_pass2").value) { out.textContent = "Las contraseñas no coinciden."; return; } }
+        btn.disabled = true; out.textContent = "";
+        try {
+          const r = await fetch("/api/" + (modo === "login" ? "login" : "primer-acceso"), { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: em, password: pw }) });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok) { location.reload(); return; }
+          out.textContent = j.error === "bloqueado" ? "Demasiados intentos. Espera 15 minutos." : j.error === "no_disponible" ? "Ese correo no está autorizado o ya tiene contraseña. Si la olvidaste, pide a un administrador que la reinicie." : j.error === "clave_corta" ? "La contraseña debe tener al menos 10 caracteres." : "Correo o contraseña incorrectos.";
+        } catch { out.textContent = "Sin conexión. Inténtalo de nuevo."; }
+        btn.disabled = false;
+      };
+      setTimeout(() => box.querySelector("#lg_email").focus(), 30);
+    };
+    draw(); document.body.appendChild(box);
+  }
+  function logoutButton() {
+    const row = document.querySelector(".toprow"); if (!row || document.getElementById("btnSalir")) return;
+    const b = document.createElement("button"); b.className = "btn"; b.id = "btnSalir"; b.type = "button"; b.textContent = "Salir";
+    b.title = me ? me.email : ""; b.onclick = async () => { try { await fetch("/api/logout", { method: "POST", credentials: "same-origin" }); } catch {} location.reload(); };
+    row.appendChild(b);
+  }
+  const ready = fetch("/api/me", { credentials: "same-origin" }).then(r => r.ok ? r.json() : (r.status === 403 ? { _sinAcceso: true } : null)).then(j => {
+    const go = fn => document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", fn) : fn();
+    if (!j) { go(() => loginScreen()); return null; }
+    if (j._sinAcceso) { go(() => loginScreen("Tu correo no está autorizado. Pide acceso a un administrador.")); return null; }
+    me = j; go(logoutButton); return j;
+  }).catch(() => null);
   window.__ANSAR_SITE = true;
   window.claude = { use: async name => { const m = await ready; if (!m) return null; return name === "db" ? db : name === "user" ? user : null; } };
 })();

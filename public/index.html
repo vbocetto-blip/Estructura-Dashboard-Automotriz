@@ -994,7 +994,7 @@ function vEquipo(){
     <li><b>Consignación virtual = consignadoras en teletrabajo.</b> Trabajan la pestaña Virtual con avisos propios, distintos de los del Radar: particulares de la IV Región con motor Consignar y rate de consignación 70 o más. Llaman, escriben y agendan la visita; el equipo en piso recibe al dueño en Ansar, tasa y firma el mandato. El auto entra como cualquier consignación y en Autos queda con origen “Equipo virtual”. Las consignadoras virtuales se invitan como Colaboradoras: solo ven y registran la pestaña Virtual. Quien deba ver todo el tablero necesita acceso de Editor.</li>
     <li><b>Todo interesado lleva próxima fecha.</b> Los que responden con interés, con prenda o agendan tasación se trabajan en Seguimiento hasta que firman mandato o se pierden. Para “Agendó tasación”, la fecha es la de la visita.</li>
     <li>Cada lunes, completen la semana en la pestaña Semanas: meta de mandatos, objeción, un experimento y qué dejar de hacer.</li>
-  </ol></section></div>${critHtml()}${S.isAdmin?respaldoHtml():""}`;
+  </ol></section></div>${critHtml()}${S.isAdmin&&esSitio()?usuariosHtml():""}${S.isAdmin?respaldoHtml():""}`;
 }
 /* ---------- Respaldo y traspaso al sitio propio ---------- */
 const RESP_COLS=["autos","semanas","llamadas","radar","virtual","virtualLlamadas","pedidos","pilotoFeedback","segRutina"];
@@ -1007,6 +1007,24 @@ function respaldoHtml(){
   :`<p style="margin:0">Descarga todos los datos del tablero (autos, llamadas, radar, virtual, semanas y configuración) en un archivo JSON. Sirve como respaldo y para traspasarlos al sitio propio. Contiene datos personales de clientes: guárdalo en un lugar seguro y no lo compartas.</p>
     <div class="filters"><button type="button" class="btn primary" id="btnExport">Descargar respaldo completo</button></div>`}
   <p class="none" id="respMsg" style="font-style:normal;margin:0"></p></section>`;
+}
+/* ---------- Usuarios del sitio propio (solo administradores) ---------- */
+async function cargarUsuarios(){S.usrLoading=true;try{const r=await fetch("/api/usuarios",{credentials:"same-origin"});const j=await r.json();S.usuarios=j.usuarios||[]}catch(_){S.usuarios=S.usuarios||[]}S.usrLoading=false;safeRender()}
+function usuariosHtml(){
+  if(!S.usuarios&&!S.usrLoading)cargarUsuarios();
+  const us=S.usuarios||[];
+  return `<section class="panel"><div class="sec-head"><h2 style="font-size:20px">Usuarios del sitio</h2><p>Quién entra y qué ve</p></div>
+  <p style="margin:0">Administrador ve todo. Virtual ve solo Consignación virtual. Una persona nueva entra con “Primer acceso” y crea su contraseña; hazlo apenas la agregues para que nadie más pueda usar su correo.</p>
+  ${!S.usuarios?`<p class="none">Cargando…</p>`:`<div class="tbl"><table><thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>${us.map(x=>`<tr><td>${esc(x.email)}</td><td>${esc(x.nombre)}</td><td>${x.rol==="admin"?"Administrador":"Virtual"}</td><td>${!x.activo?'<span class="pill st-Retirado">Inactivo</span>':x.tiene_clave?'<span class="pill st-Vendido">Activo</span>':'<span class="pill st-Mandato-pendiente">Sin contraseña</span>'}</td><td style="white-space:nowrap">${x.tiene_clave?`<button type="button" class="btn sm" data-ureset="${esc(x.email)}">Reiniciar contraseña</button>`:""} <button type="button" class="btn sm" data-uact="${esc(x.email)}" data-on="${x.activo?0:1}">${x.activo?"Desactivar":"Activar"}</button></td></tr>`).join("")}</tbody></table></div>`}
+  <form id="usrForm" class="filters"><div class="field" style="flex:2 1 220px"><label for="u_email">Correo</label><input id="u_email" type="email" required autocomplete="off"></div>
+   <div class="field" style="flex:1 1 140px"><label for="u_nombre">Nombre</label><input id="u_nombre" type="text" maxlength="60" autocomplete="off"></div>
+   <div class="field" style="flex:1 1 140px"><label for="u_rol">Rol</label><select id="u_rol"><option value="virtual">Virtual</option><option value="admin">Administrador</option></select></div>
+   <button class="btn primary" type="submit" style="align-self:end">Agregar o actualizar</button></form></section>`;
+}
+async function usrPost(path,body,ok){
+  try{const r=await fetch("/api/"+path,{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));
+    if(!r.ok){toast(j.error==="no_puedes_quitarte_admin"?"No puedes quitarte tu propio acceso de administrador":j.error==="correo_invalido"?"Revisa el correo":"No se pudo guardar");return false}
+    toast(ok);await cargarUsuarios();return true}catch(_){toast("Sin conexión");return false}
 }
 async function exportarRespaldo(btn){
   if(!S.db)return;btn.disabled=true;const msg=$("#respMsg");if(msg)msg.textContent="Reuniendo datos…";
@@ -2209,6 +2227,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.tf){S.tomaFiltro=t.dataset.tf;render();return}
   if(t.id==="btnPfb"){savePfb(t);return}
   if(t.id==="btnExport"){exportarRespaldo(t);return}
+  if(t.dataset.ureset){usrPost("usuarios/reset",{email:t.dataset.ureset},"Contraseña reiniciada: la persona entra con “Primer acceso”");return}
+  if(t.dataset.uact){const x=(S.usuarios||[]).find(u=>u.email===t.dataset.uact);if(x)usrPost("usuarios",{email:x.email,nombre:x.nombre,rol:x.rol,activo:t.dataset.on==="1"},t.dataset.on==="1"?"Usuario activado":"Usuario desactivado");return}
   if(t.id==="btnImport"){importarRespaldo(t);return}
   if(t.dataset.pfbf){S.pfbFiltro=t.dataset.pfbf;render();return}
   if(t.dataset.pfbe&&t.dataset.pfbid){if(S.db)S.db.collection("pilotoFeedback").doc(t.dataset.pfbid).update({estado:t.dataset.pfbe,updatedAt:new Date().toISOString(),updatedBy:S.uid||null}).then(()=>toast("Estado: "+t.dataset.pfbe)).catch(handleWriteErr);return}
@@ -2256,7 +2276,7 @@ document.addEventListener("change",e=>{
   if(e.target.id==="ccons"){S.callFiltro.cons=e.target.value;render()}
   if(e.target.id==="fgaps"){S.filtro.gaps=e.target.checked;render()}
 });
-document.addEventListener("submit",e=>{if(e.target.id==="teamForm"){e.preventDefault();const v=$("#newp").value.trim();if(v&&!S.equipo.includes(v))saveTeam([...S.equipo,v])}});
+document.addEventListener("submit",e=>{if(e.target.id==="usrForm"){e.preventDefault();usrPost("usuarios",{email:$("#u_email").value,nombre:$("#u_nombre").value,rol:$("#u_rol").value,activo:true},"Usuario guardado").then(ok=>{if(ok)e.target.reset()});return}if(e.target.id==="teamForm"){e.preventDefault();const v=$("#newp").value.trim();if(v&&!S.equipo.includes(v))saveTeam([...S.equipo,v])}});
 
 /* Don't re-render under someone typing in a week form or the sheet */
 document.addEventListener("toggle",e=>{const d=e.target;if(!d||!d.dataset)return;if(d.dataset.popen)S.popen[d.dataset.popen]=d.open;if(d.dataset.gopen)S.gopen[d.dataset.gopen]=d.open},true);
@@ -2299,7 +2319,7 @@ render();
   const C=window.claude;
   if(!C||!C.use){setStatus("err","Abre esta página desde claude.ai para guardar");S.canWrite=false;S.soloVirtual=true;S.accesoListo=true;render();return}
   const [db,user]=await Promise.all([C.use("db"),C.use("user")]);
-  if(!db){setStatus("err","Sin acceso a la base del equipo");S.canWrite=false;S.soloVirtual=true;S.accesoListo=true;S.offline="Inicia sesión en claude.ai con la cuenta invitada para ver y editar la tabla.";render();return}
+  if(!db){setStatus("err","Sin acceso a la base del equipo");S.canWrite=false;S.soloVirtual=true;S.accesoListo=true;S.offline=window.__ANSAR_SITE?"Ingresa con tu correo y contraseña para ver y editar la tabla.":"Inicia sesión en claude.ai con la cuenta invitada para ver y editar la tabla.";render();return}
   S.db=db;
   if(user){try{S.uid=await user.id();S.isAdmin=(await user.canEdit())===true;S.soloVirtual=!S.isAdmin;
     const cw=await user.can("data.write");if(cw===false){S.canWrite=false;if(S.soloVirtual)S.sinAccesoVirtual=true}}catch(_){S.soloVirtual=true}}

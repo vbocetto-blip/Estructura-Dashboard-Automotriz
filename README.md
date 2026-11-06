@@ -8,4 +8,5 @@ Tablero de consignaciones (Ansar Automotriz, piloto). Autor y propietario: Luis 
 - `wrangler.toml` · configuración de Cloudflare Pages (base `ansar-consignaciones`)
 
 Publicación: Cloudflare Pages conectado a este repositorio, carpeta de salida `public`.
-El login lo da Cloudflare Access; sin él, el servidor no entrega datos.
+Login: correo + contraseña (guardadas con PBKDF2 en D1) y sesión en cookie de 14 días. Cloudflare Access es opcional (variables ACCESS_*). Sin sesión válida el servidor no entrega datos.
+Usuarios: se administran en Equipo y reglas → Usuarios del sitio. Un correo nuevo entra con “Primer acceso” y crea su contraseña.

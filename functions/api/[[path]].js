@@ -3,7 +3,7 @@
    Roles: admin ve y escribe todo; virtual solo las colecciones de Consignación virtual. */
 const VIRTUAL_RW = new Set(["virtual", "virtualLlamadas"]);
 const VIRTUAL_RO = new Set(["config/virtual"]);
-const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra } });
 const now = () => new Date().toISOString();
 
 let certCache = null, certAt = 0;
@@ -28,6 +28,65 @@ async function verifyAccess(request, env) {
   if (!aud.includes(env.ACCESS_AUD) || pay.exp * 1000 < Date.now()) return null;
   return String(pay.email || "").toLowerCase();
 }
+/* ---------- Login propio: correo + contraseña (PBKDF2) y sesión en cookie ---------- */
+const SES_DIAS = 14, MIN_PASS = 10;
+const hex = b => Array.from(new Uint8Array(b), x => x.toString(16).padStart(2, "0")).join("");
+const randHex = n => hex(crypto.getRandomValues(new Uint8Array(n)));
+async function hashPass(pass, saltHex) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
+  const salt = Uint8Array.from(saltHex.match(/../g), h => parseInt(h, 16));
+  return hex(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 100000 }, key, 256));
+}
+const safeEq = (x, y) => { if (x.length !== y.length) return false; let r = 0; for (let i = 0; i < x.length; i++) r |= x.charCodeAt(i) ^ y.charCodeAt(i); return r === 0; };
+const cookieOf = (req, name) => { const m = (req.headers.get("cookie") || "").match(new RegExp("(?:^|;\\s*)" + name + "=([^;]+)")); return m ? m[1] : ""; };
+const setCookie = (tok, maxAge) => `ansar_s=${tok}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+async function sessionEmail(request, env) {
+  const tok = cookieOf(request, "ansar_s");
+  if (!/^[0-9a-f]{64}$/.test(tok)) return null;
+  const r = await env.DB.prepare("SELECT email FROM sesiones WHERE token=? AND expira>?").bind(tok, now()).first();
+  return r ? r.email : null;
+}
+async function nuevaSesion(env, email) {
+  const tok = randHex(32), exp = new Date(Date.now() + SES_DIAS * 864e5).toISOString();
+  await env.DB.prepare("INSERT INTO sesiones (token,email,expira,creada) VALUES (?,?,?,?)").bind(tok, email, exp, now()).run();
+  return json({ ok: true }, 200, { "set-cookie": setCookie(tok, SES_DIAS * 86400) });
+}
+async function authRoutes(path, request, env) {
+  if (request.method !== "POST") return null;
+  if (path === "logout") {
+    const tok = cookieOf(request, "ansar_s");
+    if (tok) await env.DB.prepare("DELETE FROM sesiones WHERE token=?").bind(tok).run();
+    return json({ ok: true }, 200, { "set-cookie": setCookie("x", 0) });
+  }
+  if (path !== "login" && path !== "primer-acceso") return null;
+  let b; try { b = await request.json(); } catch { return json({ error: "json_invalido" }, 400); }
+  const email = String(b.email || "").trim().toLowerCase(), pass = String(b.password || "");
+  const u = await env.DB.prepare("SELECT email,pass_hash,pass_salt,fallos,bloqueado_hasta FROM usuarios WHERE email=? AND activo=1").bind(email).first();
+  const t = now();
+  if (path === "primer-acceso") {
+    if (!u || u.pass_hash) return json({ error: "no_disponible" }, 400);
+    if (pass.length < MIN_PASS) return json({ error: "clave_corta", min: MIN_PASS }, 400);
+    const salt = randHex(16), h = await hashPass(pass, salt);
+    const r = await env.DB.prepare("UPDATE usuarios SET pass_hash=?, pass_salt=?, fallos=0, bloqueado_hasta=NULL WHERE email=? AND pass_hash IS NULL").bind(h, salt, email).run();
+    if (!r.meta.changes) return json({ error: "no_disponible" }, 400);
+    await env.DB.prepare("INSERT INTO auditoria (cuando,email,accion) VALUES (?,?,?)").bind(t, email, "primer_acceso").run();
+    return nuevaSesion(env, email);
+  }
+  if (!u || !u.pass_hash) { await hashPass(pass || "x", "00".repeat(16)); return json({ error: "credenciales" }, 401); }
+  if (u.bloqueado_hasta && u.bloqueado_hasta > t) return json({ error: "bloqueado", hasta: u.bloqueado_hasta }, 429);
+  const h = await hashPass(pass, u.pass_salt);
+  if (!safeEq(h, u.pass_hash)) {
+    const f = (u.fallos || 0) + 1, lock = f >= 8 ? new Date(Date.now() + 15 * 60e3).toISOString() : null;
+    await env.DB.prepare("UPDATE usuarios SET fallos=?, bloqueado_hasta=? WHERE email=?").bind(lock ? 0 : f, lock, email).run();
+    return json({ error: "credenciales" }, 401);
+  }
+  await env.DB.batch([
+    env.DB.prepare("UPDATE usuarios SET fallos=0, bloqueado_hasta=NULL WHERE email=?").bind(email),
+    env.DB.prepare("DELETE FROM sesiones WHERE expira<?").bind(t),
+    env.DB.prepare("INSERT INTO auditoria (cuando,email,accion) VALUES (?,?,?)").bind(t, email, "login")]);
+  return nuevaSesion(env, email);
+}
+
 function canRead(rol, col, id) {
   if (rol === "admin") return true;
   return VIRTUAL_RW.has(col) || VIRTUAL_RO.has(`${col}/${id}`);
@@ -40,7 +99,9 @@ const validName = s => typeof s === "string" && /^[A-Za-z0-9_\-.:@+~]{1,200}$/.t
 
 export async function onRequest(ctx) {
   const { request, env, params } = ctx;
-  const email = await verifyAccess(request, env);
+  const ar = await authRoutes((params.path || []).join("/"), request, env);
+  if (ar) return ar;
+  const email = (await sessionEmail(request, env)) || (await verifyAccess(request, env));
   if (!email) return json({ error: "no_autenticado" }, 401);
   const u = await env.DB.prepare("SELECT email,nombre,rol FROM usuarios WHERE email=? AND activo=1").bind(email).first();
   if (!u) return json({ error: "sin_acceso", email }, 403);
@@ -48,6 +109,34 @@ export async function onRequest(ctx) {
   const url = new URL(request.url);
 
   if (path === "me") return json({ email: u.email, nombre: u.nombre, rol: u.rol });
+
+  if (path === "usuarios" || path === "usuarios/reset") {
+    if (u.rol !== "admin") return json({ error: "sin_permiso" }, 403);
+    if (request.method === "GET" && path === "usuarios") {
+      const rs = await env.DB.prepare("SELECT email,nombre,rol,activo,(pass_hash IS NOT NULL) AS tiene_clave FROM usuarios ORDER BY rol,email").all();
+      return json({ usuarios: rs.results });
+    }
+    if (request.method === "POST") {
+      let b; try { b = await request.json(); } catch { return json({ error: "json_invalido" }, 400); }
+      const em = String(b.email || "").trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return json({ error: "correo_invalido" }, 400);
+      const t = now();
+      if (path === "usuarios/reset") {
+        await env.DB.batch([
+          env.DB.prepare("UPDATE usuarios SET pass_hash=NULL, pass_salt=NULL, fallos=0, bloqueado_hasta=NULL WHERE email=?").bind(em),
+          env.DB.prepare("DELETE FROM sesiones WHERE email=?").bind(em),
+          env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,id) VALUES (?,?,?,?)").bind(t, u.email, "reset_clave", em)]);
+        return json({ ok: true });
+      }
+      const rol = b.rol === "admin" ? "admin" : "virtual", nombre = String(b.nombre || "").trim().slice(0, 60) || em, activo = b.activo === false ? 0 : 1;
+      if (em === u.email && (rol !== "admin" || !activo)) return json({ error: "no_puedes_quitarte_admin" }, 400);
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO usuarios (email,nombre,rol,activo,creado_en) VALUES (?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET nombre=excluded.nombre, rol=excluded.rol, activo=excluded.activo").bind(em, nombre, rol, activo, t),
+        ...(activo ? [] : [env.DB.prepare("DELETE FROM sesiones WHERE email=?").bind(em)]),
+        env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,id) VALUES (?,?,?,?)").bind(t, u.email, "usuario_" + rol + (activo ? "" : "_inactivo"), em)]);
+      return json({ ok: true });
+    }
+  }
 
   if (path === "changes" && request.method === "GET") {
     const since = url.searchParams.get("since") || "";

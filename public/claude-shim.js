@@ -124,7 +124,7 @@
           const r = await fetch("/api/" + (modo === "login" ? "login" : "primer-acceso"), { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: em, password: pw }) });
           const j = await r.json().catch(() => ({}));
           if (r.ok) { location.reload(); return; }
-          out.textContent = j.error === "bloqueado" ? "Demasiados intentos. Espera 15 minutos." : j.error === "no_disponible" ? "Ese correo no está autorizado o ya tiene contraseña. Si la olvidaste, pide a un administrador que la reinicie." : j.error === "clave_corta" ? "La contraseña debe tener al menos 10 caracteres." : "Correo o contraseña incorrectos.";
+          out.textContent = j.error === "bloqueado" ? "Demasiados intentos. Espera 15 minutos." : j.error === "no_disponible" ? "Este correo no está habilitado para un primer acceso. Si es tu primera vez, pide a Luis que te habilite. Si ya creaste tu contraseña, usa «Ya tengo contraseña» o pide que te la reinicien." : j.error === "clave_corta" ? "La contraseña debe tener al menos 10 caracteres." : "Correo o contraseña incorrectos.";
         } catch { out.textContent = "Sin conexión. Inténtalo de nuevo."; }
         btn.disabled = false;
       };

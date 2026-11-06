@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Patio en vivo · Ansar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+:root{--bg:#EEF2F0;--surface:#FFFFFF;--sunk:#E3E9E6;--ink:#15201D;--muted:#596864;--line:#CFD8D4;--accent:#0D6656;--on-accent:#fff;--warn:#B45309;--bad:#B2261B;--good:#15803D;
+--asphalt:#3A4245;--asphalt2:#2F3639;--mark:#E9E2C9;--lot:#F6F8F7;--z-tas:#E6EEF9;--z-man:#F3EAF7;--z-pre:#FBEFE2;--z-exh:#E3F2EC;--z-neg:#FCE9E7;--f-display:"Space Grotesk",Inter,system-ui,sans-serif;--f-body:Inter,system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1513;--surface:#18201D;--sunk:#1F2925;--ink:#E7EEEB;--muted:#9AAAA4;--line:#2D3A35;--accent:#3FB59A;--on-accent:#0B1210;--warn:#F0A54A;--bad:#F07167;--good:#4ADE80;--asphalt:#2A3033;--asphalt2:#22282A;--mark:#BDB59A;--lot:#141A18;--z-tas:#18243A;--z-man:#2A1F33;--z-pre:#33261A;--z-exh:#17302A;--z-neg:#3A1E1C;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1513;--surface:#18201D;--sunk:#1F2925;--ink:#E7EEEB;--muted:#9AAAA4;--line:#2D3A35;--accent:#3FB59A;--on-accent:#0B1210;--warn:#F0A54A;--bad:#F07167;--good:#4ADE80;--asphalt:#2A3033;--asphalt2:#22282A;--mark:#BDB59A;--lot:#141A18;--z-tas:#18243A;--z-man:#2A1F33;--z-pre:#33261A;--z-exh:#17302A;--z-neg:#3A1E1C;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body)}
+.wrap{max-width:1360px;margin:0 auto;padding-block:16px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+.toprow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+h1{font-family:var(--f-display);font-size:28px;margin:0;line-height:1.05}
+.sub{color:var(--muted);font-size:13px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 14px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;min-height:40px;display:inline-flex;align-items:center;gap:6px}
+.btn[aria-pressed="true"]{background:var(--warn);color:#fff;border-color:var(--warn)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}.live i{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 var(--good);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 60%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:2px}
+.kpi .l{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-family:var(--f-display);font-size:30px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.kpi.in .v{color:var(--accent)}.kpi.out .v{color:var(--good)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+@media(max-width:980px){.main{grid-template-columns:minmax(0,1fr)}}
+.mapbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;min-width:0}
+.mapscroll{overflow-x:auto}
+.map{position:relative;width:100%;min-width:640px;aspect-ratio:1000/640}
+.map svg.base{position:absolute;inset:0;width:100%;height:100%;display:block}
+.car{position:absolute;width:5.2%;aspect-ratio:2/1;transform:translate(-50%,-50%);cursor:pointer;border:0;padding:0;background:none;z-index:2}
+.car svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.car:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:6px}
+.car.moving{z-index:5}
+.car.sel svg{filter:drop-shadow(0 0 0 var(--accent)) drop-shadow(0 0 6px var(--accent))}
+.car.demo{opacity:.92}
+.tag{position:absolute;left:50%;top:100%;transform:translate(-50%,2px);font-size:10px;font-weight:700;white-space:nowrap;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:0 4px;pointer-events:none}
+.burst{position:absolute;width:14%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;border:3px solid var(--good);pointer-events:none;animation:burst 1.2s ease-out forwards;z-index:6}
+.burst.in{border-color:var(--accent)}
+@keyframes burst{from{opacity:.9;scale:.2}to{opacity:0;scale:1.3}}
+.toast{position:absolute;transform:translate(-50%,-140%);background:var(--ink);color:var(--surface);font-weight:700;font-size:12px;padding:3px 8px;border-radius:999px;white-space:nowrap;pointer-events:none;z-index:7;animation:up 2.2s ease-out forwards}
+@keyframes up{0%{opacity:0;translate:0 6px}15%{opacity:1;translate:0 0}80%{opacity:1}100%{opacity:0;translate:0 -18px}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);padding:8px 4px 2px}
+.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:12px;height:12px;border-radius:3px;border:1px solid var(--line)}
+.side{display:grid;gap:16px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;min-width:0}
+.panel h2{margin:0;font-size:16px;font-family:var(--f-display)}
+.feed{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:420px;overflow:auto}
+.feed li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:13px;animation:fin .4s ease-out}
+@keyframes fin{from{opacity:0;transform:translateY(-6px)}}
+.feed .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--sunk)}
+.feed .ic.in{background:var(--accent);color:var(--on-accent)}.feed .ic.out{background:var(--good);color:#fff}.feed .ic.ret{background:var(--muted);color:var(--surface)}
+.feed small{color:var(--muted);display:block}
+.none{color:var(--muted);font-size:13px;margin:0}
+.det dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}.det dt{color:var(--muted)}.det dd{margin:0;font-weight:600}
+.banner{background:color-mix(in srgb,var(--warn) 14%,var(--surface));border:1px solid var(--warn);color:var(--ink);border-radius:10px;padding:8px 12px;font-size:13px}
+.zl{font-family:var(--f-display);font-weight:700;fill:var(--ink)}
+.zc{font-family:var(--f-body);font-weight:700;fill:var(--muted)}
+@media (prefers-reduced-motion:reduce){.live i,.burst,.toast{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="toprow">
+    <div><h1>Patio en vivo</h1><div class="sub">Ansar Automotriz · movimiento de autos en consignación, del ingreso a la venta</div></div>
+    <div class="acts">
+      <span class="live" id="live"><i></i>Conectando…</span>
+      <button class="btn" type="button" id="btnDemo" aria-pressed="false" title="Simula movimiento para mostrar cómo funciona. No guarda nada.">▶ Modo demo</button>
+      <a class="btn" href="/">← Tablero</a>
+    </div>
+  </header>
+  <div class="banner" id="demoBanner" hidden>Modo demo: los autos marcados «DEMO» son simulados y no se guardan. Los autos reales siguen moviéndose igual.</div>
+  <section class="kpis" aria-label="Resumen del patio">
+    <div class="kpi"><span class="l">En el patio</span><span class="v" id="kPatio">—</span><span class="s" id="kPatioS">autos en consignación</span></div>
+    <div class="kpi in"><span class="l">Ingresaron este mes</span><span class="v" id="kIn">—</span><span class="s">entrada por la puerta de recepción</span></div>
+    <div class="kpi out"><span class="l">Vendidos este mes</span><span class="v" id="kOut">—</span><span class="s">salida por entrega</span></div>
+    <div class="kpi"><span class="l">Días promedio a venta</span><span class="v" id="kDias">—</span><span class="s">desde el ingreso, vendidos del mes</span></div>
+  </section>
+  <div class="main">
+    <section class="mapbox" aria-label="Mapa de la consignación">
+      <div class="mapscroll"><div class="map" id="map">
+        <svg class="base" viewBox="0 0 1000 640" aria-hidden="true" id="base"></svg>
+      </div></div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <aside class="side">
+      <section class="panel det" id="det"><h2>Detalle</h2><p class="none">Toca un auto en el mapa para ver su ficha.</p></section>
+      <section class="panel"><h2>Movimientos</h2><ul class="feed" id="feed"><li><span class="ic">·</span><span>Esperando movimientos…<small>Cada cambio de estado en Autos aparece aquí al instante.</small></span></li></ul></section>
+    </aside>
+  </div>
+</div>
+<script src="/claude-shim.js"></script>
+<script>
+(function(){
+"use strict";
+const ZONES={
+  tas:{t:"Recepción y tasación",x:30,y:30,w:290,h:165,fill:"--z-tas",door:{x:175,y:222}},
+  man:{t:"Oficina · mandato",x:340,y:30,w:250,h:165,fill:"--z-man",door:{x:465,y:222}},
+  pre:{t:"Taller · preparación y fotos",x:640,y:30,w:330,h:165,fill:"--z-pre",door:{x:805,y:222}},
+  exh:{t:"Exhibición · publicados",x:30,y:258,w:565,h:212,fill:"--z-exh",door:{x:312,y:500}},
+  neg:{t:"Con oferta y reservados",x:690,y:258,w:280,h:212,fill:"--z-neg",door:{x:830,y:500}}
+};
+const EST2Z={"Tasación":"tas","Mandato pendiente":"man","En preparación":"pre","Publicado":"exh","Con oferta":"neg","Reservado":"neg"};
+const GATE_IN={x:110,y:500},GATE_OUT={x:900,y:500},LINK_X=642;
+const COLORS={blanco:"#F4F4F2",negro:"#1E2224",gris:"#8C9497",plata:"#BFC6C9",plateado:"#BFC6C9",rojo:"#C0392B",azul:"#2B5BA8",verde:"#2F7D4F",beige:"#D9C8A6",cafe:"#7A5233",café:"#7A5233",amarillo:"#E2B93B",naranjo:"#E07A2E",naranja:"#E07A2E",burdeo:"#7B2232",celeste:"#7DB8E0",dorado:"#C9A447"};
+const PAL=["#2B5BA8","#C0392B","#8C9497","#F4F4F2","#1E2224","#2F7D4F","#D9C8A6","#7DB8E0"];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const hoy=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const dias=(a,b)=>{if(!a)return null;const x=new Date(a+"T12:00:00"),y=new Date((b||hoy())+"T12:00:00");return Math.max(0,Math.round((y-x)/864e5))};
+const clp=n=>n?"$"+Number(n).toLocaleString("es-CL"):"—";
+const hash=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- mapa base ---------- */
+function drawBase(){
+  const css=v=>`var(${v})`;
+  let s=`<rect x="0" y="0" width="1000" height="640" fill="${css("--lot")}"/>`;
+  // calle
+  s+=`<rect x="0" y="560" width="1000" height="80" fill="${css("--asphalt2")}"/><line x1="0" y1="600" x2="1000" y2="600" stroke="${css("--mark")}" stroke-width="3" stroke-dasharray="26 18"/>`;
+  s+=`<text x="500" y="628" text-anchor="middle" class="zc" font-size="13" fill="${css("--mark")}" style="fill:var(--mark)">CALLE</text>`;
+  // caminos internos
+  s+=`<rect x="0" y="205" width="1000" height="36" fill="${css("--asphalt")}"/><rect x="0" y="482" width="1000" height="36" fill="${css("--asphalt")}"/><rect x="${LINK_X-24}" y="205" width="48" height="313" fill="${css("--asphalt")}"/>`;
+  s+=`<line x1="10" y1="223" x2="990" y2="223" stroke="${css("--mark")}" stroke-width="2" stroke-dasharray="14 14" opacity=".7"/><line x1="10" y1="500" x2="990" y2="500" stroke="${css("--mark")}" stroke-width="2" stroke-dasharray="14 14" opacity=".7"/><line x1="${LINK_X}" y1="241" x2="${LINK_X}" y2="482" stroke="${css("--mark")}" stroke-width="2" stroke-dasharray="14 14" opacity=".7"/>`;
+  // portones
+  s+=`<rect x="${GATE_IN.x-34}" y="518" width="68" height="42" fill="${css("--asphalt")}"/><rect x="${GATE_OUT.x-34}" y="518" width="68" height="42" fill="${css("--asphalt")}"/>`;
+  s+=`<g><rect x="${GATE_IN.x-58}" y="526" width="116" height="24" rx="6" fill="${css("--accent")}"/><text x="${GATE_IN.x}" y="543" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--on-accent);font-family:var(--f-body)">ENTRADA ▲</text></g>`;
+  s+=`<g><rect x="${GATE_OUT.x-58}" y="526" width="116" height="24" rx="6" fill="${css("--good")}"/><text x="${GATE_OUT.x}" y="543" text-anchor="middle" font-size="12" font-weight="700" style="fill:#fff;font-family:var(--f-body)">ENTREGA ▼</text></g>`;
+  // zonas
+  for(const [k,z] of Object.entries(ZONES)){
+    s+=`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="12" fill="${css(z.fill)}" stroke="${css("--line")}" stroke-width="1.5"/>`;
+    s+=`<text x="${z.x+14}" y="${z.y+24}" class="zl" font-size="15">${z.t}</text><text x="${z.x+z.w-14}" y="${z.y+24}" text-anchor="end" class="zc" font-size="15" id="cnt_${k}">0</text>`;
+    // estacionamientos
+    slotsOf(k).forEach(p=>{s+=`<rect x="${p.x-30}" y="${p.y-16}" width="60" height="32" rx="4" fill="none" stroke="${css("--line")}" stroke-width="1" stroke-dasharray="3 3"/>`});
+    const d=z.door;s+=`<rect x="${d.x-26}" y="${d.y<300?z.y+z.h:z.y+z.h}" width="52" height="${d.y<300?205-(z.y+z.h)+1:482-(z.y+z.h)+1}" fill="${css("--asphalt")}"/>`;
+  }
+  $("base").innerHTML=s;
+  $("legend").innerHTML=Object.values(ZONES).map(z=>`<span><i style="background:var(${z.fill})"></i>${z.t}</span>`).join("")+`<span>▲ entra a consignación · ▼ sale vendido</span>`;
+}
+const SLOTCACHE={};
+function slotsOf(k){
+  if(SLOTCACHE[k])return SLOTCACHE[k];
+  const z=ZONES[k],cols=Math.max(1,Math.floor((z.w-20)/70)),rows=Math.max(1,Math.floor((z.h-46)/42)),out=[];
+  const x0=z.x+(z.w-cols*70)/2+35;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)out.push({x:x0+c*70,y:z.y+56+r*42});
+  return SLOTCACHE[k]=out;
+}
+
+/* ---------- autos ---------- */
+const cars=new Map(); // id -> {el, zone, slot, pos, data, demo}
+const map=$("map");
+const pct=p=>({left:(p.x/10)+"%",top:(p.y/6.4)+"%"});
+function carColor(d,id){const c=String(d.color||"").toLowerCase().trim().split(" ")[0];return COLORS[c]||PAL[hash(id)%PAL.length]}
+function carSvg(col){
+  return `<svg viewBox="0 0 100 50" aria-hidden="true"><rect x="3" y="5" width="94" height="40" rx="14" fill="${col}" stroke="rgba(0,0,0,.45)" stroke-width="2"/>
+  <path d="M62 10 h14 q8 0 10 15 q-2 15 -10 15 h-14 q4 -15 0 -30z" fill="rgba(20,30,40,.55)"/>
+  <path d="M24 11 h12 q-4 14 0 28 h-12 q-6 -14 0 -28z" fill="rgba(20,30,40,.45)"/>
+  <rect x="38" y="12" width="22" height="26" rx="4" fill="rgba(255,255,255,.18)"/>
+  <rect x="92" y="9" width="4" height="8" rx="2" fill="#FFF3B0"/><rect x="92" y="33" width="4" height="8" rx="2" fill="#FFF3B0"/>
+  <rect x="4" y="9" width="3" height="8" rx="1.5" fill="#E04848"/><rect x="4" y="33" width="3" height="8" rx="1.5" fill="#E04848"/></svg>`;
+}
+function label(d){return [d.marca,d.modelo].filter(Boolean).join(" ")||"Auto sin datos"}
+function makeCar(id,d,demo){
+  const el=document.createElement("button");el.type="button";el.className="car"+(demo?" demo":"");
+  el.innerHTML=carSvg(carColor(d,id))+(demo?`<span class="tag">DEMO</span>`:"");
+  el.setAttribute("aria-label",`${label(d)} ${d.anio||""}, ${d.estado||""}`);
+  el.onclick=()=>select(id);
+  map.appendChild(el);return el;
+}
+function place(c,p,ang){c.pos=p;Object.assign(c.el.style,pct(p));c.el.style.transform=`translate(-50%,-50%) rotate(${ang||0}deg)`;c.ang=ang||0}
+function freeSlot(zone,exceptId){
+  const used=new Set([...cars.entries()].filter(([i,c])=>i!==exceptId&&c.zone===zone&&c.slot!=null&&!c.leaving).map(([,c])=>c.slot));
+  const sl=slotsOf(zone);for(let i=0;i<sl.length;i++)if(!used.has(i))return i;
+  return sl.length+[...used].length; // desborde: se apila
+}
+function slotPos(zone,i){const sl=slotsOf(zone);if(i<sl.length)return sl[i];const b=sl[sl.length-1];return {x:b.x-((i-sl.length)%4)*8,y:b.y-((i-sl.length)%4)*6}}
+function route(c,toZone,exit){
+  const pts=[{...c.pos}];
+  let road;
+  if(c.zone){const d=ZONES[c.zone].door;pts.push({x:d.x,y:d.y});road=d.y}
+  else{pts.push({x:GATE_IN.x,y:640+30},{x:GATE_IN.x,y:500});road=500}
+  if(exit){
+    if(road!==500)pts.push({x:LINK_X,y:road},{x:LINK_X,y:500});
+    pts.push({x:GATE_OUT.x,y:500},{x:GATE_OUT.x,y:600},{x:exit==="ret"?40:1040,y:600});
+    return pts;
+  }
+  const d=ZONES[toZone].door;
+  if(road!==d.y)pts.push({x:LINK_X,y:road},{x:LINK_X,y:d.y});
+  pts.push({x:d.x,y:d.y});
+  return pts;
+}
+function animate(c,pts,done){
+  // limpia puntos repetidos
+  const P=pts.filter((p,i)=>i===0||Math.hypot(p.x-pts[i-1].x,p.y-pts[i-1].y)>0.5);
+  if(P.length<2||reduce){const last=P[P.length-1];place(c,last,0);done&&done();return}
+  let total=0;const seg=[];for(let i=1;i<P.length;i++){const L=Math.hypot(P[i].x-P[i-1].x,P[i].y-P[i-1].y);seg.push(L);total+=L}
+  const dur=Math.min(7000,Math.max(1400,total/0.24));
+  const kf=[];let acc=0,prevA=c.ang||0;
+  const angOf=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+  const norm=(a,ref)=>{while(a-ref>180)a-=360;while(a-ref<-180)a+=360;return a};
+  let a0=norm(angOf(P[0],P[1]),prevA);
+  kf.push({offset:0,...pct(P[0]),transform:`translate(-50%,-50%) rotate(${prevA}deg)`});
+  kf.push({offset:Math.min(0.02,seg[0]/total*0.3),...pct(P[0]),transform:`translate(-50%,-50%) rotate(${a0}deg)`});
+  let cur=a0;
+  for(let i=1;i<P.length;i++){
+    acc+=seg[i-1];const off=acc/total;
+    kf.push({offset:Math.min(1,off),...pct(P[i]),transform:`translate(-50%,-50%) rotate(${cur}deg)`});
+    if(i<P.length-1){const na=norm(angOf(P[i],P[i+1]),cur);const o2=Math.min(1,off+Math.min(0.03,seg[i]/total*0.3));kf.push({offset:o2,...pct(P[i]),transform:`translate(-50%,-50%) rotate(${na}deg)`});cur=na}
+  }
+  // ordenar offsets crecientes
+  for(let i=1;i<kf.length;i++)if(kf[i].offset<kf[i-1].offset)kf[i].offset=kf[i-1].offset;
+  c.el.classList.add("moving");
+  if(c.anim)c.anim.cancel();
+  c.anim=c.el.animate(kf,{duration:dur,easing:"cubic-bezier(.45,.05,.4,1)",fill:"forwards"});
+  c.anim.onfinish=()=>{c.anim.commitStyles?.();c.anim.cancel();c.anim=null;c.el.classList.remove("moving");place(c,P[P.length-1],cur);done&&done()};
+}
+function settle(c,zone){
+  // desde la puerta hasta su estacionamiento
+  const i=freeSlot(zone,c.id);c.slot=i;c.zone=zone;const p=slotPos(zone,i);
+  const d=ZONES[zone].door;
+  animate(c,[{...c.pos},{x:d.x,y:(d.y<300?ZONES[zone].y+ZONES[zone].h-10:ZONES[zone].y+ZONES[zone].h-10)},{x:p.x,y:p.y}],()=>{place(c,p,0);counts()});
+}
+function moveTo(c,zone){
+  const pts=route(c,zone,null);
+  c.zone=null;c.slot=null;counts();
+  animate(c,pts,()=>settle(c,zone));
+}
+function exitCar(c,tipo){
+  c.leaving=true;const pts=route(c,null,tipo);c.zone=null;c.slot=null;counts();
+  animate(c,pts,()=>{c.el.remove();cars.delete(c.id)});
+}
+function burst(p,cls,txt){
+  const b=document.createElement("div");b.className="burst "+(cls||"");Object.assign(b.style,pct(p));map.appendChild(b);setTimeout(()=>b.remove(),1300);
+  if(txt){const t=document.createElement("div");t.className="toast";t.textContent=txt;Object.assign(t.style,pct(p));map.appendChild(t);setTimeout(()=>t.remove(),2300)}
+}
+function counts(){for(const k of Object.keys(ZONES)){const n=[...cars.values()].filter(c=>c.zone===k&&!c.leaving).length;const el=document.getElementById("cnt_"+k);if(el)el.textContent=n}}
+
+/* ---------- datos ---------- */
+let real=new Map(),demo=new Map(),first=true,selId=null;
+function zoneOf(d){return EST2Z[d.estado]||(d.estado==="Vendido"||d.estado==="Retirado"?null:"tas")}
+function sync(all,isFirst){
+  // all: Map id -> {data, demo}
+  for(const [id,o] of all){
+    const d=o.data,z=zoneOf(d),c=cars.get(id);
+    if(!c){
+      if(!z){continue}
+      const el=makeCar(id,d,o.demo);const nc={id,el,zone:null,slot:null,pos:{x:GATE_IN.x,y:670},data:d,demo:o.demo,ang:-90};cars.set(id,nc);
+      if(isFirst){const i=freeSlot(z,id);nc.zone=z;nc.slot=i;place(nc,slotPos(z,i),0)}
+      else{place(nc,{x:GATE_IN.x,y:670},-90);burst({x:GATE_IN.x,y:545},"in","Ingresa a consignación");log("in",d,"ingresó a consignación",o.demo);moveTo(nc,z)}
+      continue;
+    }
+    const prev=c.data.estado;c.data=d;
+    if(c.leaving)continue;
+    if(prev!==d.estado){
+      if(d.estado==="Vendido"){burst(c.pos,"","¡Vendido!");log("out",d,"se vendió"+(d.precioVenta?` en ${clp(d.precioVenta)}`:""),o.demo);exitCar(c,"sale")}
+      else if(d.estado==="Retirado"){log("ret",d,"fue retirado por su dueño",o.demo);exitCar(c,"ret")}
+      else if(z&&z!==c.zone){log("mv",d,"pasó a "+d.estado,o.demo);moveTo(c,z)}
+      else if(z){log("mv",d,"pasó a "+d.estado,o.demo)}
+    }
+    if(selId===id)select(id);
+  }
+  for(const [id,c] of cars){if(!all.has(id)&&!c.leaving){c.el.remove();cars.delete(id)}}
+  counts();kpis();
+}
+function merged(){const m=new Map();real.forEach((d,id)=>m.set(id,{data:d,demo:false}));demo.forEach((d,id)=>m.set(id,{data:d,demo:true}));return m}
+function kpis(){
+  const all=[...real.values(),...demo.values()],t=hoy(),mk=t.slice(0,7);
+  const patio=all.filter(d=>d.estado!=="Vendido"&&d.estado!=="Retirado");
+  $("kPatio").textContent=patio.length;
+  const pub=patio.filter(d=>["Publicado","Con oferta","Reservado"].includes(d.estado)).length;
+  $("kPatioS").textContent=`${pub} a la venta · ${patio.length-pub} en proceso`;
+  $("kIn").textContent=all.filter(d=>String(d.fechaIngreso||"").startsWith(mk)).length;
+  const vend=all.filter(d=>d.estado==="Vendido"&&String(d.fechaVenta||"").startsWith(mk));
+  $("kOut").textContent=vend.length;
+  const ds=vend.map(d=>dias(d.fechaIngreso,d.fechaVenta)).filter(x=>x!=null);
+  $("kDias").textContent=ds.length?Math.round(ds.reduce((a,b)=>a+b,0)/ds.length):"—";
+}
+function log(tipo,d,txt,isDemo){
+  const f=$("feed");if(f.dataset.init!=="1"){f.innerHTML="";f.dataset.init="1"}
+  const ic={in:["in","▲"],out:["out","▼"],ret:["ret","↩"],mv:["","→"]}[tipo];
+  const li=document.createElement("li");const h=new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+  li.innerHTML=`<span class="ic ${ic[0]}" aria-hidden="true">${ic[1]}</span><span><b>${esc(label(d))} ${esc(d.anio||"")}</b> ${esc(txt)}<small>${h}${isDemo?" · demo":""}${d.responsable?" · "+esc(d.responsable):""}</small></span>`;
+  f.prepend(li);while(f.children.length>40)f.lastChild.remove();
+}
+function select(id){
+  selId=id;cars.forEach((c,i)=>c.el.classList.toggle("sel",i===id));
+  const c=cars.get(id),d=c?c.data:(real.get(id)||demo.get(id));if(!d)return;
+  const it=(k,v)=>`<dt>${k}</dt><dd>${v}</dd>`;
+  $("det").innerHTML=`<h2>${esc(label(d))} ${esc(d.anio||"")}${c&&c.demo?" · DEMO":""}</h2><dl>
+    ${it("Estado",esc(d.estado||"—"))}${it("Patente",esc(d.patente||"—"))}${it("Versión",esc(d.version||"—"))}${it("Km",d.km?Number(d.km).toLocaleString("es-CL"):"—")}
+    ${it("Días en consignación",dias(d.fechaIngreso,d.fechaVenta)??"—")}${it("Precio publicado",clp(d.precioPublicado||d.precioVenta))}${it("Tasación (referencial)",clp(d.tasacion))}${it("Responsable",esc(d.responsable||"—"))}
+  </dl><p class="none">Para editar, ábrelo en la pestaña Autos del tablero.</p>`;
+}
+
+/* ---------- modo demo ---------- */
+const SEQ=["Tasación","Mandato pendiente","En preparación","Publicado","Con oferta","Reservado","Vendido"];
+const DEMO_AUTOS=[["Toyota","RAV4",2021,"blanco"],["Mazda","CX-5",2020,"rojo"],["Hyundai","Tucson",2022,"gris"],["Kia","Sportage",2021,"azul"],["Chevrolet","Tracker",2022,"negro"],["Suzuki","Vitara",2020,"verde"],["Nissan","Kicks",2021,"plata"],["Ford","Ranger",2019,"blanco"],["Toyota","Hilux",2020,"gris"],["Peugeot","2008",2022,"azul"],["MG","ZS",2023,"rojo"],["Subaru","XV",2019,"beige"]];
+let demoTimer=null,demoN=0;
+function demoTick(){
+  const live=[...demo.entries()].filter(([,d])=>d.estado!=="Vendido"&&d.estado!=="Retirado");
+  const r=Math.random();
+  if(live.length<9&&(r<0.32||live.length<3)){
+    const a=DEMO_AUTOS[demoN++%DEMO_AUTOS.length];
+    demo.set("demo-"+demoN,{marca:a[0],modelo:a[1],anio:a[2],color:a[3],estado:"Tasación",fechaIngreso:hoy(),tasacion:(14+Math.floor(Math.random()*12))*1e6,patente:"DEMO"+demoN});
+  }else if(live.length){
+    const [id,d]=live[Math.floor(Math.random()*live.length)];
+    let i=SEQ.indexOf(d.estado);let next=SEQ[Math.min(SEQ.length-1,i+1)];
+    if(d.estado==="Publicado"&&Math.random()<0.12)next="Retirado";
+    const nd={...d,estado:next};if(next==="Vendido"){nd.fechaVenta=hoy();nd.precioVenta=(d.tasacion||15e6)+1.2e6}
+    demo.set(id,nd);
+  }
+  for(const [id,d] of [...demo])if((d.estado==="Vendido"||d.estado==="Retirado")&&!cars.has(id))demo.delete(id);
+  sync(merged(),false);
+}
+$("btnDemo").onclick=()=>{
+  const on=$("btnDemo").getAttribute("aria-pressed")!=="true";
+  $("btnDemo").setAttribute("aria-pressed",String(on));$("btnDemo").textContent=on?"■ Detener demo":"▶ Modo demo";$("demoBanner").hidden=!on;
+  if(on){demoTick();demoTimer=setInterval(demoTick,2600)}
+  else{clearInterval(demoTimer);demoTimer=null;demo.clear();sync(merged(),false)}
+};
+
+/* ---------- arranque ---------- */
+drawBase();
+(async()=>{
+  try{
+    const db=await window.claude.use("db");
+    if(!db){$("live").innerHTML="<i></i>Sin conexión";return}
+    db.collection("autos").onSnapshot(snap=>{
+      real=new Map(snap.docs.map(d=>[d.id,d.data()]));
+      sync(merged(),first);first=false;
+      $("live").innerHTML=`<i></i>En vivo · act. ${new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}`;
+    },e=>{$("live").innerHTML="<i></i>Error: "+esc(e.message||e)});
+  }catch(e){$("live").innerHTML="<i></i>Error: "+esc(e.message||e)}
+})();
+})();
+</script>
+</body>
+</html>

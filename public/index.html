@@ -528,7 +528,7 @@ details:not([open]) .chev{transform:rotate(-90deg)}
         <small>Ansar Automotriz · La Serena · 2 nov 2026 – nov 2027</small>
       </div>
       <span class="status" id="status"><span class="dot"></span><span>Conectando…</span></span>
-      <button class="btn" id="btnSync" type="button" title="Traer los datos más recientes">↻ Actualizar</button>
+      <a class="btn" id="lnkPatio" href="/patio.html" hidden title="Mapa en vivo de autos entrando y saliendo">Patio en vivo</a><button class="btn" id="btnSync" type="button" title="Traer los datos más recientes">↻ Actualizar</button>
       <button class="btn primary" id="btnNew" type="button">+ Ingresar auto</button>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
@@ -2463,7 +2463,7 @@ render();
   const [db,user]=await Promise.all([C.use("db"),C.use("user")]);
   if(!db){setStatus("err","Sin acceso a la base del equipo");S.canWrite=false;S.soloVirtual=true;S.accesoListo=true;S.offline=window.__ANSAR_SITE?"Ingresa con tu correo y contraseña para ver y editar la tabla.":"Inicia sesión en claude.ai con la cuenta invitada para ver y editar la tabla.";render();return}
   S.db=db;
-  if(user){try{S.uid=await user.id();S.isAdmin=(await user.canEdit())===true;S.soloVirtual=window.__ANSAR_SITE?window.__ANSAR_ROL==="virtual":!S.isAdmin;
+  if(user){try{S.uid=await user.id();S.isAdmin=(await user.canEdit())===true;{const lp=document.getElementById("lnkPatio");if(lp&&window.__ANSAR_SITE)lp.hidden=false}S.soloVirtual=window.__ANSAR_SITE?window.__ANSAR_ROL==="virtual":!S.isAdmin;
     const cw=await user.can("data.write");if(cw===false){S.canWrite=false;if(S.soloVirtual)S.sinAccesoVirtual=true}}catch(_){S.soloVirtual=true}}
   else S.soloVirtual=true;
   S.accesoListo=true;

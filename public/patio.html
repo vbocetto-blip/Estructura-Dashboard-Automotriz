@@ -64,6 +64,21 @@ h1{font-family:var(--f-display);font-size:28px;margin:0;line-height:1.05}
 .zc{font-family:var(--f-body);font-weight:700;fill:var(--muted)}
 @media (prefers-reduced-motion:reduce){.live i,.burst,.toast{animation:none}}
 
+.tray{display:grid;gap:12px}
+.trayh{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:flex-end;justify-content:space-between}
+.trayh h2{margin:0;font-family:var(--f-display);font-size:18px}.trayh p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.proj{display:flex;gap:18px;flex-wrap:wrap}.proj div{display:grid}.proj b{font-family:var(--f-display);font-size:26px;line-height:1;text-shadow:0 0 16px currentColor;color:var(--accent);font-variant-numeric:tabular-nums}.proj span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.stack{display:flex;height:10px;border-radius:999px;overflow:hidden;gap:2px;background:rgba(255,255,255,.06)}.stack i{display:block}
+.st2{background:#4096FF}.st3{background:#FFAA46}.st4{background:#2EE6C5}
+.tlg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted)}.tlg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tcards{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
+.tc{scroll-snap-align:start;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(10,17,24,.7);min-width:0}
+.tc.e2{border-left:3px solid #4096FF}.tc.e3{border-left:3px solid #FFAA46}.tc.e4{border-left:3px solid #2EE6C5}
+.gauge{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--gc) calc(var(--v)*1%),rgba(255,255,255,.08) 0);position:relative}
+.gauge::before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--sunk)}
+.gauge b{position:relative;font:700 13px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.tc h3{margin:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tc p{margin:1px 0 0;font-size:12px;color:var(--muted)}.tc .nx{color:var(--accent);font-weight:600}
+.tc .rk{color:var(--bad)}
 /* ===== Tema sala de control ===== */
 :root:root{--bg:#060A0F;--surface:rgba(16,24,33,.78);--sunk:#0E1620;--ink:#E6F1F7;--muted:#8CA3B3;--line:rgba(94,234,212,.18);--accent:#2EE6C5;--on-accent:#04110E;--warn:#FFB547;--bad:#FF5C7A;--good:#5CFF9D;
 --asphalt:#111A23;--asphalt2:#0B1219;--mark:#2EE6C5;--lot:#0A1118;--z-tas:rgba(64,150,255,.10);--z-man:rgba(186,120,255,.10);--z-pre:rgba(255,170,70,.10);--z-exh:rgba(46,230,197,.10);--z-neg:rgba(255,92,122,.10);color-scheme:dark}
@@ -110,6 +125,13 @@ h1{letter-spacing:.02em;background:linear-gradient(90deg,#E6F1F7,#2EE6C5);-webki
     <div class="kpi in"><span class="l">Ingresaron este mes</span><span class="v" id="kIn">—</span><span class="s">entrada por la puerta de recepción</span></div>
     <div class="kpi out"><span class="l">Vendidos este mes</span><span class="v" id="kOut">—</span><span class="s">salida por entrega</span></div>
     <div class="kpi"><span class="l">Días promedio a venta</span><span class="v" id="kDias">—</span><span class="s">desde el ingreso, vendidos del mes</span></div>
+  </section>
+  <section class="panel tray" aria-label="Proyección de consignados">
+    <div class="trayh"><div><h2>Bandeja · proyección de consignados</h2><p>Interesados que vienen en camino al patio y su probabilidad de firmar mandato. Referencial: se recalcula con los resultados reales del equipo.</p></div>
+      <div class="proj"><div><span>Mandatos esperados</span><b id="pEsp">—</b></div><div><span>En camino</span><b id="pN">—</b></div><div><span>Patio proyectado</span><b id="pPat">—</b></div></div></div>
+    <div class="stack" id="pStack" role="img" aria-label="Aporte por etapa"></div>
+    <div class="tlg" id="pLg"></div>
+    <div class="tcards" id="pCards"><p class="none">Cargando seguimiento…</p></div>
   </section>
   <div class="main">
     <section class="mapbox" aria-label="Mapa de la consignación">
@@ -309,7 +331,7 @@ function sync(all,isFirst){
     if(selId===id)select(id);
   }
   for(const [id,c] of cars){if(!all.has(id)&&!c.leaving){c.el.remove();cars.delete(id)}}
-  counts();kpis();paintAges();
+  counts();kpis();paintAges();try{proyectar()}catch(e){}
 }
 function merged(){const m=new Map();real.forEach((d,id)=>m.set(id,{data:d,demo:false}));demo.forEach((d,id)=>m.set(id,{data:d,demo:true}));return m}
 function kpis(){
@@ -368,12 +390,42 @@ $("btnDemo").onclick=()=>{
   else{clearInterval(demoTimer);demoTimer=null;demo.clear();sync(merged(),false)}
 };
 
+
+/* ---------- proyección de consignados (misma lógica que Seguimiento) ---------- */
+const RES=[["No contesta",0],["Número equivocado",0],["Contestó · no le interesa",1],["Contestó · ya vendió",1],["Pidió no ser contactado",1],["Descartado",1],["Interesado · seguimiento",2],["Tiene prenda",2],["Agendó tasación",3],["Tasación hecha",4],["Mandato firmado",5]];
+const NIV=Object.fromEntries(RES),PRIOR={2:.15,3:.35,4:.55},K=10,ET={2:"Interesado",3:"Tasación agendada",4:"Tasación hecha"};
+const niv=c=>NIV[c.resultado]??(Number(c.nivel)||0);
+const keyOf=c=>c.radarId?"r:"+c.radarId:(c.telefonoN?"t:"+c.telefonoN:"c:"+c._id);
+let calls=new Map(),radarIdx={},vCalls=new Map();
+function proyectar(){
+  const m=new Map();
+  [...calls.values(),...vCalls.values()].forEach(c=>{const k=keyOf(c);if(!m.has(k))m.set(k,[]);m.get(k).push(c)});
+  const gs=[...m.entries()].map(([k,cs])=>{cs.sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));const last=cs[cs.length-1],maxN=Math.max(0,...cs.map(niv)),ln=niv(last);
+    const r=last.radarId?radarIdx[last.radarId]:null,no=cs.some(c=>c.noContactar)||!!(r&&r.noContactar);
+    let trail=0;for(let i=cs.length-1;i>=0;i--){if(niv(cs[i])===0)trail++;else break}
+    return {k,last,maxN,etapa:Math.min(4,Math.max(2,maxN)),estado:maxN>=5?"ganado":(no||ln===1)?"perdido":maxN>=2?"activo":"frio",prox:last.proximaFecha||"",trail}});
+  const R={};[2,3,4].forEach(e=>{const res=gs.filter(g=>g.maxN>=e&&(g.estado==="ganado"||g.estado==="perdido"));const w=res.filter(g=>g.estado==="ganado").length;R[e]=(w+PRIOR[e]*K)/(res.length+K)});
+  const act=gs.filter(g=>g.estado==="activo").map(g=>{let p=R[g.etapa];const d=dias(g.last.fecha)??0;if(d>14)p*=.35;else if(d>7)p*=.55;else if(d>2)p*=.8;if(g.prox&&g.prox<hoy())p*=.85;if(g.trail>=3)p*=.5;return {...g,pr:Math.max(0,Math.min(1,p)),d}}).sort((a,b)=>b.pr-a.pr);
+  const esp=act.reduce((a,g)=>a+g.pr,0),f1=n=>n.toLocaleString("es-CL",{maximumFractionDigits:1});
+  const enPatio=[...real.values(),...demo.values()].filter(d=>d.estado!=="Vendido"&&d.estado!=="Retirado").length;
+  $("pEsp").textContent="≈ "+f1(esp);$("pN").textContent=act.length;$("pPat").textContent="≈ "+f1(enPatio+esp);
+  const por=[2,3,4].map(e=>({e,n:act.filter(g=>g.etapa===e).length,s:act.filter(g=>g.etapa===e).reduce((a,g)=>a+g.pr,0)}));
+  $("pStack").innerHTML=esp?por.filter(o=>o.s).map(o=>`<i class="st${o.e}" style="flex:${o.s}"></i>`).join(""):"";
+  $("pLg").innerHTML=por.map(o=>`<span><i class="st${o.e}"></i>${ET[o.e]}: ${o.n} · aporta ${f1(o.s)} (ref. ${Math.round(R[o.e]*100)}%)</span>`).join("");
+  const paso={2:"Agendar la tasación",3:"Confirmar y hacer la tasación",4:"Firmar mandato con rango de precio"};
+  const gc=p=>p>=.4?"#5CFF9D":p>=.2?"#FFB547":"#FF5C7A";
+  $("pCards").innerHTML=act.length?act.map(g=>{const L=g.last,v=Math.round(g.pr*100),rk=[g.d>2?`${g.d} d sin contacto`:"",g.prox&&g.prox<hoy()?"fecha vencida":"",g.trail>=3?"3 intentos sin respuesta":""].filter(Boolean);
+    return `<article class="tc e${g.etapa}"><span class="gauge" style="--v:${v};--gc:${gc(g.pr)}" role="img" aria-label="${v}% de probabilidad"><b>${v}%</b></span><div style="min-width:0"><h3>${esc([L.marca,L.modelo].filter(Boolean).join(" ")||"Vehículo")} ${esc(L.anio||"")}</h3><p>${ET[g.etapa]} · ${esc(L.consignador||"—")}</p><p class="nx">→ ${paso[g.etapa]}</p>${rk.length?`<p class="rk">${rk.join(" · ")}</p>`:""}</div></article>`}).join(""):`<p class="none">Sin interesados activos en Seguimiento.</p>`;
+}
 /* ---------- arranque ---------- */
 drawBase();
 (async()=>{
   try{
     const db=await window.claude.use("db");
     if(!db){$("live").innerHTML="<i></i>Sin conexión";return}
+    db.collection("llamadas").onSnapshot(sn=>{calls=new Map(sn.docs.map(d=>[d.id,{...d.data(),_id:d.id}]));proyectar()},()=>{});
+    db.collection("virtualLlamadas").onSnapshot(sn=>{vCalls=new Map(sn.docs.map(d=>[d.id,{...d.data(),_id:d.id}]));proyectar()},()=>{});
+    db.collection("radar").onSnapshot(sn=>{radarIdx={};sn.docs.forEach(d=>{const x=d.data();radarIdx[d.id]={noContactar:x.noContactar}});proyectar()},()=>{});
     db.collection("autos").onSnapshot(snap=>{
       real=new Map(snap.docs.map(d=>[d.id,d.data()]));
       sync(merged(),first);first=false;

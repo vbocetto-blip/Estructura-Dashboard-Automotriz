@@ -424,6 +424,13 @@ details:not([open]) .chev{transform:rotate(-90deg)}
 .z-res .bar.in{background:var(--info)} .z-res .bar.out{background:var(--good)}
 .z-res .bar{width:30%}
 /* Seguimiento */
+.sgtiles .ptile{cursor:pointer;border-width:2px}
+.sgtiles .ptile[aria-expanded="true"]{box-shadow:0 0 0 3px var(--zc);filter:none}
+.ptile .pgo{margin-top:6px;font-size:12.5px;font-weight:700;color:var(--zc)}
+.sghint{margin:4px 0 0;color:var(--muted);font-size:13.5px}
+.sgpanel{display:grid;gap:16px;scroll-margin-top:12px}
+.sgph{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.sgph h2{margin:0;font-size:20px}.sgph p{margin:2px 0 0;color:var(--muted)}
 .tabn{display:inline-block;min-width:18px;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--bad-soft);color:var(--bad);font-family:var(--f-body);font-size:11.5px;font-weight:700;line-height:18px;text-align:center;vertical-align:2px}
 .sgdl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);flex:0 1 auto}
 .sgdl input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 8px;color:var(--ink)}
@@ -1815,35 +1822,30 @@ function vSeg(){
   const nombres=uniq([...S.equipo,...gs.map(g=>g.last.consignador)]);
   return `<section class="sec-head"><h2>Seguimiento de interesados</h2><p><span class="rlive"><i></i>En vivo</span> · se arma solo con lo que el equipo registra en Llamadas desde el Radar</p></section>
   ${S.segErr?`<div class="banner">No se pudieron cargar las llamadas (${esc(S.segErr)}). Toca Actualizar.</div>`:""}
-  <nav class="pulse" aria-label="Pulso del seguimiento">
-    <div class="ptile z-hoy"><span class="pl">Para hoy</span><span class="pv num${venc?" alarm":""}">${cola.length}</span><span class="ps">${venc} vencido${venc===1?"":"s"} o sin fecha</span></div>
-    <div class="ptile z-cap"><span class="pl">Interesados activos</span><span class="pv num">${rows.length}</span><span class="ps">${perdidos} perdido${perdidos===1?"":"s"} · ${gs.filter(g=>g.estado==="ganado").length} con mandato</span></div>
-    <div class="ptile z-ven"><span class="pl">Tasaciones agendadas</span><span class="pv num">${agen.length}</span><span class="ps">${confirmar} por confirmar hoy o mañana</span></div>
-    <div class="ptile z-res"><span class="pl">Mandatos esperados</span><span class="pv num">${esp.toLocaleString("es-CL",{maximumFractionDigits:1})}</span><span class="ps">suma de probabilidades · ${ganMes} firmado${ganMes===1?"":"s"} este mes</span></div>
+  <nav class="pulse sgtiles" aria-label="Pulso del seguimiento">
+    <button type="button" class="ptile z-hoy" data-sgt="hoy" aria-expanded="${F.tile==="hoy"}" aria-controls="sgpanel"><span class="pl">Para hoy</span><span class="pv num${venc?" alarm":""}">${cola.length}</span><span class="ps">${venc} vencido${venc===1?"":"s"} o sin fecha</span><span class="pgo" aria-hidden="true">${F.tile==="hoy"?"Ocultar ▴":"Ver detalle ▾"}</span></button>
+    <button type="button" class="ptile z-cap" data-sgt="cap" aria-expanded="${F.tile==="cap"}" aria-controls="sgpanel"><span class="pl">Interesados activos</span><span class="pv num">${rows.length}</span><span class="ps">${perdidos} perdido${perdidos===1?"":"s"} · ${gs.filter(g=>g.estado==="ganado").length} con mandato</span><span class="pgo" aria-hidden="true">${F.tile==="cap"?"Ocultar ▴":"Ver detalle ▾"}</span></button>
+    <button type="button" class="ptile z-ven" data-sgt="agen" aria-expanded="${F.tile==="agen"}" aria-controls="sgpanel"><span class="pl">Tasaciones agendadas</span><span class="pv num">${agen.length}</span><span class="ps">${confirmar} por confirmar hoy o mañana</span><span class="pgo" aria-hidden="true">${F.tile==="agen"?"Ocultar ▴":"Ver detalle ▾"}</span></button>
+    <button type="button" class="ptile z-res" data-sgt="man" aria-expanded="${F.tile==="man"}" aria-controls="sgpanel"><span class="pl">Mandatos esperados</span><span class="pv num">${esp.toLocaleString("es-CL",{maximumFractionDigits:1})}</span><span class="ps">suma de probabilidades · ${ganMes} firmado${ganMes===1?"":"s"} este mes</span><span class="pgo" aria-hidden="true">${F.tile==="man"?"Ocultar ▴":"Ver detalle ▾"}</span></button>
   </nav>
-  ${frios||sinFecha||ciclo?`<div class="fixes">${sinFecha?`<span class="fix on"><b class="num">${sinFecha}</b>sin próxima fecha</span>`:""}${frios?`<span class="fix on"><b class="num">${frios}</b>se enfrían: 2+ días sin contacto</span>`:""}${ciclo?`<span class="fix on"><b class="num">${ciclo}</b>con 3 intentos sin respuesta</span>`:""}</div>`:""}
-  <section class="panel"><div class="rbar">
-    <div class="field"><label for="sg_cons">Quién contacta</label><select id="sg_cons" data-rcons="1" ${ro}><option value="">—</option>${uniq([...S.equipo,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>
+  ${(()=>{
+    const ctrl=`<section class="panel"><div class="rbar"><div class="field"><label for="sg_cons">Quién contacta</label><select id="sg_cons" data-rcons="1" ${ro}><option value="">—</option>${uniq([...S.equipo,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>
     <div class="field"><label for="sg_fcons">Ver interesados de</label><select id="sg_fcons" data-sgcons="1"><option value="">Todo el equipo</option>${nombres.map(p=>`<option ${p===F.cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>
-    <p class="none" style="font-style:normal;flex:1;min-width:220px;margin:0">Entra aquí todo contacto del Radar que respondió con interés, con prenda o agendó tasación. Sale solo cuando firma mandato, ya vendió, no le interesa o pidió no ser contactado. Cada registro queda en Llamadas y en el aviso del Radar.</p></div>
-    <div class="chips">${vistas.map(([k,l,n])=>`<button type="button" data-sgv="${k}" aria-pressed="${F.vista===k}">${l} <span class="num">${n}</span></button>`).join("")}<span style="width:12px"></span>${[["radar","Solo del Radar"],["todas","Radar y llamadas directas"]].map(([k,l])=>`<button type="button" data-sgo="${k}" aria-pressed="${F.orig===k}">${l}</button>`).join("")}</div>
-  </section>
-  ${!S.segLoaded&&S.db?`<p class="none">Cargando llamadas…</p>`:list.length?`<div class="rlist">${list.map(sgCard).join("")}</div>`:`<div class="empty"><h3>${rows.length?"Nada pendiente en esta vista":"Aún no hay interesados"}</h3><p>${rows.length?"Todos los interesados tienen su próximo contacto más adelante. Usa el tiempo para el Radar.":"Cuando registres en el Radar “Interesado · seguimiento”, “Tiene prenda” o “Agendó tasación”, el contacto aparece aquí con su puntaje y su próxima fecha."}</p></div>`}
-
-  <div class="zgrid cz">
-   <section class="zone z-cap"><header class="zh"><span class="zn">1</span><div class="zt"><h2>Embudo de interesados</h2><p>Objetivo: que cada interesado llegue a tasación y la tasación a mandato.</p></div></header>
-    <div class="zb">${embudo}</div></section>
-   <section class="zone z-res"><header class="zh"><span class="zn">2</span><div class="zt"><h2>Por consignador</h2><p>Quién convierte interés en tasación.</p></div></header>
-    <div class="zb">${consTbl}<p class="zfoot">Se cuenta a quien registró el primer interés.</p></div></section>
-  </div>
-
-  <div class="sgcols">
-   ${sgRut("d-"+t,"Rutina diaria",fmtD(t),[["venc","Atender primero los vencidos y los sin fecha",venc],["conf","Confirmar las tasaciones de hoy y mañana",confirmar],["frio","Escribir a los que se enfrían: un mensaje, una sola pregunta",frios],["reg","Registrar cada contacto aquí, no solo en WhatsApp",null],["fecha","Cerrar el día con todos los interesados con próxima fecha",sinFecha]])}
-   ${sgRut("w-"+lun,"Revisión semanal","semana del "+fmtD(lun),[["emb","Mirar dónde se cae el embudo",peor>0?fun[peor-1][0]+" → "+fun[peor][0]:"sin datos"],["ciclo","Cerrar ciclo con quien lleva 3 intentos sin respuesta",ciclo],["cons","Comparar el % a tasación por consignador y copiar lo que funciona",null],["sem","Anotar la objeción y el experimento en la pestaña Semanas",null]])}
-   ${sgRut("m-"+mk,"Revisión mensual",MESES[pd(t).getMonth()],[["prob","Revisar si la probabilidad propia ya reemplaza a la referencia",resueltos+" casos cerrados"],["fuente","Decidir qué fuente del Radar escalar y cuál cortar",null],["plant","Convertir el mensaje que más tasaciones agenda en plantilla",null]])}
-  </div>
-
-  <details class="zone z-det" data-gopen="sg_metodo" ${S.gopen.sg_metodo?"open":""}>
+    </div><div class="chips">${[["radar","Solo del Radar"],["todas","Radar y llamadas directas"]].map(([k,l])=>`<button type="button" data-sgo="${k}" aria-pressed="${F.orig===k}">${l}</button>`).join("")}</div></section>`;
+    const lista=(arr,vacio)=>!S.segLoaded&&S.db?`<p class="none">Cargando llamadas…</p>`:arr.length?`<div class="rlist">${arr.map(sgCard).join("")}</div>`:`<div class="empty"><h3>${vacio[0]}</h3><p>${vacio[1]}</p></div>`;
+    const sinInt=["Aún no hay interesados","Cuando registres en el Radar “Interesado · seguimiento”, “Tiene prenda” o “Agendó tasación”, el contacto aparece aquí con su puntaje y su próxima fecha."];
+    if(!F.tile)return `<p class="sghint">Toca un cuadro para ver su detalle.</p>`;
+    let head,body;
+    if(F.tile==="hoy"){head=["Para hoy","Vencidos, sin fecha y los que tocan hoy, del más urgente al menos urgente."];
+      body=`${frios||sinFecha||ciclo?`<div class="fixes">${sinFecha?`<span class="fix on"><b class="num">${sinFecha}</b>sin próxima fecha</span>`:""}${frios?`<span class="fix on"><b class="num">${frios}</b>se enfrían: 2+ días sin contacto</span>`:""}${ciclo?`<span class="fix on"><b class="num">${ciclo}</b>con 3 intentos sin respuesta</span>`:""}</div>`:""}${ctrl}${lista(cola.slice().sort((a,b)=>b.p-a.p||b.sc.total-a.sc.total),rows.length?["Nada pendiente para hoy","Todos los interesados tienen su próximo contacto más adelante. Usa el tiempo para el Radar."]:sinInt)}<div class="sgcols">${sgRut("d-"+t,"Rutina diaria",fmtD(t),[["venc","Atender primero los vencidos y los sin fecha",venc],["conf","Confirmar las tasaciones de hoy y mañana",confirmar],["frio","Escribir a los que se enfrían: un mensaje, una sola pregunta",frios],["reg","Registrar cada contacto aquí, no solo en WhatsApp",null],["fecha","Cerrar el día con todos los interesados con próxima fecha",sinFecha]])}</div>`}
+    else if(F.tile==="cap"){head=["Interesados activos","Todos los que siguen en juego, ordenados por puntaje."];
+      body=`${ctrl}${lista(rows.slice().sort((a,b)=>b.sc.total-a.sc.total),sinInt)}<section class="zone z-res"><header class="zh"><span class="zn">2</span><div class="zt"><h2>Por consignador</h2><p>Quién convierte interés en tasación.</p></div></header>
+    <div class="zb">${consTbl}<p class="zfoot">Se cuenta a quien registró el primer interés.</p></div></section>`}
+    else if(F.tile==="agen"){head=["Tasaciones agendadas","Ordenadas por fecha de la visita. Confirma las de hoy y mañana."];
+      body=`${ctrl}${lista(agen.slice().sort((a,b)=>(a.g.prox||"0").localeCompare(b.g.prox||"0")),["Sin tasaciones agendadas","Cuando alguien registre “Agendó tasación” con la fecha de la visita, aparece aquí."])}`}
+    else{head=["Mandatos esperados","Dónde se cae el embudo, la revisión de la semana y del mes, y cómo se calcula la probabilidad."];
+      body=`<section class="zone z-cap"><header class="zh"><span class="zn">1</span><div class="zt"><h2>Embudo de interesados</h2><p>Objetivo: que cada interesado llegue a tasación y la tasación a mandato.</p></div></header>
+    <div class="zb">${embudo}</div></section><div class="sgcols">${sgRut("w-"+lun,"Revisión semanal","semana del "+fmtD(lun),[["emb","Mirar dónde se cae el embudo",peor>0?fun[peor-1][0]+" → "+fun[peor][0]:"sin datos"],["ciclo","Cerrar ciclo con quien lleva 3 intentos sin respuesta",ciclo],["cons","Comparar el % a tasación por consignador y copiar lo que funciona",null],["sem","Anotar la objeción y el experimento en la pestaña Semanas",null]])}${sgRut("m-"+mk,"Revisión mensual",MESES[pd(t).getMonth()],[["prob","Revisar si la probabilidad propia ya reemplaza a la referencia",resueltos+" casos cerrados"],["fuente","Decidir qué fuente del Radar escalar y cuál cortar",null],["plant","Convertir el mensaje que más tasaciones agenda en plantilla",null]])}</div>  <details class="zone z-det" data-gopen="sg_metodo" ${S.gopen.sg_metodo?"open":""}>
    <summary class="zh"><span class="zn">?</span><div class="zt"><h2>Cómo se calcula</h2><p>Puntaje, probabilidad y fechas sugeridas</p></div><span class="chev" aria-hidden="true">▾</span></summary>
    <div class="zb">
     <ul class="insights"><li><b>Puntaje 0–100:</b> intención según la etapa (interesado 20, tasación agendada 32, tasación hecha 40) + rapidez del último contacto (hasta 20) + calidad del aviso según su rate de consignación (hasta 25) + tener próxima fecha vigente (15). Caliente desde 70, tibio desde 45.</li>
@@ -1851,7 +1853,9 @@ function vSeg(){
     <li><b>Fecha sugerida:</b> cadencia de 1, 3, 7, 14 y 30 días desde el primer interés, sin domingos. Para “Agendó tasación” hay que poner la fecha de la visita.</li>
     <li>La tasación y el precio son siempre referenciales; dilo así al dueño.</li></ul>
     ${probTbl}
-   </div></details>`;
+   </div></details>`}
+    return `<section id="sgpanel" class="sgpanel" aria-label="${head[0]}"><div class="sgph"><div><h2>${head[0]}</h2><p>${head[1]}</p></div><button type="button" class="btn sm" data-sgt="${F.tile}">Cerrar</button></div>${body}</section>`;
+  })()}`;
 }
 async function regSeg(k,btn){
   if(!S.db){toast("Sin conexión a la base del equipo");return}
@@ -2202,6 +2206,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.ctsort){const k=t.dataset.ctsort;if(S.ctSort===k)S.ctDir=-(S.ctDir||-1);else{S.ctSort=k;S.ctDir=k==="k"?1:-1}render();return}
   if(t.dataset.ctexp){ctSaveExp(t);return}
   if(t.dataset.sgv){S.sgf.vista=t.dataset.sgv;render();return}
+  if(t.dataset.sgt){S.sgf.tile=S.sgf.tile===t.dataset.sgt?"":t.dataset.sgt;render();return}
   if(t.dataset.sgo){S.sgf.orig=t.dataset.sgo;render();return}
   if(t.dataset.sgreg){regSeg(t.dataset.sgreg,t);return}
   if(t.dataset.sgauto){sgAuto(t.dataset.sgauto);return}

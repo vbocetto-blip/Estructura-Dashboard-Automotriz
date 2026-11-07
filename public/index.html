@@ -1,8 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Consignaciones Ansar</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sticky header + tabs, month rail, single-column work area that widens to two columns on desktop. Patente chilena as the recurring identity mark. */
 :root{
@@ -519,6 +517,49 @@ a.btn{text-decoration:none;color:inherit}
 .ctf .f1{background:var(--info)}.ctf .f2{background:var(--plum)}.ctf .f3{background:var(--warn)}.ctf .f4{background:var(--good)}
 .eleg .ctconf{margin-right:5px;vertical-align:-1px}
 @media(max-width:760px){.ctr2.hd{display:none}.ctr2{grid-template-columns:repeat(3,minmax(0,1fr))}.ctr2 .ctk,.ctr2 .ctf{grid-column:1/-1}.ctc::before,.ctf::before{content:attr(data-l);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}}
+/* ===== Tema estilo Apple (rama diseno-estilo-apple) =====
+   Solo sobrescribe tokens y componentes; no toca la lógica. Borrar este bloque = volver al diseño anterior. */
+:root{
+  --bg:#F5F5F7; --surface:#FFFFFF; --sunk:#F0F0F3; --ink:#1D1D1F; --muted:#6E6E73; --line:rgba(0,0,0,.08);
+  --accent:#0071E3; --accent-soft:#E8F1FD; --on-accent:#FFFFFF;
+  --warn:#C25E00; --warn-soft:#FFF4E5; --bad:#D70015; --bad-soft:#FFEBEC; --good:#248A3D; --good-soft:#E8F7EC;
+  --info:#0071E3; --info-soft:#E8F1FD; --plum:#8944AB; --plum-soft:#F5EBFA;
+  --f-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif;
+  --f-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --r:14px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#000000; --surface:#1C1C1E; --sunk:#2C2C2E; --ink:#F5F5F7; --muted:#98989D; --line:rgba(255,255,255,.10);
+  --accent:#0A84FF; --accent-soft:#0A2A4D; --on-accent:#FFFFFF;
+  --warn:#FF9F0A; --warn-soft:#3A2A10; --bad:#FF453A; --bad-soft:#3D1715; --good:#30D158; --good-soft:#12301C;
+  --info:#0A84FF; --info-soft:#0A2A4D; --plum:#BF5AF2; --plum-soft:#2E1A3A; --shadow:none}}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#1C1C1E; --sunk:#2C2C2E; --ink:#F5F5F7; --muted:#98989D; --line:rgba(255,255,255,.10);
+  --accent:#0A84FF; --accent-soft:#0A2A4D; --on-accent:#FFFFFF;
+  --warn:#FF9F0A; --warn-soft:#3A2A10; --bad:#FF453A; --bad-soft:#3D1715; --good:#30D158; --good-soft:#12301C;
+  --info:#0A84FF; --info-soft:#0A2A4D; --plum:#BF5AF2; --plum-soft:#2E1A3A; --shadow:none}
+body{-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+h1,h2,h3{font-weight:600;letter-spacing:-.02em}
+/* Barra superior translúcida */
+header.top{background:color-mix(in srgb,var(--surface) 72%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
+body::before{background:color-mix(in srgb,var(--surface) 72%,transparent)}
+.brand h1{font-size:22px;letter-spacing:-.03em}
+/* Pestañas como control segmentado */
+nav.tabs{background:var(--sunk);border-radius:10px;padding:3px;gap:2px;margin-bottom:10px;width:max-content;max-width:100%}
+nav.tabs button{font-family:var(--f-body);font-size:13.5px;font-weight:500;padding:6px 14px;border:0;border-radius:8px;color:var(--ink);opacity:.75}
+nav.tabs button[aria-selected="true"]{background:var(--surface);opacity:1;box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+/* Botones tipo píldora */
+.btn{border-radius:980px;border:0;background:var(--sunk);font-weight:500;padding:7px 16px}
+.btn.primary{background:var(--accent);font-weight:600}
+.btn.danger{border:1px solid var(--bad)}
+/* Tarjetas: sin borde, sombra suave, esquinas grandes */
+.kpi,.panel,.car,.week,.zone,.tcard,.rcard,.ptile,.pcar,.banner,.empty,.gapbox,.fix,.sgk,.ctb{border:0!important;border-radius:18px!important;background:var(--surface);box-shadow:var(--shadow)}
+.pill,.chips button,.rail button,.zmeta,.tabn{border-radius:980px!important}
+.field input:not([type=checkbox]),.field select,.field textarea,.filters input[type=search],.filters select{border-radius:10px!important;border:1px solid var(--line)!important;background:var(--sunk)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent);border-color:var(--accent)!important}
+.toast{border-radius:14px!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.sheet .bh,.sheet .bf{border-color:var(--line)!important}
+.dot.ok{box-shadow:0 0 0 3px var(--good-soft)}
 </style>
 
 <header class="top">

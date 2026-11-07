@@ -1,6 +1,7 @@
 /* API del tablero Ansar sobre Cloudflare D1.
    Login: Cloudflare Access. Cada request trae un JWT firmado (Cf-Access-Jwt-Assertion) que se verifica aquí.
    Roles: admin ve y escribe todo; virtual solo las colecciones de Consignación virtual. */
+import { OPC as LW_OPC, perfilConsigna, puntaje as lwScore } from "../../public/js/perfil-consigna.js";
 const VIRTUAL_RW = new Set(["virtual", "virtualLlamadas"]);
 const VIRTUAL_RO = new Set(["config/virtual"]);
 const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra } });
@@ -91,20 +92,7 @@ async function authRoutes(path, request, env) {
 /* ---------- Formulario público de consignación (sin login) ----------
    Recibe solo lo necesario para tasar y contactar, exige consentimiento explícito y limita envíos por IP (guardada como hash diario, nunca en claro). */
 const LW_TXT = (v, n = 80) => String(v ?? "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, n);
-const LW_OPC = {
-  titular: ["si", "no", "familiar"], prenda: ["no", "si", "nose"], cuando: ["mes", "1a3", "viendo"],
-  motivo: ["cambio", "dinero", "nouso", "otro"], cambio: ["si", "no", "quizas"] };
 async function sha256hex(t) { return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t))); }
-function lwScore(d) {
-  const det = [];
-  const urg = { mes: 35, "1a3": 20, viendo: 5 }[d.cuando] || 0; det.push(["urgencia", urg]);
-  const pc = d.titular === "si" && d.prenda === "no" ? 25 : (d.titular === "no" ? 0 : 10); det.push(["puede consignar", pc]);
-  const pr = 10; det.push(["precio (por evaluar)", pr]);
-  const rt = d.cambio === "si" ? 10 : d.cambio === "quizas" ? 5 : 0; det.push(["retoma", rt]);
-  const ct = /^569\d{8}$/.test(d.tel) && d.comuna ? 10 : 5; det.push(["contacto", ct]);
-  const total = det.reduce((a, x) => a + x[1], 0);
-  return { puntaje: total, puntajeDet: det.map(x => `${x[0]} ${x[1]}`).join(" + "), etiqueta: total >= 75 ? "CALIENTE" : total >= 50 ? "TIBIO" : "FRÍO" };
-}
 async function leadConsigna(request, env) {
   let b; try { b = await request.json(); } catch { return json({ error: "json_invalido" }, 400); }
   if (b.web) return json({ ok: true });                      // trampa para bots: campo oculto
@@ -117,13 +105,15 @@ async function leadConsigna(request, env) {
     km: Math.min(999999, Math.max(0, parseInt(String(b.km || "").replace(/\D/g, ""), 10) || 0)) || null,
     precioEsperado: Math.min(999e6, Math.max(0, parseInt(String(b.precio || "").replace(/\D/g, ""), 10) || 0)) || null };
   for (const [k, ops] of Object.entries(LW_OPC)) d[k] = ops.includes(b[k]) ? b[k] : "";
+  if (d.modalidad === "llamada") d.franja = "";
   if (!d.nombre || !d.marca || !d.modelo || !d.anio || !d.cuando) return json({ error: "faltan_datos" }, 400);
   const t = now(), ip = request.headers.get("CF-Connecting-IP") || "", ipHash = (await sha256hex(ip + t.slice(0, 10))).slice(0, 16);
   const hora = new Date(Date.now() - 3600e3).toISOString();
   const rl = await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE col='leadsWeb' AND updated_at>? AND json_extract(data,'$.ipHash')=?").bind(hora, ipHash).first();
   if (rl && rl.n >= 5) return json({ error: "demasiados_envios" }, 429);
   const src = b.src && typeof b.src === "object" ? b.src : {};
-  Object.assign(d, lwScore(d), {
+  const pf = perfilConsigna(d);
+  Object.assign(d, lwScore(d), { perfil: { version: pf.version, arquetipo: pf.arquetipo, cliente: pf.cliente, interno: pf.interno } }, {
     fuente: LW_TXT(src.utm_source || (src.fbclid ? "meta" : "directo"), 30), campana: LW_TXT(src.utm_campaign, 60), anuncio: LW_TXT(src.utm_content, 60),
     consentimiento: { acepta: true, texto: LW_TXT(b.textoConsentimiento, 300), version: LW_TXT(b.versionPolitica, 20), en: t },
     estado: "Nuevo", creadoEn: t, ipHash });

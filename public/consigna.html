@@ -4,18 +4,45 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Vende tu auto con Ansar Automotriz · La Serena</title>
-<meta name="description" content="Te tasamos tu auto sin costo y lo vendemos por ti en consignación. Ansar Automotriz, La Serena.">
+<meta name="description" content="Arma tu perfil de venta, te tasamos tu auto sin costo y lo vendemos por ti en consignación. Ansar Automotriz, La Serena.">
 <style>
-:root{--bg:#F5F5F7;--card:#fff;--ink:#1D1D1F;--muted:#6E6E73;--line:rgba(0,0,0,.1);--accent:#0071E3;--good:#248A3D;--bad:#D70015;--ease:cubic-bezier(.25,.1,.25,1);--spring:cubic-bezier(.34,1.3,.64,1)}
+:root{--bg:#F5F5F7;--card:#fff;--ink:#1D1D1F;--muted:#6E6E73;--line:rgba(0,0,0,.1);--accent:#0071E3;--good:#248A3D;--bad:#D70015;--tone:#0071E3;--ease:cubic-bezier(.25,.1,.25,1);--spring:cubic-bezier(.34,1.3,.64,1)}
 @media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1C1C1E;--ink:#F5F5F7;--muted:#98989D;--line:rgba(255,255,255,.14);--accent:#0A84FF;--good:#30D158;--bad:#FF453A}}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.47 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
-main{min-height:100svh;display:grid;grid-template-rows:auto 1fr auto;max-width:640px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom))}
+main{min-height:100svh;display:grid;grid-template-rows:auto auto 1fr auto;max-width:640px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom))}
 header{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .brand{font-weight:600;font-size:15px}
 .prog{flex:1;max-width:220px;height:4px;border-radius:4px;background:var(--line);overflow:hidden}
 .prog i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .6s var(--spring)}
-.stage{display:grid;align-content:center;padding:32px 0}
+
+/* Perfil en vivo */
+.pf{margin-top:16px;background:var(--card);border-radius:20px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.05);animation:in .5s var(--ease) both}
+.pfh{display:flex;align-items:center;gap:14px}
+.av{position:relative;width:54px;height:54px;flex:none}
+.av svg{position:absolute;inset:0;width:100%;height:100%}
+.av .ring-bg{stroke:var(--line)}
+.av .ring{stroke:var(--tone);stroke-linecap:round;transition:stroke-dashoffset .8s var(--spring),stroke .5s}
+.av .car{fill:var(--tone);transition:fill .5s}
+.av.bump{animation:bump .5s var(--spring)}
+@keyframes bump{40%{transform:scale(1.12)}}
+.pfm{flex:1;min-width:0;display:grid}
+.pfk{font-size:12.5px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.pfn{font-size:19px;font-weight:650;letter-spacing:-.02em;line-height:1.2;transition:color .4s}
+.pfn.new{animation:fadeup .5s var(--ease)}
+@keyframes fadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pfp{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;flex:none}
+.pfp b{display:block;font-size:20px;color:var(--ink);font-weight:650}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0;padding:0;list-style:none}
+.chips:empty{display:none}
+.chips li{font-size:13px;padding:5px 10px;border-radius:980px;background:color-mix(in srgb,var(--tone) 12%,transparent);color:var(--ink);white-space:nowrap}
+.chips li.new{animation:chip .45s var(--spring)}
+@keyframes chip{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+.tip{font-size:14px;color:var(--muted);margin:10px 0 0;min-height:0}
+.tip:empty{display:none}
+.tip.new{animation:fadeup .45s var(--ease)}
+
+.stage{display:grid;align-content:center;padding:28px 0}
 .step{display:none}
 .step.on{display:block;animation:in .55s var(--ease) both}
 .step.back{animation-name:inb}
@@ -31,6 +58,9 @@ h2{font-size:clamp(26px,6vw,34px);line-height:1.12;letter-spacing:-.03em;margin:
 .opt:active{transform:scale(.98)}
 .opt[aria-pressed="true"]{border-color:var(--accent)}
 .opt[aria-pressed="true"]::after{content:"";width:20px;height:20px;border-radius:50%;background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.5l3 3 6-7' stroke='white' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/20px no-repeat;flex:none}
+.opt span{display:grid;gap:3px}
+.opt small{font-size:14px;color:var(--muted);line-height:1.35}
+.opt .rec{display:inline-block;font-size:11.5px;font-weight:600;color:var(--good);text-transform:uppercase;letter-spacing:.04em}
 .fields{display:grid;gap:12px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 label.f{display:grid;gap:6px;font-size:14px;color:var(--muted);font-weight:500}
@@ -50,84 +80,143 @@ footer{display:flex;gap:10px;align-items:center}
 .perks{display:grid;gap:12px;margin:0 0 30px;padding:0;list-style:none}
 .perks li{display:flex;gap:12px;align-items:center;color:var(--ink)}
 .perks li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+
+/* Pantalla final */
 .done{text-align:center}
-.tick{width:84px;height:84px;margin:0 auto 22px;border-radius:50%;background:var(--good);display:grid;place-items:center;animation:pop .6s var(--spring) both}
-.tick svg{width:44px;height:44px}
-.tick path{stroke-dasharray:40;stroke-dashoffset:40;animation:draw .5s .35s var(--ease) forwards}
-@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
-@keyframes draw{to{stroke-dashoffset:0}}
+.done .av{width:96px;height:96px;margin:0 auto 18px}
+.done .pfk{display:block;margin-bottom:4px}
+.done h2{margin-bottom:10px}
+.done .lead{margin-bottom:18px}
+.done .chips{justify-content:center;margin:0 0 22px}
+.next{background:var(--card);border-radius:18px;padding:16px 18px;text-align:left;margin:0 0 18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.next b{display:block;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:4px}
+.road{display:flex;justify-content:space-between;gap:4px;margin:0;padding:0;list-style:none;counter-reset:r}
+.road li{flex:1;display:grid;justify-items:center;gap:6px;font-size:12.5px;color:var(--muted);position:relative}
+.road li::before{counter-increment:r;content:counter(r);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--line);color:var(--muted);font-weight:600;font-size:13px;z-index:1}
+.road li::after{content:"";position:absolute;top:14px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:var(--line)}
+.road li:last-child::after{display:none}
+.road li.ok::before{content:"✓";background:var(--good);color:#fff}
+.road li.now{color:var(--ink);font-weight:600}
+.road li.now::before{background:var(--tone);color:#fff}
 .legal{font-size:12.5px;color:var(--muted);text-align:center;margin-top:14px}
 .legal a{color:inherit}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.tick path{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <main>
   <header><span class="brand">Ansar Automotriz</span><span class="prog" aria-hidden="true"><i id="bar"></i></span></header>
 
+  <!-- Perfil que se arma con cada respuesta -->
+  <section class="pf" id="pf" hidden aria-live="polite">
+    <div class="pfh">
+      <span class="av" id="av" aria-hidden="true">
+        <svg viewBox="0 0 54 54"><circle class="ring-bg" cx="27" cy="27" r="24" fill="none" stroke-width="3.5"/><circle class="ring" id="ring" cx="27" cy="27" r="24" fill="none" stroke-width="3.5" stroke-dasharray="150.8" stroke-dashoffset="150.8" transform="rotate(-90 27 27)"/></svg>
+        <svg viewBox="0 0 54 54"><path class="car" d="M17.5 30.5l2.3-6.2a3 3 0 0 1 2.8-2h8.8a3 3 0 0 1 2.8 2l2.3 6.2a2.5 2.5 0 0 1 1.5 2.3v3.7a1 1 0 0 1-1 1h-1.4v1.6a1.4 1.4 0 0 1-2.8 0v-1.6H21.2v1.6a1.4 1.4 0 0 1-2.8 0v-1.6H17a1 1 0 0 1-1-1v-3.7a2.5 2.5 0 0 1 1.5-2.3zm3-.3h13l-1.8-5a1 1 0 0 0-.9-.7h-7.6a1 1 0 0 0-.9.7zm-.3 4.8a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm13.6 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>
+      </span>
+      <span class="pfm"><span class="pfk">Tu perfil de venta</span><span class="pfn" id="pfName">Armando tu perfil…</span></span>
+      <span class="pfp"><b id="pfPct">0%</b>completo</span>
+    </div>
+    <ul class="chips" id="chips"></ul>
+    <p class="tip" id="tip"></p>
+  </section>
+
   <form class="stage" id="f" novalidate autocomplete="on">
     <!-- 0 · Portada -->
     <section class="step on" data-s="0">
       <h1>Vende tu auto sin perder tiempo.</h1>
-      <p class="lead">Te lo tasamos sin costo y lo vendemos por ti en consignación. Tú pones el precio mínimo.</p>
-      <ul class="perks"><li>Tasación referencial sin compromiso</li><li>Lo publicamos, lo mostramos y hacemos los trámites</li><li>Toma menos de 1 minuto</li></ul>
+      <p class="lead">Responde unas preguntas rápidas y mira cómo se arma tu perfil de venta. Con eso te proponemos el mejor camino para consignarlo.</p>
+      <ul class="perks"><li>Tasación referencial sin costo ni compromiso</li><li>Lo publicamos, lo mostramos y hacemos los trámites</li><li>Toma unos 2 minutos, casi todo con un toque</li></ul>
     </section>
 
     <!-- 1 · Auto -->
-    <section class="step" data-s="1">
-      <h2>¿Qué auto quieres vender?</h2><p class="hint">Marca, modelo y año.</p>
+    <section class="step" data-s="1" data-q>
+      <h2>¿Qué auto quieres vender?</h2><p class="hint">Un aproximado del kilometraje sirve.</p>
       <div class="fields">
-        <label class="f">Marca<input type="text" name="marca" placeholder="Ej: Toyota" autocomplete="off" required maxlength="30"></label>
-        <label class="f">Modelo<input type="text" name="modelo" placeholder="Ej: Corolla" autocomplete="off" required maxlength="40"></label>
-        <label class="f">Año<input type="number" name="anio" inputmode="numeric" placeholder="Ej: 2019" min="1980" max="2027" required></label>
+        <div class="row">
+          <label class="f">Marca<input type="text" name="marca" placeholder="Ej: Toyota" autocomplete="off" required maxlength="30"></label>
+          <label class="f">Modelo<input type="text" name="modelo" placeholder="Ej: Corolla" autocomplete="off" required maxlength="40"></label>
+        </div>
+        <div class="row">
+          <label class="f">Año<input type="number" name="anio" inputmode="numeric" placeholder="Ej: 2019" min="1980" max="2027" required></label>
+          <label class="f">Kilómetros<input type="text" name="km" inputmode="numeric" placeholder="Ej: 68.000" maxlength="9"></label>
+        </div>
       </div>
     </section>
 
-    <!-- 2 · Km -->
-    <section class="step" data-s="2">
-      <h2>¿Cuántos kilómetros tiene?</h2><p class="hint">Un aproximado sirve.</p>
-      <div class="fields"><label class="f">Kilometraje<input type="text" name="km" inputmode="numeric" placeholder="Ej: 68.000" maxlength="9"></label></div>
+    <!-- 2 · Estado -->
+    <section class="step" data-s="2" data-q data-pick="estado">
+      <h2>¿Cómo está tu auto?</h2><p class="hint">Contarlo tal cual nos ayuda a venderlo sin sorpresas.</p>
+      <div class="opts"><button type="button" class="opt" data-v="impecable">Impecable</button><button type="button" class="opt" data-v="detalles">Con detalles menores</button><button type="button" class="opt" data-v="reparar">Necesita reparaciones</button></div>
     </section>
 
-    <!-- 3 · Titular -->
-    <section class="step" data-s="3" data-pick="titular">
-      <h2>¿Está a tu nombre?</h2><p class="hint">Para consignar, quien firma debe ser el dueño o tener poder.</p>
-      <div class="opts"><button type="button" class="opt" data-v="si">Sí, está a mi nombre</button><button type="button" class="opt" data-v="familiar">Es de un familiar</button><button type="button" class="opt" data-v="no">No está a mi nombre</button></div>
+    <!-- 3 · Publicado -->
+    <section class="step" data-s="3" data-q data-pick="publicado">
+      <h2>¿Ya lo tienes publicado?</h2>
+      <div class="opts"><button type="button" class="opt" data-v="no">No, todavía no</button><button type="button" class="opt" data-v="reciente">Sí, hace menos de un mes</button><button type="button" class="opt" data-v="parado">Sí, hace más de un mes</button></div>
     </section>
 
-    <!-- 4 · Prenda -->
-    <section class="step" data-s="4" data-pick="prenda">
-      <h2>¿Tiene prenda o deuda?</h2><p class="hint">Se puede vender igual; solo nos ayuda a preparar la tasación.</p>
-      <div class="opts"><button type="button" class="opt" data-v="no">No</button><button type="button" class="opt" data-v="si">Sí</button><button type="button" class="opt" data-v="nose">No estoy seguro</button></div>
-    </section>
-
-    <!-- 5 · Cuándo -->
-    <section class="step" data-s="5" data-pick="cuando">
+    <!-- 4 · Cuándo -->
+    <section class="step" data-s="4" data-q data-pick="cuando">
       <h2>¿Cuándo quieres venderlo?</h2>
       <div class="opts"><button type="button" class="opt" data-v="mes">Este mes</button><button type="button" class="opt" data-v="1a3">En 1 a 3 meses</button><button type="button" class="opt" data-v="viendo">Solo estoy viendo opciones</button></div>
     </section>
 
-    <!-- 6 · Motivo -->
-    <section class="step" data-s="6" data-pick="motivo">
+    <!-- 5 · Motivo -->
+    <section class="step" data-s="5" data-q data-pick="motivo">
       <h2>¿Por qué lo vendes?</h2>
       <div class="opts"><button type="button" class="opt" data-v="cambio">Quiero cambiarlo por otro</button><button type="button" class="opt" data-v="dinero">Necesito el dinero</button><button type="button" class="opt" data-v="nouso">Ya no lo uso</button><button type="button" class="opt" data-v="otro">Otro motivo</button></div>
     </section>
 
-    <!-- 7 · Precio -->
-    <section class="step" data-s="7">
-      <h2>¿Cuánto esperas recibir?</h2><p class="hint">Opcional. Es solo una referencia para la tasación.</p>
+    <!-- 6 · Prioridad -->
+    <section class="step" data-s="6" data-q data-pick="prioridad">
+      <h2>¿Qué es lo más importante para ti?</h2><p class="hint">Elige una. Con esto armamos tu plan.</p>
+      <div class="opts"><button type="button" class="opt" data-v="precio">Obtener el mejor precio</button><button type="button" class="opt" data-v="rapidez">Venderlo rápido</button><button type="button" class="opt" data-v="tramites">No hacer trámites ni atender llamadas</button><button type="button" class="opt" data-v="seguridad">Vender de forma segura</button></div>
+    </section>
+
+    <!-- 7 · Titular -->
+    <section class="step" data-s="7" data-q data-pick="titular">
+      <h2>¿Está a tu nombre?</h2><p class="hint">Para consignar, quien firma debe ser el dueño o tener poder.</p>
+      <div class="opts"><button type="button" class="opt" data-v="si">Sí, está a mi nombre</button><button type="button" class="opt" data-v="familiar">Es de un familiar</button><button type="button" class="opt" data-v="no">No está a mi nombre</button></div>
+    </section>
+
+    <!-- 8 · Prenda -->
+    <section class="step" data-s="8" data-q data-pick="prenda">
+      <h2>¿Tiene prenda o deuda?</h2><p class="hint">Se puede gestionar igual; solo nos ayuda a preparar la tasación.</p>
+      <div class="opts"><button type="button" class="opt" data-v="no">No</button><button type="button" class="opt" data-v="si">Sí</button><button type="button" class="opt" data-v="nose">No estoy seguro</button></div>
+    </section>
+
+    <!-- 9 · Precio -->
+    <section class="step" data-s="9" data-q>
+      <h2>¿Cuánto esperas recibir?</h2><p class="hint">Opcional. Es solo una referencia; el precio final lo acordamos contigo en la tasación.</p>
       <div class="fields"><label class="f">Monto aproximado en pesos<input type="text" name="precio" inputmode="numeric" placeholder="Ej: 11.500.000" maxlength="12"></label></div>
     </section>
 
-    <!-- 8 · Cambio -->
-    <section class="step" data-s="8" data-pick="cambio">
+    <!-- 10 · Cambio -->
+    <section class="step" data-s="10" data-q data-pick="cambio">
       <h2>¿Te interesa recibir otro auto como parte del pago?</h2>
       <div class="opts"><button type="button" class="opt" data-v="si">Sí, me interesa</button><button type="button" class="opt" data-v="quizas">Tal vez</button><button type="button" class="opt" data-v="no">No</button></div>
     </section>
 
-    <!-- 9 · Contacto -->
-    <section class="step" data-s="9">
+    <!-- 11 · Modalidad -->
+    <section class="step" data-s="11" data-q data-pick="modalidad">
+      <h2>¿Cómo prefieres partir?</h2><p class="hint">La tasación es sin costo y referencial hasta revisar el auto.</p>
+      <div class="opts">
+        <button type="button" class="opt" data-v="presencial"><span><em class="rec">Recomendado</em>Llevar el auto a Ansar<small>Con el auto a la vista la tasación es más precisa, y si te acomoda el rango dejas todo listo en la misma visita.</small></span></button>
+        <button type="button" class="opt" data-v="virtual"><span>Empezar a distancia<small>Nos mandas unas fotos por WhatsApp y te damos un rango referencial.</small></span></button>
+        <button type="button" class="opt" data-v="llamada"><span>Que me llamen primero<small>Resolvemos tus dudas por teléfono.</small></span></button>
+      </div>
+    </section>
+
+    <!-- 12 · Franja (se salta si pidió llamada) -->
+    <section class="step" data-s="12" data-q data-pick="franja">
+      <h2>¿Cuándo te acomoda?</h2><p class="hint">Te confirmamos el día y la hora exacta por WhatsApp.</p>
+      <div class="opts"><button type="button" class="opt" data-v="manana">Día de semana, en la mañana</button><button type="button" class="opt" data-v="tarde">Día de semana, en la tarde</button><button type="button" class="opt" data-v="sabado">Sábado</button></div>
+    </section>
+
+    <!-- 13 · Contacto -->
+    <section class="step" data-s="13" data-q>
       <h2>¿Dónde te contactamos?</h2><p class="hint">Te escribimos por WhatsApp para coordinar la tasación.</p>
       <div class="fields">
         <label class="f">Nombre<input type="text" name="nombre" autocomplete="given-name" required maxlength="60"></label>
@@ -140,62 +229,176 @@ footer{display:flex;gap:10px;align-items:center}
       </div>
     </section>
 
-    <!-- 10 · Listo -->
-    <section class="step done" data-s="10">
-      <div class="tick"><svg viewBox="0 0 44 44"><path d="M12 23l7 7 13-15" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <h2>¡Listo, <span id="nomOk"></span>!</h2>
-      <p class="lead">Te escribiremos por WhatsApp en horario de atención para coordinar la tasación. La tasación es referencial hasta revisar el auto.</p>
+    <!-- 14 · Perfil final -->
+    <section class="step done" data-s="14">
+      <span class="av" id="avFin" aria-hidden="true"></span>
+      <span class="pfk">Tu perfil de venta</span>
+      <h2 id="finName"></h2>
+      <p class="lead" id="finPlan"></p>
+      <ul class="chips" id="finChips"></ul>
+      <div class="next"><b>Tu próximo paso</b><span id="finPaso"></span></div>
+      <ol class="road" aria-label="Camino para vender tu auto"><li class="ok">Perfil</li><li class="now">Tasación</li><li>Mandato</li><li>Publicación</li><li>Venta</li></ol>
+      <p class="hint" style="margin-top:22px">¡Gracias, <span id="nomOk"></span>! La tasación es referencial hasta revisar el auto.</p>
     </section>
     <p class="err" id="err" role="alert"></p>
   </form>
 
   <div>
-    <footer><button class="btn sec" type="button" id="atras" hidden>Atrás</button><button class="btn pri" type="button" id="sig">Comenzar</button></footer>
+    <footer><button class="btn sec" type="button" id="atras" hidden>Atrás</button><button class="btn pri" type="button" id="sig">Armar mi perfil</button></footer>
     <p class="legal">Tus datos se usan solo para tasar y vender tu auto. <a href="/privacidad.html" target="_blank" rel="noopener">Privacidad</a></p>
   </div>
 </main>
-<script>
-(function(){
-  "use strict";
-  var VERSION_POLITICA="2026-11-07";
-  var f=document.getElementById("f"),steps=[].slice.call(f.querySelectorAll(".step")),N=steps.length-1;
-  var sig=document.getElementById("sig"),atras=document.getElementById("atras"),bar=document.getElementById("bar"),err=document.getElementById("err");
-  var cur=0,picks={},enviando=false;
-  var src={};try{var q=new URLSearchParams(location.search);["utm_source","utm_campaign","utm_content","fbclid"].forEach(function(k){if(q.get(k))src[k]=q.get(k).slice(0,80)})}catch(e){}
-  var val=function(n){var el=f.elements[n];return el?String(el.value||"").trim():""};
-  function ok(i){
-    var s=steps[i];
-    if(s.dataset.pick)return !!picks[s.dataset.pick];
-    if(i===1){var a=parseInt(val("anio"),10);return val("marca")&&val("modelo")&&a>=1980&&a<=2027}
-    if(i===9){var t=val("tel").replace(/\D/g,"");return val("nombre")&&(t.length===9&&t[0]==="9"||/^569\d{8}$/.test(t))&&f.elements.acepta.checked}
-    return true}
-  function msg(i){if(i===1)return "Completa marca, modelo y un año válido.";if(i===9){if(!f.elements.acepta.checked)return "Para contactarte necesitamos que aceptes la casilla.";return "Revisa tu nombre y un WhatsApp válido (9 dígitos, parte con 9).";}return "Elige una opción para seguir."}
-  function show(i,back){
-    steps[cur].classList.remove("on","back");cur=i;var s=steps[i];s.classList.toggle("back",!!back);void s.offsetWidth;s.classList.add("on");
-    bar.style.width=(i/N*100)+"%";err.textContent="";
-    atras.hidden=i===0||i===N;sig.hidden=i===N||!!s.dataset.pick;
-    sig.textContent=i===0?"Comenzar":i===9?"Enviar":"Continuar";
-    var inp=s.querySelector("input:not([type=checkbox]):not([tabindex='-1'])");if(inp&&matchMedia("(hover:hover)").matches)setTimeout(function(){inp.focus()},300)}
-  f.addEventListener("click",function(e){var b=e.target.closest(".opt");if(!b)return;
-    var s=b.closest(".step");s.querySelectorAll(".opt").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});
-    picks[s.dataset.pick]=b.dataset.v;setTimeout(function(){show(cur+1)},260)});
-  f.addEventListener("submit",function(e){e.preventDefault();sig.click()});
-  f.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.tagName==="INPUT"){e.preventDefault();sig.click()}});
-  ["km","precio"].forEach(function(n){f.elements[n].addEventListener("input",function(){var d=this.value.replace(/\D/g,"");this.value=d?Number(d).toLocaleString("es-CL"):""})});
-  atras.addEventListener("click",function(){if(cur>0)show(cur-1,true)});
-  sig.addEventListener("click",function(){
-    if(!ok(cur)){err.textContent=msg(cur);return}
-    if(cur<9){show(cur+1);return}
-    if(enviando)return;enviando=true;sig.disabled=true;sig.textContent="Enviando…";
-    var body={marca:val("marca"),modelo:val("modelo"),anio:val("anio"),km:val("km"),precio:val("precio"),nombre:val("nombre"),tel:val("tel"),comuna:val("comuna"),web:val("web"),
-      acepta:f.elements.acepta.checked,textoConsentimiento:document.getElementById("txtCons").textContent.trim(),versionPolitica:VERSION_POLITICA,src:src};
-    Object.keys(picks).forEach(function(k){body[k]=picks[k]});
-    fetch("/api/lead-consigna",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
-      .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j}})})
-      .then(function(x){if(!x.ok)throw x.j;document.getElementById("nomOk").textContent=body.nombre.split(" ")[0];show(N);try{if(window.fbq)fbq("track","Lead")}catch(e){}})
-      .catch(function(j){var c=j&&j.error;err.textContent=c==="telefono_invalido"?"Revisa tu número de WhatsApp.":c==="demasiados_envios"?"Recibimos varios envíos desde tu conexión. Intenta en una hora o escríbenos por WhatsApp.":"No pudimos enviar. Revisa tu conexión e inténtalo de nuevo.";sig.disabled=false;sig.textContent="Enviar";enviando=false})});
-  show(0);
-})();
+<script type="module">
+import { perfilConsigna } from "/js/perfil-consigna.js";
+
+const VERSION_POLITICA = "2026-11-07";
+const CONTACTO = 13, FIN = 14, FRANJA = 12;
+const TONO = { estancado: "#FF9F0A", explorador: "#32ADE6", cambio: "#AF52DE", liquidez: "#34C759", delegador: "#0A84FF", decidido: "#FF375F" };
+/* Etiquetas que ve el cliente (en su voz, sin lenguaje interno). */
+const CHIP = {
+  estado: { impecable: "Impecable", detalles: "Detalles menores", reparar: "Necesita reparaciones" },
+  publicado: { no: "Sin publicar", reciente: "Publicado hace poco", parado: "Publicado hace +1 mes" },
+  cuando: { mes: "Vender este mes", "1a3": "En 1 a 3 meses", viendo: "Explorando" },
+  motivo: { cambio: "Cambio de auto", dinero: "Liquidez", nouso: "Ya no lo usa" },
+  prioridad: { precio: "Mejor precio", rapidez: "Rapidez", tramites: "Cero trámites", seguridad: "Seguridad" },
+  titular: { si: "A tu nombre", familiar: "De un familiar", no: "Otro titular" },
+  prenda: { no: "Sin prenda", si: "Con prenda", nose: "Prenda por confirmar" },
+  cambio: { si: "Recibe otro auto", quizas: "Quizás recibe otro" },
+  modalidad: { presencial: "Tasación en Ansar", virtual: "Tasación a distancia", llamada: "Llamada primero" },
+  franja: { manana: "Mañanas", tarde: "Tardes", sabado: "Sábado" }
+};
+/* Una línea de respuesta a lo que acaba de elegir: muestra que lo escuchamos. */
+const TIP = {
+  "estado:reparar": "Gracias por contarlo: informar el estado real evita sorpresas y ayuda a vender.",
+  "publicado:parado": "Un aviso que lleva tiempo suele necesitar otro precio o más exposición. Eso es justo lo que hacemos.",
+  "publicado:reciente": "Bien: todavía estás a tiempo de darle más alcance.",
+  "cuando:mes": "Perfecto, podemos tasarlo esta misma semana.",
+  "cuando:viendo": "Sin apuro: una tasación referencial te da un número real para decidir.",
+  "motivo:cambio": "Podemos vender el tuyo y mostrarte opciones para el siguiente.",
+  "motivo:dinero": "Un precio bien puesto desde el inicio es lo que más acelera la venta.",
+  "prioridad:precio": "En la tasación vemos comparables reales y acordamos el precio contigo.",
+  "prioridad:rapidez": "Para vender rápido, lo clave es un precio de salida competitivo.",
+  "prioridad:tramites": "Tú firmas el mandato; nosotros atendemos interesados y hacemos los trámites.",
+  "prioridad:seguridad": "Todo queda por escrito en un mandato que puedes leer con calma antes de firmar.",
+  "titular:familiar": "Sin problema: firma el titular o alguien con poder.",
+  "titular:no": "Sin problema: quien firme debe ser el dueño o tener poder.",
+  "prenda:si": "Se puede gestionar igual; lo revisamos en la tasación.",
+  "prenda:nose": "Lo revisamos juntos con el certificado de anotaciones.",
+  "cambio:si": "Genial: en la misma visita vemos opciones para tu próximo auto.",
+  "modalidad:presencial": "Buena elección: en una sola visita puedes dejar todo listo.",
+  "modalidad:virtual": "Partimos con fotos; para firmar coordinamos una visita corta.",
+  "modalidad:llamada": "Te llamamos en horario de atención."
+};
+
+const f = document.getElementById("f"), steps = [...f.querySelectorAll(".step")];
+const $ = id => document.getElementById(id);
+const sig = $("sig"), atras = $("atras"), bar = $("bar"), err = $("err"), pf = $("pf");
+let cur = 0, picks = {}, enviando = false, lastName = "", lastChips = [], hist = [];
+const src = {}; try { const q = new URLSearchParams(location.search); ["utm_source", "utm_campaign", "utm_content", "fbclid"].forEach(k => { if (q.get(k)) src[k] = q.get(k).slice(0, 80); }); } catch (e) {}
+const val = n => { const el = f.elements[n]; return el ? String(el.value || "").trim() : ""; };
+const num = n => parseInt(val(n).replace(/\D/g, ""), 10) || 0;
+const datos = () => ({ marca: val("marca"), modelo: val("modelo"), anio: parseInt(val("anio"), 10) || null, km: num("km") || null, precioEsperado: num("precio") || null,
+  nombre: val("nombre"), comuna: val("comuna"), ...picks });
+
+function ok(i) {
+  const s = steps[i];
+  if (s.dataset.pick) return !!picks[s.dataset.pick];
+  if (i === 1) { const a = parseInt(val("anio"), 10); return val("marca") && val("modelo") && a >= 1980 && a <= 2027; }
+  if (i === CONTACTO) { const t = val("tel").replace(/\D/g, ""); return val("nombre") && (t.length === 9 && t[0] === "9" || /^569\d{8}$/.test(t)) && f.elements.acepta.checked; }
+  return true;
+}
+function msg(i) {
+  if (i === 1) return "Completa marca, modelo y un año válido.";
+  if (i === CONTACTO) return !f.elements.acepta.checked ? "Para contactarte necesitamos que aceptes la casilla." : "Revisa tu nombre y un WhatsApp válido (9 dígitos, parte con 9).";
+  return "Elige una opción para seguir.";
+}
+const salta = i => i === FRANJA && picks.modalidad === "llamada";
+
+/* Perfil en vivo */
+function chipsDe(d) {
+  const out = [];
+  if (d.marca || d.modelo) out.push([d.marca, d.modelo, d.anio || ""].filter(Boolean).join(" "));
+  if (d.km) out.push(Number(d.km).toLocaleString("es-CL") + " km");
+  Object.keys(CHIP).forEach(k => { const t = CHIP[k][d[k]]; if (t) out.push(t); });
+  return out;
+}
+function pintaChips(ul, list, anim) {
+  ul.innerHTML = "";
+  list.forEach(t => { const li = document.createElement("li"); li.textContent = t; if (anim && !lastChips.includes(t)) li.className = "new"; ul.appendChild(li); });
+}
+function porcentaje() {
+  const qs = steps.map((s, i) => i).filter(i => steps[i].hasAttribute("data-q") && !salta(i) && i !== CONTACTO);
+  const hechos = qs.filter(i => steps[i].dataset.pick ? !!picks[steps[i].dataset.pick] : i === 1 ? !!ok(1) : cur > i).length;
+  return Math.round(hechos / qs.length * 100);
+}
+function actualizaPerfil(tipKey) {
+  const d = datos(), p = perfilConsigna(d), pct = cur >= FIN ? 100 : porcentaje();
+  const suficiente = !!(d.publicado && d.cuando);
+  const nombre = suficiente ? p.cliente.nombre : (d.marca ? "Armando tu perfil…" : "Tu perfil de venta");
+  document.documentElement.style.setProperty("--tone", suficiente ? (TONO[p.arquetipo] || "") : "");
+  const n = $("pfName"); if (nombre !== lastName) { n.textContent = nombre; n.classList.remove("new"); void n.offsetWidth; n.classList.add("new"); lastName = nombre; }
+  $("pfPct").textContent = pct + "%";
+  $("ring").setAttribute("stroke-dashoffset", (150.8 * (1 - pct / 100)).toFixed(1));
+  const av = $("av"); av.classList.remove("bump"); void av.offsetWidth; av.classList.add("bump");
+  const ch = chipsDe(d), vis = ch.length > 6 ? [ch[0], ...ch.slice(-4), "+" + (ch.length - 5) + " más"] : ch;
+  pintaChips($("chips"), vis, true); lastChips = ch;
+  if (tipKey !== undefined) {
+    const t = $("tip"), txt = TIP[tipKey] || (suficiente ? p.cliente.plan : "");
+    if (txt && txt !== t.textContent) { t.textContent = txt; t.classList.remove("new"); void t.offsetWidth; t.classList.add("new"); }
+  }
+  return p;
+}
+function pantallaFinal() {
+  const d = datos(), p = perfilConsigna(d);
+  document.documentElement.style.setProperty("--tone", TONO[p.arquetipo] || "");
+  $("ring").setAttribute("stroke-dashoffset", "0");
+  $("avFin").innerHTML = $("av").innerHTML.replace(' id="ring"', "");
+  $("finName").textContent = p.cliente.nombre;
+  $("finPlan").textContent = p.cliente.plan;
+  pintaChips($("finChips"), chipsDe(d), false);
+  $("finPaso").textContent = p.cliente.paso || "Te escribimos por WhatsApp en horario de atención para coordinar la tasación.";
+  $("nomOk").textContent = d.nombre.split(" ")[0];
+  pf.hidden = true;
+}
+
+function show(i, back) {
+  steps[cur].classList.remove("on", "back"); cur = i; const s = steps[i];
+  s.classList.toggle("back", !!back); void s.offsetWidth; s.classList.add("on");
+  bar.style.width = (i / FIN * 100) + "%"; err.textContent = "";
+  atras.hidden = i === 0 || i === FIN; sig.hidden = i === FIN || !!s.dataset.pick;
+  sig.textContent = i === 0 ? "Armar mi perfil" : i === CONTACTO ? "Ver mi perfil y enviar" : i === 9 && !val("precio") ? "Omitir" : "Continuar";
+  pf.hidden = i === 0 || i === FIN;
+  if (i > 0 && i < FIN) actualizaPerfil();
+  const inp = s.querySelector("input:not([type=checkbox]):not([tabindex='-1'])"); if (inp && matchMedia("(hover:hover)").matches) setTimeout(() => inp.focus(), 300);
+}
+function avanza() { let n = cur + 1; while (salta(n)) n++; hist.push(cur); show(n); }
+
+f.addEventListener("click", e => {
+  const b = e.target.closest(".opt"); if (!b) return;
+  const s = b.closest(".step"), k = s.dataset.pick;
+  s.querySelectorAll(".opt").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  picks[k] = b.dataset.v;
+  if (k === "modalidad" && b.dataset.v === "llamada") delete picks.franja;
+  actualizaPerfil(k + ":" + b.dataset.v);
+  setTimeout(avanza, 320);
+});
+f.addEventListener("submit", e => { e.preventDefault(); sig.click(); });
+f.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); sig.click(); } });
+["km", "precio"].forEach(n => f.elements[n].addEventListener("input", function () { const d = this.value.replace(/\D/g, ""); this.value = d ? Number(d).toLocaleString("es-CL") : ""; if (n === "precio") sig.textContent = d ? "Continuar" : "Omitir"; }));
+["marca", "modelo", "anio", "km"].forEach(n => f.elements[n].addEventListener("change", () => actualizaPerfil()));
+atras.addEventListener("click", () => { if (hist.length) show(hist.pop(), true); });
+sig.addEventListener("click", () => {
+  if (!ok(cur)) { err.textContent = msg(cur); return; }
+  if (cur < CONTACTO) { if (cur === 1) actualizaPerfil(""); avanza(); return; }
+  if (enviando) return; enviando = true; sig.disabled = true; sig.textContent = "Enviando…";
+  const body = { marca: val("marca"), modelo: val("modelo"), anio: val("anio"), km: val("km"), precio: val("precio"), nombre: val("nombre"), tel: val("tel"), comuna: val("comuna"), web: val("web"),
+    acepta: f.elements.acepta.checked, textoConsentimiento: $("txtCons").textContent.trim(), versionPolitica: VERSION_POLITICA, src, ...picks };
+  fetch("/api/lead-consigna", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+    .then(r => r.json().then(j => ({ ok: r.ok, j })))
+    .then(x => { if (!x.ok) throw x.j; pantallaFinal(); hist = []; show(FIN); try { if (window.fbq) fbq("track", "Lead"); } catch (e) {} })
+    .catch(j => { const c = j && j.error; err.textContent = c === "telefono_invalido" ? "Revisa tu número de WhatsApp." : c === "demasiados_envios" ? "Recibimos varios envíos desde tu conexión. Intenta en una hora o escríbenos por WhatsApp." : "No pudimos enviar. Revisa tu conexión e inténtalo de nuevo."; sig.disabled = false; sig.textContent = "Ver mi perfil y enviar"; enviando = false; });
+});
+show(0);
 </script>
 </body>
 </html>

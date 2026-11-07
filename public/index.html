@@ -592,6 +592,17 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .rlist{display:grid;gap:10px;margin-top:12px}
 .hrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:18px 0 12px}
 .lwcard .rsp .p{font-size:14px;font-weight:600}
+.lwarq{background:var(--sunk);color:var(--ink);font-weight:600}
+.lwguia{display:grid;gap:12px;margin:12px 0;padding:14px 16px;border-radius:14px;background:var(--sunk)}
+.lwguia h4{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+.lwguia dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0;font-size:14px}
+.lwguia dt{color:var(--muted);font-weight:500}.lwguia dd{margin:0}
+.lwav{display:flex;align-items:center;gap:10px;font-size:14px}
+.lwav .b{flex:1;height:8px;border-radius:8px;background:var(--line,rgba(0,0,0,.1));overflow:hidden}
+.lwav .b i{display:block;height:100%;background:var(--good);border-radius:8px}
+.lwck{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13.5px}
+.lwck li[data-lwck]{cursor:pointer}.lwck li::before{content:"○ ";color:var(--muted)}.lwck li.ok::before{content:"✓ ";color:var(--good);font-weight:700}.lwck li.ok{color:var(--muted)}
+.lwal{margin:0;padding-left:18px;font-size:13.5px;color:var(--bad)}
 /* ===== Radar compacto: resumen cerrado, detalle al tocar ===== */
 .rcard.rcx{display:block;grid-template-columns:none}
 .rx>summary{list-style:none;cursor:pointer}
@@ -1548,8 +1559,28 @@ const lwActivo=l=>!["Descartado","No contactar","Mandato firmado"].includes(l.es
 const lwMin=l=>Math.max(0,Math.round(((l.contactadoEn?Date.parse(l.contactadoEn):Date.now())-Date.parse(l.creadoEn))/60000));
 const lwDur=m=>m<60?m+" min":m<1440?Math.floor(m/60)+" h "+(m%60?m%60+" min":""):Math.floor(m/1440)+" d";
 const lwAuto=l=>[l.marca,l.modelo].filter(Boolean).join(" ")+(l.anio?" "+l.anio:"");
-const lwResumen=l=>[lwAuto(l),l.km?Number(l.km).toLocaleString("es-CL")+" km":"",LW_T.titular[l.titular],LW_T.prenda[l.prenda],LW_T.cuando[l.cuando],LW_T.motivo[l.motivo],l.precioEsperado?"espera "+clp(l.precioEsperado):"",LW_T.cambio[l.cambio]].filter(Boolean).join(" · ");
-function lwMsg(l){const yo=String(miNombre()||"").split(" ")[0];return `Hola ${String(l.nombre||"").split(" ")[0]}, ${yo?"soy "+yo+" de":"te escribo de"} Ansar Automotriz. Recibimos tu solicitud para vender tu ${lwAuto(l)}. ¿Te acomoda que lo tasemos esta semana? La tasación es referencial hasta revisar el auto.`}
+Object.assign(LW_T,{estado:{impecable:"impecable",detalles:"detalles menores",reparar:"necesita reparaciones"},publicado:{no:"sin publicar",reciente:"publicado hace <1 mes",parado:"publicado hace +1 mes"},prioridad:{precio:"prioriza precio",rapidez:"prioriza rapidez",tramites:"no quiere trámites",seguridad:"prioriza seguridad"},modalidad:{presencial:"tasación en Ansar",virtual:"parte a distancia",llamada:"quiere llamada primero"},franja:{manana:"mañanas",tarde:"tardes",sabado:"sábado"}});
+const lwResumen=l=>[lwAuto(l),l.km?Number(l.km).toLocaleString("es-CL")+" km":"",LW_T.estado[l.estado],LW_T.publicado[l.publicado],LW_T.titular[l.titular],LW_T.prenda[l.prenda],LW_T.cuando[l.cuando],LW_T.motivo[l.motivo],LW_T.prioridad[l.prioridad],l.precioEsperado?"espera "+clp(l.precioEsperado):"",LW_T.cambio[l.cambio],LW_T.modalidad[l.modalidad]?LW_T.modalidad[l.modalidad]+(LW_T.franja[l.franja]?" ("+LW_T.franja[l.franja]+")":""):""].filter(Boolean).join(" · ");
+const lwPI=l=>(l.perfil&&l.perfil.interno)||null;
+function lwMsg(l){const yo=String(miNombre()||"").split(" ")[0],pi=lwPI(l);const preg=pi&&pi.pregunta?pi.pregunta:"¿Te acomoda que lo tasemos esta semana?";return `Hola ${String(l.nombre||"").split(" ")[0]}, ${yo?"soy "+yo+" de":"te escribo de"} Ansar Automotriz. Recibimos tu solicitud para vender tu ${lwAuto(l)}. ${preg} La tasación es referencial hasta revisar el auto.`}
+/* Checklist al mandato: lo que dijo el cliente + lo que el consignador marca a mano (l.checks). */
+const lwCk=l=>{const pi=lwPI(l),m=l.checks||{},est=l.estado||"";return (pi&&pi.checklist||[]).map(c=>({...c,ok:m[c.k]!=null?!!m[c.k]:(c.ok||(c.k==="visita"&&/Tasación agendada|Mandato firmado/.test(est))||(est==="Mandato firmado"))}))};
+const lwAvance=l=>{const c=lwCk(l);return c.length?Math.round(c.filter(x=>x.ok).length/c.length*100):0};
+function lwGuia(l){
+  const pi=lwPI(l);if(!pi)return "";
+  const ckL=lwCk(l),av=lwAvance(l);
+  const ck=ckL.map(c=>`<li class="${c.ok?"ok":""}"${S.canWrite?` data-lwck="${esc(l._id)}" data-k="${esc(c.k)}" role="button" tabindex="0" title="Toca para marcar o desmarcar"`:""}>${esc(c.t)}</li>`).join("");
+  return `<div class="lwguia">
+   <h4>Guía para la conversación · perfil “${esc(pi.nombre)}” · ${esc(pi.motor)} · equipo sugerido: ${esc(pi.equipo)}</h4>
+   <div class="lwav"><span>Avance al mandato</span><span class="b"><i style="width:${av}%"></i></span><b class="num">${av}%</b></div>
+   <dl><dt>Valora</dt><dd>${esc(pi.valora)}</dd>
+    <dt>Argumento</dt><dd>${esc(pi.argumento)}</dd>
+    <dt>Objeción probable</dt><dd>“${esc(pi.objecion)}” → ${esc(pi.respuesta)}</dd>
+    <dt>Próximo paso</dt><dd><b>${esc(pi.proximoPaso)}</b></dd></dl>
+   ${(pi.alertas||[]).length?`<ul class="lwal">${pi.alertas.map(a=>`<li>${esc(a)}</li>`).join("")}</ul>`:""}
+   <div><h4 style="margin-bottom:6px">Para firmar el mandato falta${S.canWrite?" · toca para marcar":""}</h4><ul class="lwck">${ck}</ul></div>
+  </div>`;
+}
 const lwTimer=l=>{const m=lwMin(l),late=!l.contactadoEn&&m>5;return `<span class="pill lwt${late?" late":l.contactadoEn?" ok":""}" data-lwt="${esc(l._id)}">${l.contactadoEn?"Contactado en "+lwDur(m):(late?"Sin contacto · ":"Llegó hace ")+lwDur(m)}</span>`};
 function lwCard(l){
   const id=esc(l._id),open=!!S.gopen["lw_"+l._id],et=l.etiqueta||"",cls=et==="CALIENTE"?"hoy":et==="TIBIO"?"sem":"tar";
@@ -1561,11 +1592,12 @@ function lwCard(l){
      <span class="rsc ${cls}" title="${esc(et)}"><b class="num">${esc(l.puntaje??"–")}</b></span>
      <span class="rsm"><span class="rt">${esc(l.nombre||"Sin nombre")} <span class="ry">${esc(l.comuna||"")}</span></span><span class="rsub">${esc(lwResumen(l))}</span></span>
      <span class="rsp"><span class="p">${esc(lwAuto(l))}</span><span class="vs">${l.precioEsperado?"espera "+clp(l.precioEsperado):esc(et)}</span></span>
-     <span class="rsf">${lwTimer(l)}<span class="pill lwe">${esc(l.estado||"Nuevo")}</span></span>
+     <span class="rsf">${lwTimer(l)}${lwPI(l)?`<span class="pill lwarq">${esc(lwPI(l).nombre)} · ${lwAvance(l)}%</span>`:""}<span class="pill lwe">${esc(l.estado||"Nuevo")}</span></span>
      <span class="rchev" aria-hidden="true"></span>
     </summary>
     <div class="rexp">
      <p class="rver"><b>${esc(et)}</b> · ${esc(lwResumen(l))}</p>
+     ${lwGuia(l)}
      <div class="racts">
       <a class="btn primary" href="${wa}" target="_blank" rel="noopener noreferrer" data-lwwa="${id}">Abrir WhatsApp</a>
       <a class="btn" href="tel:+${esc(l.tel)}" data-lwwa="${id}">Llamar ${esc(telF)}</a>
@@ -1599,13 +1631,22 @@ function vFormulario(){
    <div class="kpi"><span class="l">Calientes activos</span><span class="v num">${cal.length}</span><span class="s">puntaje 75 o más</span></div>
    <div class="kpi"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">desde el formulario</span></div>
   </div>
-  <div class="panel lwlink"><div><b>Link para tus anuncios</b><p class="rdet">Agrégale la campaña para medir cada anuncio: <code>${esc(link)}?utm_source=meta&amp;utm_campaign=consigna-nov</code></p></div><div class="racts"><a class="btn" href="/consigna.html" target="_blank" rel="noopener">Ver formulario ↗</a><button type="button" class="btn" data-lwlink="1">Copiar link</button></div></div>
+  <div class="panel lwlink"><div><b>Link para tus anuncios</b><p class="rdet">Agrégale la campaña para medir cada anuncio: <code>${esc(link)}?utm_source=meta&amp;utm_campaign=consigna-nov</code></p></div><div class="racts">${"Notification" in window&&Notification.permission==="default"?`<button type="button" class="btn" data-lwnotif="1">Activar avisos en este equipo</button>`:""}<a class="btn" href="/consigna.html" target="_blank" rel="noopener">Ver formulario ↗</a><button type="button" class="btn" data-lwlink="1">Copiar link</button></div></div>
   <div class="chips" role="group" aria-label="Filtrar leads">${chip("activos","Activos",L.filter(lwActivo).length)}${chip("sin","Sin contactar",sinC.length)}${chip("cal","Calientes",cal.length)}${chip("todos","Todos",L.length)}</div>
   <div class="rlist">${sel.length?sel.map(lwCard).join(""):`<div class="empty">${L.length?"No hay leads en este filtro.":"Todavía no llegan leads. Comparte el link del formulario o úsalo en un anuncio."}</div>`}</div>`;
 }
+/* Aviso al consignador: perfil y próximo paso en la misma notificación. */
+function lwAvisoTxt(l){const pi=lwPI(l);return `Nuevo lead de consignación: ${l.nombre||""} · ${lwAuto(l)}${pi?" · "+pi.nombre+" · "+pi.proximoPaso:""}`}
+function lwNotificar(l){
+  try{if(!("Notification" in window)||Notification.permission!=="granted")return;const pi=lwPI(l);
+    const n=new Notification(`${l.etiqueta||"Lead"} · ${lwAuto(l)} · ${l.nombre||""}`,{body:pi?`${pi.nombre} (${lwAvance(l)}% al mandato). ${pi.proximoPaso}`:lwResumen(l),tag:"lw_"+l._id});
+    n.onclick=()=>{window.focus();S.view="formulario";S.gopen["lw_"+l._id]=true;render();n.close()}}catch(_){}
+}
 async function lwSave(id,data){try{await S.db.collection("leadsWeb").doc(id).update(data)}catch(_){toast("No se pudo guardar. Revisa tu conexión.")}}
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-lwwa],[data-lwf],[data-lwcopy],[data-lwlink]");if(!t)return;
+  const t=e.target.closest("[data-lwwa],[data-lwf],[data-lwcopy],[data-lwlink],[data-lwnotif],[data-lwck]");if(!t)return;
+  if(t.dataset.lwck){const l=(S.leadsWeb||[]).find(x=>x._id===t.dataset.lwck);if(!l)return;const c=lwCk(l).find(x=>x.k===t.dataset.k);lwSave(l._id,{checks:{...(l.checks||{}),[t.dataset.k]:!(c&&c.ok)}});return}
+  if(t.dataset.lwnotif){try{Notification.requestPermission().then(p=>{toast(p==="granted"?"Avisos activados: te llega el perfil de cada lead nuevo":"Avisos no activados");render()})}catch(_){}return}
   if(t.dataset.lwf){S.lwf=t.dataset.lwf;render();return}
   if(t.dataset.lwlink){copyText(location.origin+"/consigna.html?utm_source=meta&utm_campaign=consigna","Link copiado");return}
   const id=t.dataset.lwwa||t.dataset.lwcopy,l=(S.leadsWeb||[]).find(x=>x._id===id);if(!l)return;
@@ -2715,7 +2756,7 @@ render();
   db.doc("config/criterios").onSnapshot(d=>{S.crit=d.exists?d.data():null;safeRender()},()=>{});
   db.doc("config/virtual").onSnapshot(d=>{S.virtuales=(d.exists&&Array.isArray(d.data().miembros))?d.data().miembros:[];safeRender()},()=>{});
   db.collection("leadsWeb").onSnapshot(snap=>{const prev=S.leadsWeb;S.leadsWeb=snap.docs.map(d=>({...d.data(),_id:d.id}));
-    if(prev){const nuevos=S.leadsWeb.filter(l=>!prev.some(p=>p._id===l._id));if(nuevos.length)toast(nuevos.length===1?`Nuevo lead de consignación: ${nuevos[0].nombre||""} · ${lwAuto(nuevos[0])}`:`${nuevos.length} leads nuevos de consignación`)}
+    if(prev){const nuevos=S.leadsWeb.filter(l=>!prev.some(p=>p._id===l._id));if(nuevos.length){toast(nuevos.length===1?lwAvisoTxt(nuevos[0]):`${nuevos.length} leads nuevos de consignación`);nuevos.forEach(lwNotificar)}}
     safeRender()},()=>{});
   db.collection("pilotoFeedback").onSnapshot(snap=>{S.pfbList=snap.docs.map(d=>({...d.data(),_id:d.id}));safeRender()},()=>{});
   db.collection("radar").onSnapshot(s=>onRadarSnap(s,"radar"),err=>{S.radarErr=err.code;S.radarLoaded=true;safeRender()});

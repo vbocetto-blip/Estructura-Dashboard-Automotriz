@@ -582,6 +582,37 @@ nav.tabs button{transition:opacity .2s var(--ease),transform .15s var(--ease)}
 .rv.in{opacity:1;transform:none}
 main h2{transition:letter-spacing .6s var(--ease)}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
+
+/* ===== Radar compacto: resumen cerrado, detalle al tocar ===== */
+.rcard.rcx{display:block;grid-template-columns:none}
+.rx>summary{list-style:none;cursor:pointer}
+.rx>summary::-webkit-details-marker{display:none}
+.rsum{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto 18px;align-items:center;gap:14px;padding:14px 16px}
+.rsc{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:17px;font-weight:600;background:var(--sunk);color:var(--muted)}
+.rsc.hoy{background:var(--good-soft);color:var(--good)}.rsc.sem{background:var(--warn-soft);color:var(--warn)}.rsc.tar{background:var(--sunk);color:var(--muted)}
+.rsm{display:grid;min-width:0;gap:2px}
+.rt{font-weight:600;font-size:16px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ry{color:var(--muted);font-weight:500}
+.rsub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rsp{display:grid;justify-items:end;gap:2px}
+.rsp .p{font-weight:600;font-size:16px}
+.rsp .vs{font-size:12px;color:var(--muted)}.rsp .vs.low{color:var(--good)}.rsp .vs.high{color:var(--bad)}
+.rsf{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;max-width:240px}
+.rchev{width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-3px);transition:transform .35s var(--ease,ease);justify-self:center}
+.rx[open]>.rsum .rchev{transform:rotate(225deg) translateY(-2px)}
+.rexp{padding:0 16px 16px 74px;display:grid;gap:12px;animation:rxIn .4s var(--ease,ease) both}
+@keyframes rxIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.rver{margin:0;color:var(--muted);font-size:13.5px}
+.rexp .racts{display:flex;flex-wrap:wrap;gap:8px}
+.rmore>summary{cursor:pointer;color:var(--accent);font-size:13.5px;font-weight:500;list-style:none}
+.rmore>summary::-webkit-details-marker{display:none}
+.rmore>summary::after{content:" ›";display:inline-block;transition:transform .3s}
+.rmore[open]>summary::after{transform:rotate(90deg)}
+.rmore[open]{display:grid;gap:8px}
+@media (hover:hover){.rcard.rcx:hover{transform:none}.rsum:hover{background:color-mix(in srgb,var(--sunk) 55%,transparent)}}
+.rsum{border-radius:18px;transition:background .2s}
+@media(max-width:640px){.rsum{grid-template-columns:40px minmax(0,1fr) auto 14px;gap:10px;padding:12px}.rsc{width:40px;height:40px}.rsf{grid-column:2/4;justify-content:flex-start;max-width:none}.rsf:empty{display:none}.rchev{grid-row:1;grid-column:4}.rexp{padding:0 12px 14px}.rt{white-space:normal;line-height:1.2}.rsub{white-space:normal}}
+@media (prefers-reduced-motion: reduce){.rexp{animation:none}}
 </style>
 
 <header class="top">
@@ -1560,19 +1591,30 @@ function rCard(r){
   const rm=remOf(r),myRem=rm&&rm.a===rCons();
   const remPill=rm?`<span class="pill rem${rm.at<=Date.now()?" due":""}">Volver a llamar ${hhmm(new Date(rm.at))}${rm.a?" · "+esc(String(rm.a).split(" ")[0]):""}</span>`:"";
   const remCtl=!S.canWrite||!activo||otro?"":`<select class="rrem" data-rmin="${id}" aria-label="Volver a llamar dentro de"><option value="">${myRem?"Cambiar recordatorio…":"Volver a llamar dentro de…"}</option>${REM_OPTS.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select>${myRem?`<button type="button" class="btn" data-rclr="${id}">Quitar recordatorio</button>`:""}`;
-  return `<article id="card_${id}" class="rcard${g==="nopub"||g==="cerr"?" muted":""}${flash?" flash":""}">
-   <div class="rrail">${useC?`<span class="sc num">${esc(r.rateC)}</span><span class="rl">rate consig.</span>`:r.puntaje!=null&&r.puntaje!==""?`<span class="sc num">${esc(r.puntaje)}</span>`:""}${b?`<span class="bd ${b[1]}">${b[0]}</span>`:`<span class="bd tar">Sin puntaje</span>`}</div>
-   <div class="rbody">
-    <div class="rtop"><div style="min-width:0"><h3>${esc([r.marca,r.modelo].filter(Boolean).join(" "))} ${esc(r.anio||"")}</h3><span class="vv">${esc(r.ver||"")}</span></div>
-     <div class="chips">${remPill}${tag}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}${r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${r.noContactar?`<span class="pill gap">No contactar</span>`:""}${r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:""}${r.repetido?`<span class="pill gap m">En radar desde ${fmtD(r.primerRadar)}</span>`:""}</div></div>
-    <div class="rmeta"><span class="num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km sin dato"}</span>${r.comuna?`<span>${esc(r.comuna)}</span>`:""}${r.perfil?`<span>${esc(r.perfil)}</span>`:""}<span>${esc(r.src||"")}</span>${r.senal?`<span>Señal: ${esc(r.senal)}</span>`:""}${r.diasPublicado!=null&&r.diasPublicado!==""?`<span class="pill st-Tasación">Publicado hace ${esc(r.diasPublicado)} día${Number(r.diasPublicado)===1?"":"s"}${rTramo(r)&&rTramo(r)!=="Otros"?" · "+esc(rTramo(r)):""}</span>`:""}${r.ruta?`<span class="pill m-${esc(r.motor||"")}">Ruta: ${esc(r.ruta)}</span>`:""}</div>
-    ${r.precioNeg&&r.med?`<p class="rdet">Negociación: probabilidad estimada <b>${esc(r.probNeg)}%</b> · precio negociado estimado <b>${clp(r.precioNeg)}</b> (−${Math.round(Number(r.descEsperado)*100)}%) · margen contra la media <b>${Math.round(Number(r.margenNeg)*100)}%</b>. Cifras referenciales.</p>`:""}${r.puntajeDet&&!useC?`<p class="rdet">Puntaje: ${esc(r.puntajeDet)}</p>`:""}
-    <div class="rprice"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs"><b class="${vsCls}">${vsLbl}</b> · ${mlab} ${clp(r.med)} (${esc(r.n||0)} avisos)</span>`:`<span class="vs">sin mediana de comparación</span>`}</div>
-    ${r.pros||r.contras?`<div class="rpc">${r.pros?`<div class="pro"><b>Pros</b>${esc(r.pros)}</div>`:""}${r.contras?`<div class="con"><b>Contras</b>${esc(r.contras)}</div>`:""}</div>`:""}
-    ${r.ultimoResultado==="Tiene prenda"&&!r.noContactar?`<p class="rbusy">Con prenda: pide el certificado de anotaciones y el saldo de la deuda antes de tasar. Se puede consignar solo si el pago de la prenda queda resuelto en la venta; confírmalo en Ansar.</p>`:""}${useC&&r.rateCdet?`<p class="rdet">Rate de consignación: ${esc(r.rateCdet)}</p>`:""}${last}${busy}
-    <div class="racts"><a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>${claimBtn}${remCtl}${copy}${quick}${rNivel(r)>=3&&S.canWrite&&!S.soloVirtual?`<button type="button" class="btn" data-rauto="${id}">Pasar a Autos</button>`:""}${S.canWrite&&!S.soloVirtual&&activo&&!otro&&rNivel(r)<0&&!r.pedidoId?`<button type="button" class="btn ghost" data-rteam="${id}">${esVirt(r)?"Mover a Piso":"Mover a Virtual"}</button>`:""}</div>
-    ${reg}${activo&&!otro&&!r.pedidoId?gFrioHtml(r)+gHtml(r)+pmHtml(r):""}
-   </div></article>`;
+  const ropen=!!S.gopen["rc_"+r._id];
+  const score=useC?r.rateC:r.puntaje,hasSc=score!=null&&score!=="";
+  const dias=r.diasPublicado!=null&&r.diasPublicado!==""?Number(r.diasPublicado):null;
+  const detalle=[r.precioNeg&&r.med?`<p class="rdet">Negociación: probabilidad estimada <b>${esc(r.probNeg)}%</b> · precio negociado estimado <b>${clp(r.precioNeg)}</b> (−${Math.round(Number(r.descEsperado)*100)}%) · margen contra la media <b>${Math.round(Number(r.margenNeg)*100)}%</b>. Cifras referenciales.</p>`:"",r.puntajeDet&&!useC?`<p class="rdet">Puntaje: ${esc(r.puntajeDet)}</p>`:"",useC&&r.rateCdet?`<p class="rdet">Rate de consignación: ${esc(r.rateCdet)}</p>`:"",pct!=null?`<p class="rdet">${mlab[0].toUpperCase()+mlab.slice(1)} ${clp(r.med)} · ${esc(r.n||0)} avisos comparables</p>`:"",`<p class="rdet">${[r.perfil,r.src,r.senal?"Señal: "+r.senal:"",r.ruta?"Ruta: "+r.ruta:"",rTramo(r)&&rTramo(r)!=="Otros"?rTramo(r):"",r.repetido?"En radar desde "+fmtD(r.primerRadar):""].filter(Boolean).map(esc).join(" · ")}</p>`].join("");
+  const guias=activo&&!otro&&!r.pedidoId?gFrioHtml(r)+gHtml(r)+pmHtml(r):"";
+  return `<article id="card_${id}" class="rcard rcx${g==="nopub"||g==="cerr"?" muted":""}${flash?" flash":""}">
+   <details class="rx" data-gopen="rc_${id}" ${ropen?"open":""}>
+    <summary class="rsum">
+     <span class="rsc ${b?b[1]:"tar"}" title="${b?esc(b[0]):"Sin puntaje"}">${hasSc?`<b class="num">${esc(score)}</b>`:"–"}</span>
+     <span class="rsm"><span class="rt">${esc(rModelo(r))} <span class="ry">${esc(r.anio||"")}</span></span>
+      <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span></span>
+     <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}">${vsLbl}</span>`:""}</span>
+     <span class="rsf">${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
+     <span class="rchev" aria-hidden="true"></span>
+    </summary>
+    <div class="rexp">
+     ${r.ver?`<p class="rver">${esc(r.ver)}</p>`:""}
+     ${r.pros||r.contras?`<div class="rpc">${r.pros?`<div class="pro"><b>Pros</b>${esc(r.pros)}</div>`:""}${r.contras?`<div class="con"><b>Contras</b>${esc(r.contras)}</div>`:""}</div>`:""}
+     ${r.ultimoResultado==="Tiene prenda"&&!r.noContactar?`<p class="rbusy">Con prenda: pide el certificado de anotaciones y el saldo de la deuda antes de tasar. Se puede consignar solo si el pago de la prenda queda resuelto en la venta; confírmalo en Ansar.</p>`:""}${last}${busy}
+     <div class="racts">${copy}${quick}${claimBtn}<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>${remCtl}${rNivel(r)>=3&&S.canWrite&&!S.soloVirtual?`<button type="button" class="btn" data-rauto="${id}">Pasar a Autos</button>`:""}${S.canWrite&&!S.soloVirtual&&activo&&!otro&&rNivel(r)<0&&!r.pedidoId?`<button type="button" class="btn ghost" data-rteam="${id}">${esVirt(r)?"Mover a Piso":"Mover a Virtual"}</button>`:""}</div>
+     ${reg}
+     <details class="rmore" data-gopen="rm_${id}" ${S.gopen["rm_"+r._id]?"open":""}><summary>Más detalles</summary>${detalle}${guias}</details>
+    </div>
+   </details></article>`;
 }
 const esVirt=r=>r.equipo==="virtual";
 /* Los avisos virtuales viven en su propia colección ("virtual") para que las consignadoras virtuales, con acceso de Colaboradora, vean solo eso. */
@@ -2439,7 +2481,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.rteam){rMove(t.dataset.rteam,t);return}
   if(t.dataset.rclr){rRemClear(t.dataset.rclr,t,false);return}
   if(t.dataset.rsnz){rRemClear(t.dataset.rsnz,t,true);return}
-  if(t.dataset.rgo){const r=S.radar.find(x=>x._id===t.dataset.rgo);if(r){const tm=esVirt(r)?"virt":"pres";S.view=esVirt(r)?"virtual":"radar";Object.assign(S.rf[tm],{vista:"todos",quien:"",motor:""});render();const c=document.getElementById("card_"+r._id);if(c)c.scrollIntoView({behavior:"smooth",block:"start"})}return}
+  if(t.dataset.rgo){const r=S.radar.find(x=>x._id===t.dataset.rgo);if(r){const tm=esVirt(r)?"virt":"pres";S.view=esVirt(r)?"virtual":"radar";Object.assign(S.rf[tm],{vista:"todos",quien:"",motor:""});S.gopen["rc_"+r._id]=true;render();const c=document.getElementById("card_"+r._id);if(c)c.scrollIntoView({behavior:"smooth",block:"start"})}return}
   if(t.dataset.vtog){const n=t.dataset.vtog,on=S.virtuales.includes(n);saveVirt(on?S.virtuales.filter(x=>x!==n):[...S.virtuales,n]);return}
   if(t.dataset.cprox){S.cf.proximaFecha=sgHabil(sgPlus(hoy(),Number(t.dataset.cprox)));S.cf._proxManual=true;const el=$("#c_proximaFecha");if(el)el.value=S.cf.proximaFecha;return}
   if(t.dataset.cset==="resultado"){S.cf.resultado=S.cf.resultado===t.dataset.val?"":t.dataset.val;cfResDefault();render();checkTel();if(S.cf.resultado==="Agendó tasación"){const el=$("#c_proximaFecha");if(el)el.focus()}return}

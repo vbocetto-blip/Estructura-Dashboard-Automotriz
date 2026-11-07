@@ -100,6 +100,17 @@ export function checklist(d) {
   ];
 }
 
+/* Dónde queda el precio que espera el cliente frente a la mediana de avisos parecidos (radar Ansar). */
+export function posicionPrecio(precio, m) {
+  if (!precio || !m || !m.mediana) return null;
+  const dif = Math.round((precio / m.mediana - 1) * 100);
+  const n = m.nCercanos >= 3 ? m.nCercanos : m.nModelo;
+  const zona = dif > 8 ? "sobre" : dif < -8 ? "bajo" : "en";
+  return { dif, zona, n,
+    txtCliente: zona === "en" ? "Tu precio está en línea con el mercado." : `Tu precio está ${Math.abs(dif)}% ${zona} la mediana de avisos parecidos.`,
+    txtInterno: zona === "en" ? `está en la mediana de ${n} avisos parecidos (${clp(m.mediana)})` : `está ${Math.abs(dif)}% ${zona} la mediana de ${n} avisos parecidos (${clp(m.mediana)})` };
+}
+
 export function perfilConsigna(d) {
   d = d || {};
   const a = ARQ.find(x => x.si(d));
@@ -116,7 +127,9 @@ export function perfilConsigna(d) {
   if (d.prenda === "si" || d.prenda === "nose") alertas.push("Pide el certificado de anotaciones para ver la prenda antes de la tasación.");
   if (d.estado === "reparar") alertas.push("Necesita reparaciones: se informa al comprador y se considera en la tasación.");
   if ((d.cambio === "si" || d.cambio === "quizas") && a.id !== "cambio") alertas.push("También le interesa recibir otro auto: lleva a la visita 2 o 3 unidades disponibles que calcen (RETOMA).");
-  if (d.precioEsperado) alertas.push(`Espera ${clp(d.precioEsperado)}: revísalo contra comparables antes de hablar de precio.`);
+  const pos = posicionPrecio(d.precioEsperado, d.mercado);
+  if (pos) alertas.push(`Espera ${clp(d.precioEsperado)}: ${pos.txtInterno}. El cliente ya vio este dato en el formulario.`);
+  else if (d.precioEsperado) alertas.push(`Espera ${clp(d.precioEsperado)}: revísalo contra comparables antes de hablar de precio.`);
 
   const nom = String(d.nombre || "").trim().split(/\s+/)[0];
   const fr = TXT.franja[d.franja] || "";

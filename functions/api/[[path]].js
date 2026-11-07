@@ -112,6 +112,9 @@ async function leadConsigna(request, env) {
   const rl = await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE col='leadsWeb' AND updated_at>? AND json_extract(data,'$.ipHash')=?").bind(hora, ipHash).first();
   if (rl && rl.n >= 5) return json({ error: "demasiados_envios" }, 429);
   const src = b.src && typeof b.src === "object" ? b.src : {};
+  let mk = null; try { mk = await mercado(env, d.marca, d.modelo, d.anio); } catch {}
+  if (mk) d.mercado = { nModelo: mk.modelo.n, nCercanos: mk.modelo.nCercanos, mediana: mk.modelo.mediana, p25: mk.modelo.p25, p75: mk.modelo.p75, totalRegion: mk.region.total, desde: mk.region.desde };
+  d.vistos = Array.isArray(b.vistos) ? b.vistos.filter(x => typeof x === "string").slice(0, 12).map(x => LW_TXT(x, 30)) : [];
   const pf = perfilConsigna(d);
   Object.assign(d, lwScore(d), { perfil: { version: pf.version, arquetipo: pf.arquetipo, cliente: pf.cliente, interno: pf.interno } }, {
     fuente: LW_TXT(src.utm_source || (src.fbclid ? "meta" : "directo"), 30), campana: LW_TXT(src.utm_campaign, 60), anuncio: LW_TXT(src.utm_content, 60),
@@ -122,6 +125,38 @@ async function leadConsigna(request, env) {
     env.DB.prepare("INSERT INTO docs (col,id,data,version,updated_at,updated_by,deleted) VALUES ('leadsWeb',?,?,1,?,?,0)").bind(id, JSON.stringify(d), t, "formulario"),
     env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,col,id) VALUES (?,?,?,?,?)").bind(t, "formulario", "lead_web", "leadsWeb", id)]);
   return json({ ok: true });
+}
+
+/* ---------- Datos de mercado para el formulario público (sin login) ----------
+   Solo agregados (cantidad, mediana, rango) de avisos de particulares que vio el radar en la IV Región.
+   Nunca devuelve links, ids, teléfonos ni avisos individuales. */
+const normTxt = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+const pct = (arr, q) => { if (!arr.length) return null; const a = [...arr].sort((x, y) => x - y), i = (a.length - 1) * q, lo = Math.floor(i); return Math.round(a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo)); };
+export async function mercado(env, marca, modelo, anio) {
+  const r = await env.DB.prepare("SELECT id, data FROM docs WHERE col IN ('radar','virtual') AND deleted=0").all();
+  const vistos = new Map();
+  for (const row of r.results || []) { if (vistos.has(row.id)) continue; try { vistos.set(row.id, JSON.parse(row.data)); } catch {} }
+  const todos = [...vistos.values()].filter(x => x && Number(x.precio) > 0);
+  const desde = todos.reduce((m, x) => (x.primerRadar && (!m || x.primerRadar < m) ? x.primerRadar : m), null);
+  const portales = new Set(todos.map(x => x.src).filter(Boolean)).size;
+  const ma = normTxt(marca), mo = normTxt(modelo), an = parseInt(anio, 10) || 0;
+  const deMarca = ma ? todos.filter(x => normTxt(x.marca) === ma) : [];
+  const deModelo = mo ? deMarca.filter(x => { const m = normTxt(x.modelo); return m && (m === mo || m.startsWith(mo) || mo.startsWith(m)); }) : [];
+  const cercanos = an ? deModelo.filter(x => Math.abs((parseInt(x.anio, 10) || 0) - an) <= 1) : deModelo;
+  const base = cercanos.length >= 3 ? cercanos : deModelo;
+  const precios = base.map(x => Number(x.precio)), kms = base.map(x => Number(x.km)).filter(k => k > 0);
+  return {
+    region: { total: todos.length, desde, portales },
+    marca: { n: deMarca.length },
+    modelo: { n: deModelo.length, nCercanos: cercanos.length, base: base === cercanos && an ? "anio±1" : "modelo",
+      mediana: base.length >= 3 ? pct(precios, .5) : null, p25: base.length >= 4 ? pct(precios, .25) : null, p75: base.length >= 4 ? pct(precios, .75) : null,
+      kmMediana: kms.length >= 3 ? pct(kms, .5) : null }
+  };
+}
+async function mercadoPublico(request, env) {
+  const u = new URL(request.url), q = k => (u.searchParams.get(k) || "").slice(0, 40);
+  const m = await mercado(env, q("marca"), q("modelo"), q("anio"));
+  return json(m, 200, { "cache-control": "public, max-age=600" });
 }
 
 function canRead(rol, col, id) {
@@ -138,6 +173,7 @@ const validName = s => typeof s === "string" && /^[A-Za-z0-9_\-.:@+~]{1,200}$/.t
 export async function onRequest(ctx) {
   const { request, env, params } = ctx;
   if ((params.path || []).join("/") === "lead-consigna" && request.method === "POST") return leadConsigna(request, env);
+  if ((params.path || []).join("/") === "mercado" && request.method === "GET") return mercadoPublico(request, env);
   const ar = await authRoutes((params.path || []).join("/"), request, env);
   if (ar) return ar;
   const email = (await sessionEmail(request, env)) || (await verifyAccess(request, env));

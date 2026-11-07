@@ -1566,6 +1566,14 @@ function lwMsg(l){const yo=String(miNombre()||"").split(" ")[0],pi=lwPI(l);const
 /* Checklist al mandato: lo que dijo el cliente + lo que el consignador marca a mano (l.checks). */
 const lwCk=l=>{const pi=lwPI(l),m=l.checks||{},est=l.estado||"";return (pi&&pi.checklist||[]).map(c=>({...c,ok:m[c.k]!=null?!!m[c.k]:(c.ok||(c.k==="visita"&&/Tasación agendada|Mandato firmado/.test(est))||(est==="Mandato firmado"))}))};
 const lwAvance=l=>{const c=lwCk(l);return c.length?Math.round(c.filter(x=>x.ok).length/c.length*100):0};
+/* Qué datos vio el cliente en el formulario: la conversación debe seguir desde ahí, no repetirlos. */
+const LW_VISTO={"mercado-radar":"cuántos avisos de su modelo hay en la región","mercado-cavem":"el volumen de ventas de usados en Chile (CAVEM)","precio-vs-mercado":"su precio contra la mediana","dato-fraude":"el dato de fraudes en compraventa","dato-tiempo":"cuánto tarda en venderse un usado","dato-mercado":"el volumen de ventas de usados (CAVEM)","comparacion":"la tabla venderlo solo vs consignar"};
+function lwVio(l){
+  const v=(l.vistos||[]).map(x=>LW_VISTO[x]).filter(Boolean),m=l.mercado;
+  if(!v.length&&!m)return "";
+  const mk=m&&m.nModelo?`Su modelo: ${m.nModelo} avisos de particulares en el radar${m.mediana?`, mediana ${clp(m.mediana)}${m.p25?` (mitad entre ${clp(m.p25)} y ${clp(m.p75)})`:""}`:""}.`:"";
+  return `<p class="rdet" style="margin:0"><b>El cliente ya vio:</b> ${esc(v.join(" · ")||"—")}. ${esc(mk)} Parte la conversación desde ahí.</p>`;
+}
 function lwGuia(l){
   const pi=lwPI(l);if(!pi)return "";
   const ckL=lwCk(l),av=lwAvance(l);
@@ -1578,6 +1586,7 @@ function lwGuia(l){
     <dt>Objeción probable</dt><dd>“${esc(pi.objecion)}” → ${esc(pi.respuesta)}</dd>
     <dt>Próximo paso</dt><dd><b>${esc(pi.proximoPaso)}</b></dd></dl>
    ${(pi.alertas||[]).length?`<ul class="lwal">${pi.alertas.map(a=>`<li>${esc(a)}</li>`).join("")}</ul>`:""}
+   ${lwVio(l)}
    <div><h4 style="margin-bottom:6px">Para firmar el mandato falta${S.canWrite?" · toca para marcar":""}</h4><ul class="lwck">${ck}</ul></div>
   </div>`;
 }

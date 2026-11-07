@@ -98,6 +98,32 @@ footer{display:flex;gap:10px;align-items:center}
 .road li.ok::before{content:"✓";background:var(--good);color:#fff}
 .road li.now{color:var(--ink);font-weight:600}
 .road li.now::before{background:var(--tone);color:#fff}
+/* Pantallas de datos (estilo keynote) */
+.ins .eyebrow{font-size:13px;font-weight:600;color:var(--tone);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}
+.big{font-size:clamp(64px,19vw,104px);line-height:.95;font-weight:700;letter-spacing:-.05em;margin:0;font-variant-numeric:tabular-nums;background:linear-gradient(180deg,var(--ink),color-mix(in srgb,var(--ink) 55%,var(--tone)));-webkit-background-clip:text;background-clip:text;color:transparent}
+.bigsub{font-size:20px;line-height:1.3;letter-spacing:-.02em;margin:8px 0 22px;font-weight:500}
+.card{background:var(--card);border-radius:20px;padding:18px 20px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.05);margin:0 0 12px;opacity:0;transform:translateY(14px);animation:rise .6s var(--ease) forwards}
+.card:nth-child(2){animation-delay:.12s}.card:nth-child(3){animation-delay:.24s}.card:nth-child(4){animation-delay:.36s}
+@keyframes rise{to{opacity:1;transform:none}}
+.card .n{font-size:34px;font-weight:700;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.card p{margin:6px 0 0;font-size:15.5px;line-height:1.4}
+.src{display:block;font-size:12px;color:var(--muted);margin-top:8px}
+.src a{color:inherit}
+.rango{margin:16px 0 4px}
+.rango .pista{position:relative;height:10px;border-radius:10px;background:linear-gradient(90deg,color-mix(in srgb,var(--good) 55%,transparent),color-mix(in srgb,var(--tone) 35%,transparent),color-mix(in srgb,var(--bad) 45%,transparent))}
+.rango .med{position:absolute;top:-5px;width:2px;height:20px;background:var(--ink);left:50%}
+.rango .tu{position:absolute;top:50%;width:22px;height:22px;border-radius:50%;background:var(--tone);border:3px solid var(--card);box-shadow:0 2px 8px rgba(0,0,0,.25);transform:translate(-50%,-50%);left:50%;transition:left 1s var(--spring)}
+.rango .eje{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
+.vs{width:100%;border-collapse:collapse;font-size:14.5px}
+.vs th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;text-align:left;padding:0 0 8px}
+.vs td{padding:10px 0;border-top:1px solid var(--line);vertical-align:top}
+.vs td:first-child{font-weight:600;padding-right:10px;width:34%}
+.vs td:nth-child(2){color:var(--muted);padding-right:10px}
+.vs td:last-child{color:var(--ink)}
+.vs td:last-child::before{content:"✓ ";color:var(--good);font-weight:700}
+.dijiste{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:10px;text-align:left}
+.dijiste li{background:var(--card);border-radius:16px;padding:12px 16px;font-size:15px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.dijiste li b{display:block;font-size:12.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
 .legal{font-size:12.5px;color:var(--muted);text-align:center;margin-top:14px}
 .legal a{color:inherit}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
@@ -145,62 +171,76 @@ footer{display:flex;gap:10px;align-items:center}
       </div>
     </section>
 
-    <!-- 2 · Estado -->
-    <section class="step" data-s="2" data-q data-pick="estado">
+    <!-- 2 · Tu mercado (datos reales del radar) -->
+    <section class="step ins" data-s="2" data-insight="mercado" aria-live="polite">
+      <p class="eyebrow">Tu mercado hoy</p>
+      <div id="mkBody"><p class="hint">Buscando avisos parecidos al tuyo…</p></div>
+    </section>
+
+    <!-- 3 · Estado -->
+    <section class="step" data-s="3" data-q data-pick="estado">
       <h2>¿Cómo está tu auto?</h2><p class="hint">Contarlo tal cual nos ayuda a venderlo sin sorpresas.</p>
       <div class="opts"><button type="button" class="opt" data-v="impecable">Impecable</button><button type="button" class="opt" data-v="detalles">Con detalles menores</button><button type="button" class="opt" data-v="reparar">Necesita reparaciones</button></div>
     </section>
 
     <!-- 3 · Publicado -->
-    <section class="step" data-s="3" data-q data-pick="publicado">
+    <section class="step" data-s="4" data-q data-pick="publicado">
       <h2>¿Ya lo tienes publicado?</h2>
       <div class="opts"><button type="button" class="opt" data-v="no">No, todavía no</button><button type="button" class="opt" data-v="reciente">Sí, hace menos de un mes</button><button type="button" class="opt" data-v="parado">Sí, hace más de un mes</button></div>
     </section>
 
     <!-- 4 · Cuándo -->
-    <section class="step" data-s="4" data-q data-pick="cuando">
+    <section class="step" data-s="5" data-q data-pick="cuando">
       <h2>¿Cuándo quieres venderlo?</h2>
       <div class="opts"><button type="button" class="opt" data-v="mes">Este mes</button><button type="button" class="opt" data-v="1a3">En 1 a 3 meses</button><button type="button" class="opt" data-v="viendo">Solo estoy viendo opciones</button></div>
     </section>
 
     <!-- 5 · Motivo -->
-    <section class="step" data-s="5" data-q data-pick="motivo">
+    <section class="step" data-s="6" data-q data-pick="motivo">
       <h2>¿Por qué lo vendes?</h2>
       <div class="opts"><button type="button" class="opt" data-v="cambio">Quiero cambiarlo por otro</button><button type="button" class="opt" data-v="dinero">Necesito el dinero</button><button type="button" class="opt" data-v="nouso">Ya no lo uso</button><button type="button" class="opt" data-v="otro">Otro motivo</button></div>
     </section>
 
     <!-- 6 · Prioridad -->
-    <section class="step" data-s="6" data-q data-pick="prioridad">
+    <section class="step" data-s="7" data-q data-pick="prioridad">
       <h2>¿Qué es lo más importante para ti?</h2><p class="hint">Elige una. Con esto armamos tu plan.</p>
       <div class="opts"><button type="button" class="opt" data-v="precio">Obtener el mejor precio</button><button type="button" class="opt" data-v="rapidez">Venderlo rápido</button><button type="button" class="opt" data-v="tramites">No hacer trámites ni atender llamadas</button><button type="button" class="opt" data-v="seguridad">Vender de forma segura</button></div>
     </section>
 
     <!-- 7 · Titular -->
-    <section class="step" data-s="7" data-q data-pick="titular">
+    <section class="step" data-s="8" data-q data-pick="titular">
       <h2>¿Está a tu nombre?</h2><p class="hint">Para consignar, quien firma debe ser el dueño o tener poder.</p>
       <div class="opts"><button type="button" class="opt" data-v="si">Sí, está a mi nombre</button><button type="button" class="opt" data-v="familiar">Es de un familiar</button><button type="button" class="opt" data-v="no">No está a mi nombre</button></div>
     </section>
 
     <!-- 8 · Prenda -->
-    <section class="step" data-s="8" data-q data-pick="prenda">
+    <section class="step" data-s="9" data-q data-pick="prenda">
       <h2>¿Tiene prenda o deuda?</h2><p class="hint">Se puede gestionar igual; solo nos ayuda a preparar la tasación.</p>
       <div class="opts"><button type="button" class="opt" data-v="no">No</button><button type="button" class="opt" data-v="si">Sí</button><button type="button" class="opt" data-v="nose">No estoy seguro</button></div>
     </section>
 
     <!-- 9 · Precio -->
-    <section class="step" data-s="9" data-q>
+    <section class="step" data-s="10" data-q>
       <h2>¿Cuánto esperas recibir?</h2><p class="hint">Opcional. Es solo una referencia; el precio final lo acordamos contigo en la tasación.</p>
       <div class="fields"><label class="f">Monto aproximado en pesos<input type="text" name="precio" inputmode="numeric" placeholder="Ej: 11.500.000" maxlength="12"></label></div>
     </section>
 
     <!-- 10 · Cambio -->
-    <section class="step" data-s="10" data-q data-pick="cambio">
+    <section class="step" data-s="11" data-q data-pick="cambio">
       <h2>¿Te interesa recibir otro auto como parte del pago?</h2>
       <div class="opts"><button type="button" class="opt" data-v="si">Sí, me interesa</button><button type="button" class="opt" data-v="quizas">Tal vez</button><button type="button" class="opt" data-v="no">No</button></div>
     </section>
 
-    <!-- 11 · Modalidad -->
-    <section class="step" data-s="11" data-q data-pick="modalidad">
+    <!-- 12 · Por qué te conviene consignar (según sus respuestas) -->
+    <section class="step ins" data-s="12" data-insight="porque">
+      <p class="eyebrow">Hecho a tu medida</p>
+      <h2 id="pqTitulo">Por qué te conviene consignar</h2>
+      <p class="hint" id="pqSub"></p>
+      <div id="pqCards"></div>
+    </section>
+
+    <!-- 13 · Modalidad -->
+    <section class="step" data-s="13" data-q data-pick="modalidad">
       <h2>¿Cómo prefieres partir?</h2><p class="hint">La tasación es sin costo y referencial hasta revisar el auto.</p>
       <div class="opts">
         <button type="button" class="opt" data-v="presencial"><span><em class="rec">Recomendado</em>Llevar el auto a Ansar<small>Con el auto a la vista la tasación es más precisa, y si te acomoda el rango dejas todo listo en la misma visita.</small></span></button>
@@ -210,13 +250,13 @@ footer{display:flex;gap:10px;align-items:center}
     </section>
 
     <!-- 12 · Franja (se salta si pidió llamada) -->
-    <section class="step" data-s="12" data-q data-pick="franja">
+    <section class="step" data-s="14" data-q data-pick="franja">
       <h2>¿Cuándo te acomoda?</h2><p class="hint">Te confirmamos el día y la hora exacta por WhatsApp.</p>
       <div class="opts"><button type="button" class="opt" data-v="manana">Día de semana, en la mañana</button><button type="button" class="opt" data-v="tarde">Día de semana, en la tarde</button><button type="button" class="opt" data-v="sabado">Sábado</button></div>
     </section>
 
     <!-- 13 · Contacto -->
-    <section class="step" data-s="13" data-q>
+    <section class="step" data-s="15" data-q>
       <h2>¿Dónde te contactamos?</h2><p class="hint">Te escribimos por WhatsApp para coordinar la tasación.</p>
       <div class="fields">
         <label class="f">Nombre<input type="text" name="nombre" autocomplete="given-name" required maxlength="60"></label>
@@ -230,12 +270,13 @@ footer{display:flex;gap:10px;align-items:center}
     </section>
 
     <!-- 14 · Perfil final -->
-    <section class="step done" data-s="14">
+    <section class="step done" data-s="16">
       <span class="av" id="avFin" aria-hidden="true"></span>
       <span class="pfk">Tu perfil de venta</span>
       <h2 id="finName"></h2>
       <p class="lead" id="finPlan"></p>
       <ul class="chips" id="finChips"></ul>
+      <ul class="dijiste" id="finDijiste"></ul>
       <div class="next"><b>Tu próximo paso</b><span id="finPaso"></span></div>
       <ol class="road" aria-label="Camino para vender tu auto"><li class="ok">Perfil</li><li class="now">Tasación</li><li>Mandato</li><li>Publicación</li><li>Venta</li></ol>
       <p class="hint" style="margin-top:22px">¡Gracias, <span id="nomOk"></span>! La tasación es referencial hasta revisar el auto.</p>
@@ -249,10 +290,38 @@ footer{display:flex;gap:10px;align-items:center}
   </div>
 </main>
 <script type="module">
-import { perfilConsigna } from "/js/perfil-consigna.js";
+import { perfilConsigna, posicionPrecio } from "/js/perfil-consigna.js";
+
+/* LO QUE ANSAR PROMETE: cada fila debe ser verdad. Revisar antes de publicar. */
+const PROMESAS = [
+  { k: "precio", t: "Precio", solo: "Lo defines a ojo", ansar: "Con datos de avisos reales y una tasación" },
+  { k: "publicar", t: "Fotos y publicación", solo: "Las haces tú", ansar: "Las hacemos nosotros" },
+  { k: "interesados", t: "Llamadas y mensajes", solo: "Los atiendes tú, a cualquier hora", ansar: "Los atendemos y filtramos nosotros" },
+  { k: "mostrar", t: "Mostrar el auto", solo: "A desconocidos, donde puedas", ansar: "Lo mostramos nosotros" },
+  { k: "tramites", t: "Trámites", solo: "Los coordinas tú", ansar: "Los hacemos nosotros" }
+];
+const ORDEN_PROMESAS = { precio: ["precio", "publicar", "interesados", "tramites"], rapidez: ["publicar", "precio", "interesados", "tramites"],
+  tramites: ["tramites", "interesados", "mostrar", "publicar"], seguridad: ["mostrar", "interesados", "tramites", "precio"] };
+/* Datos públicos con fuente: solo cifras verificadas y citadas. */
+const DATO = {
+  fraude: { n: 41700, pre: "+", t: "causas por fraude en la compraventa de autos llegaron a tribunales entre enero y septiembre de 2025, un 64% más que el año anterior.",
+    src: "Poder Judicial, informe Sheriff · 24horas.cl, agosto 2026", url: "https://www.24horas.cl/actualidad/economia/compraventa-de-automoviles-enfrenta-un-escenario-record-de-fraudes-en-chile" },
+  tiempo: { n: 45, suf: " días", t: "tarda en promedio un concesionario en vender un usado; algunos salen en 5 días y otros toman 90. El precio de salida marca la diferencia.",
+    src: "La Tercera, 2023", url: "https://www.latercera.com/mtonline/noticia/dias-semanas-meses-lo-que-tarda-en-venderse-un-auto-usado-en-chile/K5SEG4WHFVAFZGMFKBJPI6YVGY/" },
+  mercado: { n: 821781, t: "autos usados se transfirieron en Chile entre enero y septiembre de 2026. Compradores hay: la diferencia está en cómo se presenta y a qué precio.",
+    src: "CAVEM · The Clinic, octubre 2026", url: "https://www.theclinic.cl/2026/10/06/ventas-de-vehiculos-en-chile-septiembre-2026-cavem/" }
+};
+/* Cierre: lo que nos dijo → cómo lo resolvemos (compromiso y coherencia). */
+const RESUELVE = {
+  prioridad: { precio: ["Quieres el mejor precio", "Lo fijamos con datos reales y lo acordamos contigo en la tasación."], rapidez: ["Quieres venderlo rápido", "Precio de salida competitivo y publicación desde el primer día."],
+    tramites: ["No quieres hacer trámites", "Tú firmas el mandato; nosotros hacemos el resto."], seguridad: ["Quieres vender seguro", "No recibes a desconocidos: nos encargamos nosotros y todo queda por escrito."] },
+  cuando: { mes: ["Quieres venderlo este mes", "Podemos tasarlo esta semana."], "1a3": ["Quieres venderlo en 1 a 3 meses", "Hay tiempo para fijar bien el precio desde el inicio."], viendo: ["Estás viendo opciones", "La tasación es sin costo ni compromiso: decides con un número real."] },
+  publicado: { parado: ["Lleva más de un mes publicado", "Lo relanzamos con otra presentación y un precio afinado."], reciente: ["Ya lo publicaste", "Le sumamos nuestra publicación y atención a interesados."] },
+  cambio: { si: ["Quieres recibir otro auto", "En la misma visita vemos opciones para tu próximo auto."] }
+};
 
 const VERSION_POLITICA = "2026-11-07";
-const CONTACTO = 13, FIN = 14, FRANJA = 12;
+const CONTACTO = 15, FIN = 16, FRANJA = 14, PRECIO = 10;
 const TONO = { estancado: "#FF9F0A", explorador: "#32ADE6", cambio: "#AF52DE", liquidez: "#34C759", delegador: "#0A84FF", decidido: "#FF375F" };
 /* Etiquetas que ve el cliente (en su voz, sin lenguaje interno). */
 const CHIP = {
@@ -293,7 +362,73 @@ const TIP = {
 const f = document.getElementById("f"), steps = [...f.querySelectorAll(".step")];
 const $ = id => document.getElementById(id);
 const sig = $("sig"), atras = $("atras"), bar = $("bar"), err = $("err"), pf = $("pf");
-let cur = 0, picks = {}, enviando = false, lastName = "", lastChips = [], hist = [];
+let cur = 0, picks = {}, enviando = false, lastName = "", lastChips = [], hist = [], MK = null, mkKey = "", mkProm = null;
+const vistos = new Set();
+const clp = n => "$" + Math.round(n).toLocaleString("es-CL");
+const mm = n => n >= 1e6 ? "$" + (n / 1e6).toLocaleString("es-CL", { maximumFractionDigits: 1 }) + " M" : clp(n);
+const fmtFecha = s => { try { return new Date(s + "T12:00:00").toLocaleDateString("es-CL", { day: "numeric", month: "long" }); } catch (e) { return s; } };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function contar(el, fin, pre = "", suf = "") {
+  if (matchMedia("(prefers-reduced-motion:reduce)").matches) { el.textContent = pre + fin.toLocaleString("es-CL") + suf; return; }
+  const t0 = performance.now(), dur = 1100;
+  const paso = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = pre + Math.round(fin * e).toLocaleString("es-CL") + suf; if (k < 1) requestAnimationFrame(paso); };
+  requestAnimationFrame(paso);
+}
+function cargaMercado() {
+  const key = [val("marca"), val("modelo"), val("anio")].join("|").toLowerCase(); if (key === mkKey && mkProm) return mkProm;
+  mkKey = key; MK = null;
+  const q = new URLSearchParams({ marca: val("marca"), modelo: val("modelo"), anio: val("anio") });
+  mkProm = fetch("/api/mercado?" + q).then(r => r.ok ? r.json() : null).then(j => (MK = j)).catch(() => null);
+  return mkProm;
+}
+const datoCard = d => `<div class="card"><div class="n" data-cnt="${d.n}" data-pre="${d.pre || ""}" data-suf="${d.suf || ""}">0</div><p>${esc(d.t)}</p><span class="src">Fuente: <a href="${d.url}" target="_blank" rel="noopener">${esc(d.src)}</a></span></div>`;
+const animaNumeros = root => root.querySelectorAll("[data-cnt]").forEach(el => contar(el, Number(el.dataset.cnt), el.dataset.pre, el.dataset.suf));
+const fuenteRadar = m => `Radar de Ansar Automotriz: avisos de particulares de la Región de Coquimbo en Yapo, Chileautos, Mercado Libre y Facebook Marketplace${m && m.region.desde ? ", vistos desde el " + fmtFecha(m.region.desde) : ""}. Algunos ya pueden estar vendidos.`;
+function rangoHTML(m, precio) {
+  if (!m || !m.p25 || !m.p75 || !m.mediana) return "";
+  const lo = Math.min(m.p25, precio || m.p25) * .92, hi = Math.max(m.p75, precio || m.p75) * 1.08, x = v => ((v - lo) / (hi - lo) * 100).toFixed(1);
+  return `<div class="rango" aria-label="Rango de precios publicados"><div class="pista"><span class="med" style="left:${x(m.mediana)}%"></span>${precio ? `<span class="tu" data-x="${x(precio)}" style="left:${x(m.mediana)}%"></span>` : ""}</div>
+    <div class="eje"><span>Más barato</span><span>mediana ${mm(m.mediana)}</span><span>Más caro</span></div></div>`;
+}
+function renderMercado() {
+  const box = $("mkBody"), auto = [val("marca"), val("modelo")].join(" ").trim();
+  box.innerHTML = `<p class="hint">Buscando avisos parecidos a tu ${esc(auto)}…</p>`;
+  cargaMercado().then(m => {
+    if (cur !== 2) return;
+    let html;
+    if (m && m.modelo.n >= 2) {
+      const mo = m.modelo, cerca = mo.base === "anio±1";
+      html = `<p class="big" data-cnt="${mo.n}">0</p><p class="bigsub">avisos de ${esc(auto)} de particulares vimos en la región${cerca ? `, ${mo.nCercanos} de ellos de años cercanos al tuyo` : ""}.</p>
+        ${mo.mediana ? `<div class="card"><p style="margin:0">Precio publicado de los ${cerca ? "más parecidos al tuyo" : "de tu modelo"}: la mediana es <b>${clp(mo.mediana)}</b>${mo.p25 ? ` y la mitad está entre ${clp(mo.p25)} y ${clp(mo.p75)}` : ""}.</p>${rangoHTML(mo)}</div>` : ""}`;
+    } else if (m && m.marca.n >= 2) {
+      html = `<p class="big" data-cnt="${m.marca.n}">0</p><p class="bigsub">avisos de ${esc(val("marca"))} de particulares vimos en la región. De tu modelo hay pocos: eso puede jugar a tu favor.</p>`;
+    } else if (m && m.region.total) {
+      html = `<p class="big" data-cnt="${m.region.total}">0</p><p class="bigsub">avisos de particulares vimos en la región. Tu modelo casi no aparece: eso puede jugar a tu favor.</p>`;
+    } else { html = datoCard(DATO.mercado); }
+    html += `<div class="card"><p style="margin:0"><b>Qué significa para ti:</b> tu auto compite con ellos por los mismos compradores. Se vende antes el que tiene mejor precio y mejor presentación, y eso es lo que hacemos al consignar.</p></div>`;
+    if (m) html += `<span class="src">${esc(fuenteRadar(m))}</span>`;
+    box.innerHTML = html; animaNumeros(box); vistos.add(m ? "mercado-radar" : "mercado-cavem");
+  });
+}
+function renderPorque() {
+  const d = datos(), cards = [], m = MK && MK.modelo, pos = posicionPrecio(d.precioEsperado, m && { ...m, nModelo: m.n });
+  const P = { precio: "quieres el mejor precio", rapidez: "quieres venderlo rápido", tramites: "no quieres hacer trámites", seguridad: "quieres vender de forma segura" };
+  const C = { mes: "este mes", "1a3": "en 1 a 3 meses", viendo: "cuando te convenga" };
+  $("pqSub").textContent = `Nos dijiste que ${P[d.prioridad] || "quieres venderlo bien"} y que lo quieres vender ${C[d.cuando] || "pronto"}. Esto dicen los datos:`;
+  if (pos) { cards.push(`<div class="card"><p style="margin:0"><b>${esc(pos.txtCliente)}</b> ${pos.zona === "sobre" ? "Un precio sobre el mercado suele alargar la venta; en la tasación lo afinamos contigo." : pos.zona === "bajo" ? "Un precio competitivo se vende antes; en la tasación vemos si hay espacio para pedir más." : "Buen punto de partida: lo confirmamos en la tasación."}</p>${rangoHTML(m, d.precioEsperado)}<span class="src">Comparado con ${pos.n} avisos parecidos del radar de Ansar.</span></div>`); vistos.add("precio-vs-mercado"); }
+  const quiero = [];
+  if (d.prioridad === "seguridad") quiero.push("fraude");
+  if (d.publicado === "parado" || d.prioridad === "rapidez" || d.motivo === "dinero") quiero.push("tiempo");
+  if (d.prioridad === "tramites") quiero.push("fraude");
+  quiero.push("mercado", "fraude", "tiempo");
+  [...new Set(quiero)].slice(0, pos ? 1 : 2).forEach(k => { cards.push(datoCard(DATO[k])); vistos.add("dato-" + k); });
+  const orden = ORDEN_PROMESAS[d.prioridad] || ["publicar", "interesados", "tramites", "precio"];
+  const filas = orden.map(k => PROMESAS.find(x => x.k === k)).filter(Boolean);
+  cards.push(`<div class="card"><table class="vs"><thead><tr><th></th><th>Venderlo tú</th><th>Consignar con Ansar</th></tr></thead><tbody>${filas.map(f => `<tr><td>${esc(f.t)}</td><td>${esc(f.solo)}</td><td>${esc(f.ansar)}</td></tr>`).join("")}</tbody></table></div>`);
+  vistos.add("comparacion");
+  const box = $("pqCards"); box.innerHTML = cards.join(""); animaNumeros(box);
+  setTimeout(() => box.querySelectorAll(".tu[data-x]").forEach(el => el.style.left = el.dataset.x + "%"), 450);
+}
 const src = {}; try { const q = new URLSearchParams(location.search); ["utm_source", "utm_campaign", "utm_content", "fbclid"].forEach(k => { if (q.get(k)) src[k] = q.get(k).slice(0, 80); }); } catch (e) {}
 const val = n => { const el = f.elements[n]; return el ? String(el.value || "").trim() : ""; };
 const num = n => parseInt(val(n).replace(/\D/g, ""), 10) || 0;
@@ -358,6 +493,8 @@ function pantallaFinal() {
   pintaChips($("finChips"), chipsDe(d), false);
   $("finPaso").textContent = p.cliente.paso || "Te escribimos por WhatsApp en horario de atención para coordinar la tasación.";
   $("nomOk").textContent = d.nombre.split(" ")[0];
+  const dj = ["prioridad", "cuando", "publicado", "cambio"].map(k => RESUELVE[k] && RESUELVE[k][d[k]]).filter(Boolean).slice(0, 3);
+  $("finDijiste").innerHTML = dj.map(([a, b]) => `<li><b>${esc(a)}</b>${esc(b)}</li>`).join("");
   pf.hidden = true;
 }
 
@@ -366,9 +503,11 @@ function show(i, back) {
   s.classList.toggle("back", !!back); void s.offsetWidth; s.classList.add("on");
   bar.style.width = (i / FIN * 100) + "%"; err.textContent = "";
   atras.hidden = i === 0 || i === FIN; sig.hidden = i === FIN || !!s.dataset.pick;
-  sig.textContent = i === 0 ? "Armar mi perfil" : i === CONTACTO ? "Ver mi perfil y enviar" : i === 9 && !val("precio") ? "Omitir" : "Continuar";
+  sig.textContent = i === 0 ? "Armar mi perfil" : i === CONTACTO ? "Ver mi perfil y enviar" : i === PRECIO && !val("precio") ? "Omitir" : s.dataset.insight ? "Continuar" : "Continuar";
   pf.hidden = i === 0 || i === FIN;
   if (i > 0 && i < FIN) actualizaPerfil();
+  if (s.dataset.insight === "mercado") renderMercado();
+  if (s.dataset.insight === "porque") renderPorque();
   const inp = s.querySelector("input:not([type=checkbox]):not([tabindex='-1'])"); if (inp && matchMedia("(hover:hover)").matches) setTimeout(() => inp.focus(), 300);
 }
 function avanza() { let n = cur + 1; while (salta(n)) n++; hist.push(cur); show(n); }
@@ -389,10 +528,10 @@ f.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName =
 atras.addEventListener("click", () => { if (hist.length) show(hist.pop(), true); });
 sig.addEventListener("click", () => {
   if (!ok(cur)) { err.textContent = msg(cur); return; }
-  if (cur < CONTACTO) { if (cur === 1) actualizaPerfil(""); avanza(); return; }
+  if (cur < CONTACTO) { if (cur === 1) { actualizaPerfil(""); cargaMercado(); } if (cur === PRECIO && val("precio")) { const ps = posicionPrecio(num("precio"), MK && { ...MK.modelo, nModelo: MK.modelo.n }); if (ps) { const tp = $("tip"); tp.textContent = ps.txtCliente; } } avanza(); return; }
   if (enviando) return; enviando = true; sig.disabled = true; sig.textContent = "Enviando…";
   const body = { marca: val("marca"), modelo: val("modelo"), anio: val("anio"), km: val("km"), precio: val("precio"), nombre: val("nombre"), tel: val("tel"), comuna: val("comuna"), web: val("web"),
-    acepta: f.elements.acepta.checked, textoConsentimiento: $("txtCons").textContent.trim(), versionPolitica: VERSION_POLITICA, src, ...picks };
+    acepta: f.elements.acepta.checked, textoConsentimiento: $("txtCons").textContent.trim(), versionPolitica: VERSION_POLITICA, src, vistos: [...vistos], ...picks };
   fetch("/api/lead-consigna", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
     .then(r => r.json().then(j => ({ ok: r.ok, j })))
     .then(x => { if (!x.ok) throw x.j; pantallaFinal(); hist = []; show(FIN); try { if (window.fbq) fbq("track", "Lead"); } catch (e) {} })

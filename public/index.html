@@ -583,6 +583,15 @@ nav.tabs button{transition:opacity .2s var(--ease),transform .15s var(--ease)}
 main h2{transition:letter-spacing .6s var(--ease)}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
 
+
+/* ===== Formulario de Consignación ===== */
+.lwt{white-space:nowrap}.lwt.late{background:var(--bad-soft);color:var(--bad);font-weight:600}.lwt.ok{background:var(--good-soft);color:var(--good)}
+.lwe{background:var(--sunk);color:var(--ink)}
+.lwlink{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 18px;margin:14px 0}
+.lwlink code{font-size:12.5px;word-break:break-all;background:var(--sunk);padding:2px 6px;border-radius:6px}
+.rlist{display:grid;gap:10px;margin-top:12px}
+.hrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:18px 0 12px}
+.lwcard .rsp .p{font-size:14px;font-weight:600}
 /* ===== Radar compacto: resumen cerrado, detalle al tocar ===== */
 .rcard.rcx{display:block;grid-template-columns:none}
 .rx>summary{list-style:none;cursor:pointer}
@@ -631,6 +640,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
       <button role="tab" data-v="semanas" aria-selected="false">Semanas</button>
       <button role="tab" data-v="autos" aria-selected="false">Autos</button>
       <button role="tab" data-v="radar" aria-selected="false">Radar</button>
+      <button role="tab" data-v="formulario" aria-selected="false">Formulario de Consignación<span class="tabn" id="lwN" hidden></span></button>
       <button role="tab" data-v="virtual" aria-selected="false">Virtual</button>
       <button role="tab" data-v="express" aria-selected="false">Express</button>
       <button role="tab" data-v="llamadas" aria-selected="false">Llamadas</button>
@@ -759,7 +769,8 @@ function render(){
   if(S.offline)banners.push(`<div class="banner">${esc(S.offline)}</div>`);
   const rb=remBanners();if(rb)banners.push(rb);
   if(hoy()<INICIO&&(S.view==="resumen"||S.view==="semanas"))banners.push(`<div class="banner info">El registro oficial parte el <b>lunes 2 de noviembre de 2026</b>.</div>`);
-  m.innerHTML=banners.join("")+({resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto}[S.view])();
+  m.innerHTML=banners.join("")+({resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto}[S.view])();
+  {const ln=$("#lwN");if(ln){const n=(S.leadsWeb||[]).filter(l=>!l.contactadoEn&&lwActivo(l)).length;ln.textContent=n||"";ln.hidden=!n}}
   const sgn=$("#sgN");if(sgn){const n=S.segLoaded?sgDue():0;sgn.textContent=n||"";sgn.hidden=!n}
   $("#rail").parentElement.hidden=S.soloVirtual||!(S.view==="resumen"||S.view==="semanas"||S.view==="llamadas");
   $("#btnNew").disabled=!S.canWrite;$("#btnNew").hidden=S.soloVirtual;
@@ -1529,6 +1540,84 @@ async function delCall(btn){
   if(!btn.classList.contains("armed")){btn.classList.add("armed");btn.textContent="Toca otra vez para eliminar";setTimeout(()=>{if(btn.isConnected){btn.classList.remove("armed");btn.textContent="Eliminar"}},4000);return}
   try{const dc=(S.llamadas.find(x=>x._id===S.cfEdit)||{})._col||"llamadas";await S.db.collection(dc).doc(S.cfEdit).delete();S.cfEdit=null;S.cf=cfDefault();render();toast("Llamada eliminada")}catch(e){handleWriteErr(e)}
 }
+
+/* ---------- Formulario de Consignación (leads que llegan desde /consigna.html) ---------- */
+const LW_T={titular:{si:"a su nombre",familiar:"de un familiar",no:"no está a su nombre"},prenda:{no:"sin prenda",si:"con prenda",nose:"prenda: no sabe"},cuando:{mes:"vende este mes","1a3":"vende en 1–3 meses",viendo:"solo está viendo"},motivo:{cambio:"quiere cambiar de auto",dinero:"necesita el dinero",nouso:"ya no lo usa",otro:"otro motivo"},cambio:{si:"le interesa recibir otro auto",quizas:"quizás recibe otro auto",no:""}};
+const LW_EST=["Nuevo","Contactado","Tasación agendada","Mandato firmado","Descartado","No contactar"];
+const lwActivo=l=>!["Descartado","No contactar","Mandato firmado"].includes(l.estado);
+const lwMin=l=>Math.max(0,Math.round(((l.contactadoEn?Date.parse(l.contactadoEn):Date.now())-Date.parse(l.creadoEn))/60000));
+const lwDur=m=>m<60?m+" min":m<1440?Math.floor(m/60)+" h "+(m%60?m%60+" min":""):Math.floor(m/1440)+" d";
+const lwAuto=l=>[l.marca,l.modelo].filter(Boolean).join(" ")+(l.anio?" "+l.anio:"");
+const lwResumen=l=>[lwAuto(l),l.km?Number(l.km).toLocaleString("es-CL")+" km":"",LW_T.titular[l.titular],LW_T.prenda[l.prenda],LW_T.cuando[l.cuando],LW_T.motivo[l.motivo],l.precioEsperado?"espera "+clp(l.precioEsperado):"",LW_T.cambio[l.cambio]].filter(Boolean).join(" · ");
+function lwMsg(l){const yo=String(miNombre()||"").split(" ")[0];return `Hola ${String(l.nombre||"").split(" ")[0]}, ${yo?"soy "+yo+" de":"te escribo de"} Ansar Automotriz. Recibimos tu solicitud para vender tu ${lwAuto(l)}. ¿Te acomoda que lo tasemos esta semana? La tasación es referencial hasta revisar el auto.`}
+const lwTimer=l=>{const m=lwMin(l),late=!l.contactadoEn&&m>5;return `<span class="pill lwt${late?" late":l.contactadoEn?" ok":""}" data-lwt="${esc(l._id)}">${l.contactadoEn?"Contactado en "+lwDur(m):(late?"Sin contacto · ":"Llegó hace ")+lwDur(m)}</span>`};
+function lwCard(l){
+  const id=esc(l._id),open=!!S.gopen["lw_"+l._id],et=l.etiqueta||"",cls=et==="CALIENTE"?"hoy":et==="TIBIO"?"sem":"tar";
+  const wa=`https://wa.me/${esc(l.tel)}?text=${encodeURIComponent(lwMsg(l))}`;
+  const telF=String(l.tel||"").replace(/^56(9)(\d{4})(\d{4})$/,"+56 $1 $2 $3");
+  return `<article class="rcard rcx lwcard${lwActivo(l)?"":" muted"}" id="lw_${id}">
+   <details class="rx" data-gopen="lw_${id}" ${open?"open":""}>
+    <summary class="rsum">
+     <span class="rsc ${cls}" title="${esc(et)}"><b class="num">${esc(l.puntaje??"–")}</b></span>
+     <span class="rsm"><span class="rt">${esc(l.nombre||"Sin nombre")} <span class="ry">${esc(l.comuna||"")}</span></span><span class="rsub">${esc(lwResumen(l))}</span></span>
+     <span class="rsp"><span class="p">${esc(lwAuto(l))}</span><span class="vs">${l.precioEsperado?"espera "+clp(l.precioEsperado):esc(et)}</span></span>
+     <span class="rsf">${lwTimer(l)}<span class="pill lwe">${esc(l.estado||"Nuevo")}</span></span>
+     <span class="rchev" aria-hidden="true"></span>
+    </summary>
+    <div class="rexp">
+     <p class="rver"><b>${esc(et)}</b> · ${esc(lwResumen(l))}</p>
+     <div class="racts">
+      <a class="btn primary" href="${wa}" target="_blank" rel="noopener noreferrer" data-lwwa="${id}">Abrir WhatsApp</a>
+      <a class="btn" href="tel:+${esc(l.tel)}" data-lwwa="${id}">Llamar ${esc(telF)}</a>
+      <button type="button" class="btn" data-lwcopy="${id}">Copiar mensaje</button>
+      ${S.canWrite?`<select class="rrem" data-lwest="${id}" aria-label="Estado del lead">${LW_EST.map(e=>`<option ${e===(l.estado||"Nuevo")?"selected":""}>${e}</option>`).join("")}</select>`:""}
+     </div>
+     ${S.canWrite?`<div class="rreg"><input type="text" data-lwnota="${id}" value="${esc(l.nota||"")}" placeholder="Nota: qué respondió, objeción, próxima acción" aria-label="Nota del lead"></div>`:""}
+     <details class="rmore" data-gopen="lwm_${id}" ${S.gopen["lwm_"+l._id]?"open":""}><summary>Más detalles</summary>
+      <p class="rdet">Puntaje: ${esc(l.puntajeDet||"")}. El precio se evalúa al tasar.</p>
+      <p class="rdet">Fuente: ${esc(l.fuente||"directo")}${l.campana?" · campaña "+esc(l.campana):""}${l.anuncio?" · anuncio "+esc(l.anuncio):""}</p>
+      <p class="rdet">Llegó ${esc(new Date(l.creadoEn).toLocaleString("es-CL",{dateStyle:"medium",timeStyle:"short"}))}${l.contactadoPor?" · contactó "+esc(l.contactadoPor):""}</p>
+      <p class="rdet">Consentimiento aceptado el ${esc(l.consentimiento&&l.consentimiento.en?new Date(l.consentimiento.en).toLocaleString("es-CL",{dateStyle:"medium",timeStyle:"short"}):"—")} · política v${esc(l.consentimiento&&l.consentimiento.version||"")}</p>
+     </details>
+    </div>
+   </details></article>`;
+}
+function vFormulario(){
+  const L=(S.leadsWeb||[]).slice().sort((a,b)=>String(b.creadoEn).localeCompare(String(a.creadoEn)));
+  const f=S.lwf||"activos",hoyS=new Date().toDateString();
+  const sinC=L.filter(l=>!l.contactadoEn&&lwActivo(l)),hoyL=L.filter(l=>new Date(l.creadoEn).toDateString()===hoyS);
+  const c30=L.filter(l=>l.contactadoEn&&Date.now()-Date.parse(l.creadoEn)<30*864e5),rap=c30.filter(l=>lwMin(l)<=5).length;
+  const cal=L.filter(l=>l.etiqueta==="CALIENTE"&&lwActivo(l)),mand=L.filter(l=>l.estado==="Mandato firmado").length;
+  const sel={activos:L.filter(lwActivo),sin:sinC,cal,todos:L}[f]||L;
+  const chip=(k,t,n)=>`<button type="button" data-lwf="${k}" aria-pressed="${f===k}">${t} ${n}</button>`;
+  const link=location.origin+"/consigna.html";
+  return `<div class="hrow"><h2>Formulario de Consignación</h2><span class="status">Leads que llegan desde el formulario público · se actualiza solo</span></div>
+  <div class="kpis">
+   <div class="kpi${sinC.length?" hl":""}"><span class="l">Sin contactar</span><span class="v num">${sinC.length}</span><span class="s">meta: menos de 5 min</span></div>
+   <div class="kpi"><span class="l">Llegaron hoy</span><span class="v num">${hoyL.length}</span><span class="s">${L.length} en total</span></div>
+   <div class="kpi"><span class="l">Contactados en 5 min</span><span class="v num">${c30.length?Math.round(rap/c30.length*100)+"%":"—"}</span><span class="s">últimos 30 días · ${c30.length} contactados</span></div>
+   <div class="kpi"><span class="l">Calientes activos</span><span class="v num">${cal.length}</span><span class="s">puntaje 75 o más</span></div>
+   <div class="kpi"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">desde el formulario</span></div>
+  </div>
+  <div class="panel lwlink"><div><b>Link para tus anuncios</b><p class="rdet">Agrégale la campaña para medir cada anuncio: <code>${esc(link)}?utm_source=meta&amp;utm_campaign=consigna-nov</code></p></div><div class="racts"><a class="btn" href="/consigna.html" target="_blank" rel="noopener">Ver formulario ↗</a><button type="button" class="btn" data-lwlink="1">Copiar link</button></div></div>
+  <div class="chips" role="group" aria-label="Filtrar leads">${chip("activos","Activos",L.filter(lwActivo).length)}${chip("sin","Sin contactar",sinC.length)}${chip("cal","Calientes",cal.length)}${chip("todos","Todos",L.length)}</div>
+  <div class="rlist">${sel.length?sel.map(lwCard).join(""):`<div class="empty">${L.length?"No hay leads en este filtro.":"Todavía no llegan leads. Comparte el link del formulario o úsalo en un anuncio."}</div>`}</div>`;
+}
+async function lwSave(id,data){try{await S.db.collection("leadsWeb").doc(id).update(data)}catch(_){toast("No se pudo guardar. Revisa tu conexión.")}}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-lwwa],[data-lwf],[data-lwcopy],[data-lwlink]");if(!t)return;
+  if(t.dataset.lwf){S.lwf=t.dataset.lwf;render();return}
+  if(t.dataset.lwlink){copyText(location.origin+"/consigna.html?utm_source=meta&utm_campaign=consigna","Link copiado");return}
+  const id=t.dataset.lwwa||t.dataset.lwcopy,l=(S.leadsWeb||[]).find(x=>x._id===id);if(!l)return;
+  if(t.dataset.lwcopy)copyText(lwMsg(l));
+  if(!l.contactadoEn&&S.canWrite){const now=new Date().toISOString();lwSave(id,{contactadoEn:now,contactadoPor:miNombre()||"",estado:l.estado==="Nuevo"||!l.estado?"Contactado":l.estado})}
+});
+document.addEventListener("change",e=>{
+  const d=e.target.dataset||{};
+  if(d.lwest){lwSave(d.lwest,{estado:e.target.value});return}
+  if(d.lwnota!=null){lwSave(d.lwnota,{nota:String(e.target.value).slice(0,500)});toast("Nota guardada")}
+});
+setInterval(()=>{if(S.view!=="formulario")return;document.querySelectorAll("[data-lwt]").forEach(el=>{const l=(S.leadsWeb||[]).find(x=>x._id===el.dataset.lwt);if(l&&!l.contactadoEn){const tmp=document.createElement("div");tmp.innerHTML=lwTimer(l);el.replaceWith(tmp.firstChild)}})},30000);
 
 /* ---------- Radar ---------- */
 const MOTORES=["Comprar","Retoma","Consignar"];
@@ -2625,6 +2714,9 @@ render();
   db.collection("pedidos").onSnapshot(onPedSnap,()=>{});
   db.doc("config/criterios").onSnapshot(d=>{S.crit=d.exists?d.data():null;safeRender()},()=>{});
   db.doc("config/virtual").onSnapshot(d=>{S.virtuales=(d.exists&&Array.isArray(d.data().miembros))?d.data().miembros:[];safeRender()},()=>{});
+  db.collection("leadsWeb").onSnapshot(snap=>{const prev=S.leadsWeb;S.leadsWeb=snap.docs.map(d=>({...d.data(),_id:d.id}));
+    if(prev){const nuevos=S.leadsWeb.filter(l=>!prev.some(p=>p._id===l._id));if(nuevos.length)toast(nuevos.length===1?`Nuevo lead de consignación: ${nuevos[0].nombre||""} · ${lwAuto(nuevos[0])}`:`${nuevos.length} leads nuevos de consignación`)}
+    safeRender()},()=>{});
   db.collection("pilotoFeedback").onSnapshot(snap=>{S.pfbList=snap.docs.map(d=>({...d.data(),_id:d.id}));safeRender()},()=>{});
   db.collection("radar").onSnapshot(s=>onRadarSnap(s,"radar"),err=>{S.radarErr=err.code;S.radarLoaded=true;safeRender()});
   db.collection("virtual").onSnapshot(s=>onRadarSnap(s,"virtual"),()=>{});

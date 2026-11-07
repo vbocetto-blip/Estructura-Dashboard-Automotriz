@@ -87,6 +87,53 @@ async function authRoutes(path, request, env) {
   return nuevaSesion(env, email);
 }
 
+
+/* ---------- Formulario público de consignación (sin login) ----------
+   Recibe solo lo necesario para tasar y contactar, exige consentimiento explícito y limita envíos por IP (guardada como hash diario, nunca en claro). */
+const LW_TXT = (v, n = 80) => String(v ?? "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, n);
+const LW_OPC = {
+  titular: ["si", "no", "familiar"], prenda: ["no", "si", "nose"], cuando: ["mes", "1a3", "viendo"],
+  motivo: ["cambio", "dinero", "nouso", "otro"], cambio: ["si", "no", "quizas"] };
+async function sha256hex(t) { return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t))); }
+function lwScore(d) {
+  const det = [];
+  const urg = { mes: 35, "1a3": 20, viendo: 5 }[d.cuando] || 0; det.push(["urgencia", urg]);
+  const pc = d.titular === "si" && d.prenda === "no" ? 25 : (d.titular === "no" ? 0 : 10); det.push(["puede consignar", pc]);
+  const pr = 10; det.push(["precio (por evaluar)", pr]);
+  const rt = d.cambio === "si" ? 10 : d.cambio === "quizas" ? 5 : 0; det.push(["retoma", rt]);
+  const ct = /^569\d{8}$/.test(d.tel) && d.comuna ? 10 : 5; det.push(["contacto", ct]);
+  const total = det.reduce((a, x) => a + x[1], 0);
+  return { puntaje: total, puntajeDet: det.map(x => `${x[0]} ${x[1]}`).join(" + "), etiqueta: total >= 75 ? "CALIENTE" : total >= 50 ? "TIBIO" : "FRÍO" };
+}
+async function leadConsigna(request, env) {
+  let b; try { b = await request.json(); } catch { return json({ error: "json_invalido" }, 400); }
+  if (b.web) return json({ ok: true });                      // trampa para bots: campo oculto
+  if (b.acepta !== true) return json({ error: "falta_consentimiento" }, 400);
+  let tel = String(b.tel || "").replace(/\D/g, ""); if (tel.length === 9) tel = "56" + tel; if (tel.length === 8) tel = "569" + tel;
+  if (!/^569\d{8}$/.test(tel)) return json({ error: "telefono_invalido" }, 400);
+  const d = {
+    nombre: LW_TXT(b.nombre, 60), tel, comuna: LW_TXT(b.comuna, 40),
+    marca: LW_TXT(b.marca, 30), modelo: LW_TXT(b.modelo, 40), anio: Math.min(2027, Math.max(1980, parseInt(b.anio, 10) || 0)) || null,
+    km: Math.min(999999, Math.max(0, parseInt(String(b.km || "").replace(/\D/g, ""), 10) || 0)) || null,
+    precioEsperado: Math.min(999e6, Math.max(0, parseInt(String(b.precio || "").replace(/\D/g, ""), 10) || 0)) || null };
+  for (const [k, ops] of Object.entries(LW_OPC)) d[k] = ops.includes(b[k]) ? b[k] : "";
+  if (!d.nombre || !d.marca || !d.modelo || !d.anio || !d.cuando) return json({ error: "faltan_datos" }, 400);
+  const t = now(), ip = request.headers.get("CF-Connecting-IP") || "", ipHash = (await sha256hex(ip + t.slice(0, 10))).slice(0, 16);
+  const hora = new Date(Date.now() - 3600e3).toISOString();
+  const rl = await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE col='leadsWeb' AND updated_at>? AND json_extract(data,'$.ipHash')=?").bind(hora, ipHash).first();
+  if (rl && rl.n >= 5) return json({ error: "demasiados_envios" }, 429);
+  const src = b.src && typeof b.src === "object" ? b.src : {};
+  Object.assign(d, lwScore(d), {
+    fuente: LW_TXT(src.utm_source || (src.fbclid ? "meta" : "directo"), 30), campana: LW_TXT(src.utm_campaign, 60), anuncio: LW_TXT(src.utm_content, 60),
+    consentimiento: { acepta: true, texto: LW_TXT(b.textoConsentimiento, 300), version: LW_TXT(b.versionPolitica, 20), en: t },
+    estado: "Nuevo", creadoEn: t, ipHash });
+  const id = "lw_" + t.replace(/\D/g, "").slice(0, 14) + "_" + randHex(3);
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO docs (col,id,data,version,updated_at,updated_by,deleted) VALUES ('leadsWeb',?,?,1,?,?,0)").bind(id, JSON.stringify(d), t, "formulario"),
+    env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,col,id) VALUES (?,?,?,?,?)").bind(t, "formulario", "lead_web", "leadsWeb", id)]);
+  return json({ ok: true });
+}
+
 function canRead(rol, col, id) {
   if (rol === "admin" || rol === "equipo") return true;
   return VIRTUAL_RW.has(col) || VIRTUAL_RO.has(`${col}/${id}`);
@@ -100,6 +147,7 @@ const validName = s => typeof s === "string" && /^[A-Za-z0-9_\-.:@+~]{1,200}$/.t
 
 export async function onRequest(ctx) {
   const { request, env, params } = ctx;
+  if ((params.path || []).join("/") === "lead-consigna" && request.method === "POST") return leadConsigna(request, env);
   const ar = await authRoutes((params.path || []).join("/"), request, env);
   if (ar) return ar;
   const email = (await sessionEmail(request, env)) || (await verifyAccess(request, env));

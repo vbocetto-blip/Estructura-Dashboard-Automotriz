@@ -94,7 +94,7 @@ export function checklist(d) {
     { k: "prenda", t: "Prenda aclarada", ok: d.prenda === "no" },
     { k: "estado", t: "Estado del auto declarado", ok: !!d.estado },
     { k: "precio", t: "Expectativa de precio conocida", ok: !!d.precioEsperado },
-    { k: "visita", t: "Tasación con día propuesto", ok: (d.modalidad === "presencial" || d.modalidad === "virtual") && !!d.franja },
+    { k: "visita", t: d.cita ? "Cita agendada por el cliente" : "Tasación con día propuesto", ok: !!d.cita || ((d.modalidad === "presencial" || d.modalidad === "virtual") && !!d.franja) },
     { k: "docs", t: "Documentos pedidos (padrón, anotaciones, revisión técnica, permiso)", ok: false },
     { k: "rango", t: "Rango de precio acordado en la tasación", ok: false }
   ];
@@ -137,6 +137,14 @@ export function perfilConsigna(d) {
   if (d.cuando === "viendo") {
     pregunta = `¿Te sirve una tasación referencial sin compromiso para que decidas con un número real?`;
     paso = "Ofrecer tasación sin compromiso; si no agenda, seguimiento en 3 días.";
+  } else if (d.cita && d.modalidad === "presencial") {
+    const cuando = `${fechaLarga(d.cita.fecha)} a las ${d.cita.hora}`;
+    pregunta = `¿Me confirmas que vienes el ${cuando} a tasar tu auto?`;
+    paso = `Confirmar hoy la cita del ${cuando} y pedir los documentos por WhatsApp.`;
+  } else if (d.cita && d.modalidad === "virtual") {
+    const cuando = `${fechaLarga(d.cita.fecha)} a las ${d.cita.hora}`;
+    pregunta = `¿Te confirmo la videollamada del ${cuando}? Si puedes, mándame antes 4 fotos del auto y una del tablero.`;
+    paso = `Confirmar la videollamada del ${cuando}, pedir fotos y luego agendar la visita para firmar.`;
   } else if (d.modalidad === "presencial") {
     pregunta = `¿Qué día de esta semana te acomoda traerlo a tasar${fr ? " " + fr : ""}?`;
     paso = `Confirmar día y hora de tasación presencial${fr ? " (" + fr + ")" : ""} y pedir los documentos por WhatsApp.`;
@@ -151,7 +159,9 @@ export function perfilConsigna(d) {
   const apertura = yo => `Hola${nom ? " " + nom : ""}, ${yo ? "soy " + yo + " de" : "te escribo de"} Ansar Automotriz. Recibimos tu solicitud para vender tu ${auto(d) || "auto"}. ${pregunta} La tasación es referencial hasta revisar el auto.`;
 
   let pasoCliente;
-  if (d.modalidad === "presencial") pasoCliente = `Tasación en Ansar${fr ? " " + fr : ""}. Te escribimos por WhatsApp para confirmar la hora.`;
+  if (d.cita && d.modalidad === "presencial") pasoCliente = `Tasación en Ansar el ${fechaLarga(d.cita.fecha)} a las ${d.cita.hora}. Te escribimos por WhatsApp para confirmarla.`;
+  else if (d.cita && d.modalidad === "virtual") pasoCliente = `Videollamada el ${fechaLarga(d.cita.fecha)} a las ${d.cita.hora}. Te escribimos por WhatsApp para confirmarla.`;
+  else if (d.modalidad === "presencial") pasoCliente = `Tasación en Ansar${fr ? " " + fr : ""}. Te escribimos por WhatsApp para confirmar la hora.`;
   else if (d.modalidad === "virtual") pasoCliente = "Te pedimos unas fotos por WhatsApp, te damos un rango referencial y coordinamos la visita para firmar.";
   else if (d.modalidad === "llamada") pasoCliente = "Te llamamos en horario de atención para resolver tus dudas.";
   else pasoCliente = "";
@@ -169,3 +179,55 @@ export function perfilConsigna(d) {
     apertura
   };
 }
+
+/* ---------- Agenda de tasaciones ----------
+   Horario por defecto (SUPUESTO, editable en el panel → Agenda → Horario de atención):
+   lunes a viernes 10:00–19:00, sábado 10:00–14:00, citas de 1 hora, 2 cupos por hora, 14 días hacia adelante,
+   mínimo 2 horas de anticipación. Feriados fijos cargados como bloqueos. */
+export const HORARIO_DEF = {
+  dias: { 1: ["10:00", "19:00"], 2: ["10:00", "19:00"], 3: ["10:00", "19:00"], 4: ["10:00", "19:00"], 5: ["10:00", "19:00"], 6: ["10:00", "14:00"] },
+  duracion: 60, cupos: 2, diasAdelante: 14, anticipacionMin: 120,
+  bloqueos: ["2026-12-08", "2026-12-25", "2027-01-01"]
+};
+const DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const aMin = h => { const [a, b] = String(h).split(":").map(Number); return a * 60 + (b || 0); };
+const aHora = m => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+const sumaDias = (f, n) => { const [y, m, d] = f.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+const diaSemana = f => { const [y, m, d] = f.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
+export const fechaLarga = f => { const [y, m, d] = f.split("-").map(Number); return `${DIA[diaSemana(f)]} ${d} de ${MES[m - 1]}`; };
+export const fechaCorta = f => { const [, m, d] = f.split("-").map(Number); return `${DIA[diaSemana(f)].slice(0, 3)} ${d} ${MES[m - 1].slice(0, 3)}`; };
+/* Hora local de La Serena, "YYYY-MM-DDTHH:MM", sin depender de la zona del servidor. */
+export function ahoraChile(fecha = new Date()) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(fecha).map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+export function normHorario(c) {
+  c = c && typeof c === "object" ? c : {};
+  const dias = {}; const src = c.dias && typeof c.dias === "object" ? c.dias : HORARIO_DEF.dias;
+  for (const k of Object.keys(src)) { const v = src[k]; if (Array.isArray(v) && /^\d\d:\d\d$/.test(v[0]) && /^\d\d:\d\d$/.test(v[1]) && aMin(v[1]) > aMin(v[0])) dias[k] = [v[0], v[1]]; }
+  const num = (v, d, lo, hi) => { const n = parseInt(v, 10); return n >= lo && n <= hi ? n : d; };
+  return { dias, duracion: num(c.duracion, HORARIO_DEF.duracion, 15, 240), cupos: num(c.cupos, HORARIO_DEF.cupos, 1, 20),
+    diasAdelante: num(c.diasAdelante, HORARIO_DEF.diasAdelante, 1, 60), anticipacionMin: num(c.anticipacionMin, HORARIO_DEF.anticipacionMin, 0, 2880),
+    bloqueos: Array.isArray(c.bloqueos) ? c.bloqueos.filter(x => /^\d{4}-\d\d-\d\d$/.test(x)) : HORARIO_DEF.bloqueos };
+}
+/* tomados: { "YYYY-MM-DD HH:MM": cantidad de citas activas } */
+export function diasDisponibles(cfg, ahora, tomados = {}) {
+  cfg = normHorario(cfg); const hoy = ahora.slice(0, 10), limite = aMin(ahora.slice(11)) + cfg.anticipacionMin, out = [];
+  for (let i = 0; i <= cfg.diasAdelante; i++) {
+    const f = sumaDias(hoy, i), r = cfg.dias[diaSemana(f)];
+    if (!r || cfg.bloqueos.includes(f)) continue;
+    const horas = [];
+    for (let m = aMin(r[0]); m + cfg.duracion <= aMin(r[1]); m += cfg.duracion) {
+      const h = aHora(m), pasado = i === 0 ? m < limite : false, lleno = (tomados[f + " " + h] || 0) >= cfg.cupos;
+      if (i * 1440 + m < limite) continue;
+      horas.push({ hora: h, libre: !pasado && !lleno });
+    }
+    if (horas.length) out.push({ fecha: f, horas });
+  }
+  return out;
+}
+export function citaValida(cfg, fecha, hora, ahora, tomados) {
+  return diasDisponibles(cfg, ahora, tomados).some(d => d.fecha === fecha && d.horas.some(h => h.hora === hora && h.libre));
+}
+export const franjaDe = cita => !cita ? "" : diaSemana(cita.fecha) === 6 ? "sabado" : aMin(cita.hora) < 13 * 60 ? "manana" : "tarde";

@@ -81,6 +81,26 @@ footer{display:flex;gap:10px;align-items:center}
 .perks li{display:flex;gap:12px;align-items:center;color:var(--ink)}
 .perks li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
 
+/* Calendario */
+.cal{display:grid;gap:16px}
+.dias{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 8px;margin:0 -2px;scrollbar-width:none}
+.dias::-webkit-scrollbar{display:none}
+.dia{flex:none;scroll-snap-align:start;width:64px;padding:10px 0;border-radius:16px;border:1.5px solid transparent;background:var(--card);font:inherit;color:inherit;cursor:pointer;display:grid;justify-items:center;gap:2px;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:transform .15s var(--ease),border-color .2s,background .2s}
+.dia small{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.dia b{font-size:22px;font-weight:650;letter-spacing:-.02em}
+.dia span{font-size:11.5px;color:var(--muted)}
+.dia:active{transform:scale(.95)}
+.dia[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dia[aria-pressed="true"] small,.dia[aria-pressed="true"] span{color:rgba(255,255,255,.85)}
+.dia:disabled{opacity:.35;cursor:default}
+.horas{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;animation:in .4s var(--ease)}
+.hora{padding:13px 0;border-radius:14px;border:1.5px solid var(--line);background:var(--card);font:inherit;font-weight:600;color:inherit;cursor:pointer;font-variant-numeric:tabular-nums;transition:transform .15s var(--ease),border-color .2s,background .2s}
+.hora:active{transform:scale(.95)}
+.hora[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.hora:disabled{opacity:.3;text-decoration:line-through;cursor:default}
+.calsel{margin:16px 0 0;padding:14px 16px;border-radius:16px;background:color-mix(in srgb,var(--accent) 10%,var(--card));font-weight:600;animation:fadeup .4s var(--ease)}
+.calno{display:block;margin:14px auto 0;font-size:15px;font-weight:500}
+.ics{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font-size:15px;color:var(--accent);background:none;border:0;padding:0;font:inherit;cursor:pointer}
 /* Pantalla final */
 .done{text-align:center}
 .done .av{width:96px;height:96px;margin:0 auto 18px}
@@ -249,10 +269,12 @@ footer{display:flex;gap:10px;align-items:center}
       </div>
     </section>
 
-    <!-- 12 · Franja (se salta si pidió llamada) -->
-    <section class="step" data-s="14" data-q data-pick="franja">
-      <h2>¿Cuándo te acomoda?</h2><p class="hint">Te confirmamos el día y la hora exacta por WhatsApp.</p>
-      <div class="opts"><button type="button" class="opt" data-v="manana">Día de semana, en la mañana</button><button type="button" class="opt" data-v="tarde">Día de semana, en la tarde</button><button type="button" class="opt" data-v="sabado">Sábado</button></div>
+    <!-- 14 · Calendario: elige día y hora (se salta si pidió llamada) -->
+    <section class="step" data-s="14" data-q data-cal>
+      <h2 id="calTit">¿Cuándo traes tu auto?</h2><p class="hint" id="calHint">Elige el día y la hora que te acomoden. Solo ves horas libres.</p>
+      <div class="cal" id="cal"><p class="hint">Cargando horas disponibles…</p></div>
+      <p class="calsel" id="calSel" hidden></p>
+      <button type="button" class="btn sec calno" id="calNo">Ninguna me acomoda: coordinemos por WhatsApp</button>
     </section>
 
     <!-- 13 · Contacto -->
@@ -277,7 +299,7 @@ footer{display:flex;gap:10px;align-items:center}
       <p class="lead" id="finPlan"></p>
       <ul class="chips" id="finChips"></ul>
       <ul class="dijiste" id="finDijiste"></ul>
-      <div class="next"><b>Tu próximo paso</b><span id="finPaso"></span></div>
+      <div class="next"><b>Tu próximo paso</b><span id="finPaso"></span><br><button type="button" class="ics" id="btnIcs" hidden>＋ Agregar a mi calendario</button></div>
       <ol class="road" aria-label="Camino para vender tu auto"><li class="ok">Perfil</li><li class="now">Tasación</li><li>Mandato</li><li>Publicación</li><li>Venta</li></ol>
       <p class="hint" style="margin-top:22px">¡Gracias, <span id="nomOk"></span>! La tasación es referencial hasta revisar el auto.</p>
     </section>
@@ -290,7 +312,7 @@ footer{display:flex;gap:10px;align-items:center}
   </div>
 </main>
 <script type="module">
-import { perfilConsigna, posicionPrecio } from "/js/perfil-consigna.js";
+import { perfilConsigna, posicionPrecio, fechaLarga, franjaDe } from "/js/perfil-consigna.js";
 
 /* LO QUE ANSAR PROMETE: cada fila debe ser verdad. Revisar antes de publicar. */
 const PROMESAS = [
@@ -321,7 +343,7 @@ const RESUELVE = {
 };
 
 const VERSION_POLITICA = "2026-11-07";
-const CONTACTO = 15, FIN = 16, FRANJA = 14, PRECIO = 10;
+const CONTACTO = 15, FIN = 16, FRANJA = 14, CAL = 14, PRECIO = 10;
 const TONO = { estancado: "#FF9F0A", explorador: "#32ADE6", cambio: "#AF52DE", liquidez: "#34C759", delegador: "#0A84FF", decidido: "#FF375F" };
 /* Etiquetas que ve el cliente (en su voz, sin lenguaje interno). */
 const CHIP = {
@@ -356,7 +378,8 @@ const TIP = {
   "cambio:si": "Genial: en la misma visita vemos opciones para tu próximo auto.",
   "modalidad:presencial": "Buena elección: en una sola visita puedes dejar todo listo.",
   "modalidad:virtual": "Partimos con fotos; para firmar coordinamos una visita corta.",
-  "modalidad:llamada": "Te llamamos en horario de atención."
+  "modalidad:llamada": "Te llamamos en horario de atención.",
+  "cita": "Listo, te guardamos esa hora. Te la confirmamos por WhatsApp."
 };
 
 const f = document.getElementById("f"), steps = [...f.querySelectorAll(".step")];
@@ -410,6 +433,53 @@ function renderMercado() {
     box.innerHTML = html; animaNumeros(box); vistos.add(m ? "mercado-radar" : "mercado-cavem");
   });
 }
+/* ---------- Calendario ---------- */
+let AG = null, diaSel = null;
+function cargaAgenda() { return fetch("/api/agenda-libre", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null).then(j => (AG = j)); }
+const DOW = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"], MES3 = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+function renderCal(msgErr) {
+  const virt = picks.modalidad === "virtual";
+  $("calTit").textContent = virt ? "¿Cuándo hacemos la videollamada?" : "¿Cuándo traes tu auto?";
+  $("calHint").textContent = msgErr || (virt ? "Elige día y hora. Son unos minutos por WhatsApp para ver tu auto." : "Elige el día y la hora que te acomoden. Solo ves horas libres.");
+  const box = $("cal");
+  cargaAgenda().then(ag => {
+    if (cur !== CAL) return;
+    const dias = (ag && ag.dias || []).filter(d => d.horas.some(h => h.libre));
+    if (!dias.length) { box.innerHTML = `<p class="hint">No pudimos cargar las horas. Elige “coordinemos por WhatsApp” y te escribimos.</p>`; return; }
+    if (!diaSel || !dias.some(d => d.fecha === diaSel)) diaSel = (picks.cita && dias.some(d => d.fecha === picks.cita.fecha)) ? picks.cita.fecha : dias[0].fecha;
+    const dia = dias.find(d => d.fecha === diaSel);
+    box.innerHTML = `<div class="dias" role="group" aria-label="Día">${dias.map(d => { const [y, m, dd] = d.fecha.split("-").map(Number), w = new Date(Date.UTC(y, m - 1, dd)).getUTCDay(), n = d.horas.filter(h => h.libre).length;
+        return `<button type="button" class="dia" data-dia="${d.fecha}" aria-pressed="${d.fecha === diaSel}"><small>${DOW[w]}</small><b>${dd}</b><span>${MES3[m - 1]}</span></button>`; }).join("")}</div>
+      <div class="horas" role="group" aria-label="Hora">${dia.horas.map(h => `<button type="button" class="hora" data-hora="${h.hora}" ${h.libre ? "" : "disabled"} aria-pressed="${!!(picks.cita && picks.cita.fecha === diaSel && picks.cita.hora === h.hora)}">${h.hora}</button>`).join("")}</div>`;
+    const sel = box.querySelector('.dia[aria-pressed="true"]'); if (sel) sel.scrollIntoView({ block: "nearest", inline: "center" });
+  });
+}
+function muestraSel() {
+  const s = $("calSel");
+  if (!picks.cita) { s.hidden = true; return; }
+  s.hidden = false; s.textContent = (picks.modalidad === "virtual" ? "Videollamada el " : "Te esperamos el ") + fechaLarga(picks.cita.fecha) + " a las " + picks.cita.hora;
+  sig.hidden = false; sig.textContent = "Continuar";
+}
+document.addEventListener("click", e => {
+  const d = e.target.closest("[data-dia]"); if (d) { diaSel = d.dataset.dia; renderCal(); return; }
+  const h = e.target.closest("[data-hora]");
+  if (h && !h.disabled) { picks.cita = { fecha: diaSel, hora: h.dataset.hora }; delete picks.sinCita;
+    document.querySelectorAll("[data-hora]").forEach(x => x.setAttribute("aria-pressed", String(x === h))); muestraSel(); actualizaPerfil("cita"); vistos.add("calendario"); }
+});
+$("calNo").addEventListener("click", () => { delete picks.cita; picks.sinCita = true; muestraSel(); actualizaPerfil(); avanza(); });
+function icsDescarga() {
+  const c = picks.cita; if (!c) return;
+  const dur = (AG && AG.duracion) || 60, [y, m, d] = c.fecha.split("-").map(Number), [hh, mi] = c.hora.split(":").map(Number);
+  const pad = n => String(n).padStart(2, "0"), fin = new Date(Date.UTC(y, m - 1, d, hh, mi + dur));
+  const loc = `${c.fecha.replace(/-/g, "")}T${pad(hh)}${pad(mi)}00`, locFin = `${fin.getUTCFullYear()}${pad(fin.getUTCMonth() + 1)}${pad(fin.getUTCDate())}T${pad(fin.getUTCHours())}${pad(fin.getUTCMinutes())}00`;
+  const virt = picks.modalidad === "virtual", tit = virt ? "Videollamada con Ansar Automotriz" : "Tasación de mi auto en Ansar Automotriz";
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Ansar Automotriz//Agenda//ES", "BEGIN:VEVENT", "UID:" + Date.now() + "@ansar", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z",
+    "DTSTART;TZID=America/Santiago:" + loc, "DTEND;TZID=America/Santiago:" + locFin, "SUMMARY:" + tit, "LOCATION:Ansar Automotriz, La Serena",
+    "DESCRIPTION:Te confirmamos por WhatsApp. La tasación es referencial hasta revisar el auto.", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" })); a.download = "cita-ansar.ics"; a.click();
+}
+$("btnIcs").addEventListener("click", icsDescarga);
+
 function renderPorque() {
   const d = datos(), cards = [], m = MK && MK.modelo, pos = posicionPrecio(d.precioEsperado, m && { ...m, nModelo: m.n });
   const P = { precio: "quieres el mejor precio", rapidez: "quieres venderlo rápido", tramites: "no quieres hacer trámites", seguridad: "quieres vender de forma segura" };
@@ -433,11 +503,12 @@ const src = {}; try { const q = new URLSearchParams(location.search); ["utm_sour
 const val = n => { const el = f.elements[n]; return el ? String(el.value || "").trim() : ""; };
 const num = n => parseInt(val(n).replace(/\D/g, ""), 10) || 0;
 const datos = () => ({ marca: val("marca"), modelo: val("modelo"), anio: parseInt(val("anio"), 10) || null, km: num("km") || null, precioEsperado: num("precio") || null,
-  nombre: val("nombre"), comuna: val("comuna"), ...picks });
+  nombre: val("nombre"), comuna: val("comuna"), ...picks, cita: picks.cita || null, franja: franjaDe(picks.cita) });
 
 function ok(i) {
   const s = steps[i];
   if (s.dataset.pick) return !!picks[s.dataset.pick];
+  if (s.hasAttribute("data-cal")) return !!picks.cita || picks.sinCita === true;
   if (i === 1) { const a = parseInt(val("anio"), 10); return val("marca") && val("modelo") && a >= 1980 && a <= 2027; }
   if (i === CONTACTO) { const t = val("tel").replace(/\D/g, ""); return val("nombre") && (t.length === 9 && t[0] === "9" || /^569\d{8}$/.test(t)) && f.elements.acepta.checked; }
   return true;
@@ -445,6 +516,7 @@ function ok(i) {
 function msg(i) {
   if (i === 1) return "Completa marca, modelo y un año válido.";
   if (i === CONTACTO) return !f.elements.acepta.checked ? "Para contactarte necesitamos que aceptes la casilla." : "Revisa tu nombre y un WhatsApp válido (9 dígitos, parte con 9).";
+  if (steps[i].hasAttribute("data-cal")) return "Elige un día y una hora, o coordinemos por WhatsApp.";
   return "Elige una opción para seguir.";
 }
 const salta = i => i === FRANJA && picks.modalidad === "llamada";
@@ -454,7 +526,8 @@ function chipsDe(d) {
   const out = [];
   if (d.marca || d.modelo) out.push([d.marca, d.modelo, d.anio || ""].filter(Boolean).join(" "));
   if (d.km) out.push(Number(d.km).toLocaleString("es-CL") + " km");
-  Object.keys(CHIP).forEach(k => { const t = CHIP[k][d[k]]; if (t) out.push(t); });
+  Object.keys(CHIP).forEach(k => { if (k === "franja") return; const t = CHIP[k][d[k]]; if (t) out.push(t); });
+  if (d.cita) out.push(fechaLarga(d.cita.fecha).replace(/^\w/, c => c.toUpperCase()) + " · " + d.cita.hora);
   return out;
 }
 function pintaChips(ul, list, anim) {
@@ -463,7 +536,7 @@ function pintaChips(ul, list, anim) {
 }
 function porcentaje() {
   const qs = steps.map((s, i) => i).filter(i => steps[i].hasAttribute("data-q") && !salta(i) && i !== CONTACTO);
-  const hechos = qs.filter(i => steps[i].dataset.pick ? !!picks[steps[i].dataset.pick] : i === 1 ? !!ok(1) : cur > i).length;
+  const hechos = qs.filter(i => steps[i].dataset.pick ? !!picks[steps[i].dataset.pick] : i === 1 || i === CAL ? !!ok(i) : cur > i).length;
   return Math.round(hechos / qs.length * 100);
 }
 function actualizaPerfil(tipKey) {
@@ -493,6 +566,7 @@ function pantallaFinal() {
   pintaChips($("finChips"), chipsDe(d), false);
   $("finPaso").textContent = p.cliente.paso || "Te escribimos por WhatsApp en horario de atención para coordinar la tasación.";
   $("nomOk").textContent = d.nombre.split(" ")[0];
+  $("btnIcs").hidden = !picks.cita;
   const dj = ["prioridad", "cuando", "publicado", "cambio"].map(k => RESUELVE[k] && RESUELVE[k][d[k]]).filter(Boolean).slice(0, 3);
   $("finDijiste").innerHTML = dj.map(([a, b]) => `<li><b>${esc(a)}</b>${esc(b)}</li>`).join("");
   pf.hidden = true;
@@ -508,6 +582,7 @@ function show(i, back) {
   if (i > 0 && i < FIN) actualizaPerfil();
   if (s.dataset.insight === "mercado") renderMercado();
   if (s.dataset.insight === "porque") renderPorque();
+  if (s.hasAttribute("data-cal")) { renderCal(); muestraSel(); if (!picks.cita) sig.hidden = true; }
   const inp = s.querySelector("input:not([type=checkbox]):not([tabindex='-1'])"); if (inp && matchMedia("(hover:hover)").matches) setTimeout(() => inp.focus(), 300);
 }
 function avanza() { let n = cur + 1; while (salta(n)) n++; hist.push(cur); show(n); }
@@ -517,7 +592,7 @@ f.addEventListener("click", e => {
   const s = b.closest(".step"), k = s.dataset.pick;
   s.querySelectorAll(".opt").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
   picks[k] = b.dataset.v;
-  if (k === "modalidad" && b.dataset.v === "llamada") delete picks.franja;
+  if (k === "modalidad" && b.dataset.v === "llamada") { delete picks.cita; delete picks.sinCita; }
   actualizaPerfil(k + ":" + b.dataset.v);
   setTimeout(avanza, 320);
 });
@@ -531,11 +606,14 @@ sig.addEventListener("click", () => {
   if (cur < CONTACTO) { if (cur === 1) { actualizaPerfil(""); cargaMercado(); } if (cur === PRECIO && val("precio")) { const ps = posicionPrecio(num("precio"), MK && { ...MK.modelo, nModelo: MK.modelo.n }); if (ps) { const tp = $("tip"); tp.textContent = ps.txtCliente; } } avanza(); return; }
   if (enviando) return; enviando = true; sig.disabled = true; sig.textContent = "Enviando…";
   const body = { marca: val("marca"), modelo: val("modelo"), anio: val("anio"), km: val("km"), precio: val("precio"), nombre: val("nombre"), tel: val("tel"), comuna: val("comuna"), web: val("web"),
-    acepta: f.elements.acepta.checked, textoConsentimiento: $("txtCons").textContent.trim(), versionPolitica: VERSION_POLITICA, src, vistos: [...vistos], ...picks };
+    acepta: f.elements.acepta.checked, textoConsentimiento: $("txtCons").textContent.trim(), versionPolitica: VERSION_POLITICA, src, vistos: [...vistos], ...picks, franja: franjaDe(picks.cita) };
+  delete body.sinCita;
   fetch("/api/lead-consigna", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
     .then(r => r.json().then(j => ({ ok: r.ok, j })))
     .then(x => { if (!x.ok) throw x.j; pantallaFinal(); hist = []; show(FIN); try { if (window.fbq) fbq("track", "Lead"); } catch (e) {} })
-    .catch(j => { const c = j && j.error; err.textContent = c === "telefono_invalido" ? "Revisa tu número de WhatsApp." : c === "demasiados_envios" ? "Recibimos varios envíos desde tu conexión. Intenta en una hora o escríbenos por WhatsApp." : "No pudimos enviar. Revisa tu conexión e inténtalo de nuevo."; sig.disabled = false; sig.textContent = "Ver mi perfil y enviar"; enviando = false; });
+    .catch(j => { const c = j && j.error;
+      if (c === "hora_no_disponible") { delete picks.cita; sig.disabled = false; enviando = false; hist.push(cur); show(CAL, true); renderCal("Justo alguien tomó esa hora. Elige otra, por favor."); return; }
+      err.textContent = c === "telefono_invalido" ? "Revisa tu número de WhatsApp." : c === "demasiados_envios" ? "Recibimos varios envíos desde tu conexión. Intenta en una hora o escríbenos por WhatsApp." : "No pudimos enviar. Revisa tu conexión e inténtalo de nuevo."; sig.disabled = false; sig.textContent = "Ver mi perfil y enviar"; enviando = false; });
 });
 show(0);
 </script>

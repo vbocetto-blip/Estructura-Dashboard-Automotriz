@@ -593,6 +593,26 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .hrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:18px 0 12px}
 .lwcard .rsp .p{font-size:14px;font-weight:600}
 .lwarq{background:var(--sunk);color:var(--ink);font-weight:600}
+/* ===== Agenda ===== */
+.agnav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 14px}
+.agnav b{font-size:15px;margin:0 6px}
+.agweek{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.agweek{grid-template-columns:1fr}}
+.agday{background:var(--card,#fff);border-radius:16px;padding:12px;min-height:120px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.agday.hoy{outline:2px solid var(--accent,#0071E3)}
+.agday.cerr{opacity:.55}
+.agday h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.agday h3 span{float:right;font-weight:500;text-transform:none;letter-spacing:0}
+.agc{border-radius:12px;padding:10px 10px 10px 12px;margin-bottom:8px;background:var(--sunk);border-left:4px solid var(--warn,#FF9F0A);font-size:13.5px;display:grid;gap:4px}
+.agc.Confirmada{border-left-color:var(--good)}.agc.Llegó{border-left-color:var(--good);opacity:.75}.agc[class*="No llegó"]{border-left-color:var(--bad)}
+.agc .h{font-weight:700;font-variant-numeric:tabular-nums;font-size:15px}
+.agc .t{color:var(--muted);font-size:12.5px}
+.agc .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.agc .acts .btn{padding:6px 10px;font-size:12.5px}
+.agc select{font:inherit;font-size:12.5px;padding:5px 6px;border-radius:8px}
+.aghor{display:grid;gap:8px;max-width:620px}
+.aghor .r{display:grid;grid-template-columns:110px 80px 80px 1fr;gap:8px;align-items:center;font-size:14px}
+.aghor input{font:inherit;font-size:14px;padding:6px 8px;border-radius:8px;border:1px solid var(--line,rgba(0,0,0,.15))}
 .lwguia{display:grid;gap:12px;margin:12px 0;padding:14px 16px;border-radius:14px;background:var(--sunk)}
 .lwguia h4{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
 .lwguia dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0;font-size:14px}
@@ -652,6 +672,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
       <button role="tab" data-v="autos" aria-selected="false">Autos</button>
       <button role="tab" data-v="radar" aria-selected="false">Radar</button>
       <button role="tab" data-v="formulario" aria-selected="false">Formulario de Consignación<span class="tabn" id="lwN" hidden></span></button>
+      <button role="tab" data-v="agenda" aria-selected="false">Agenda<span class="tabn" id="agN" hidden></span></button>
       <button role="tab" data-v="virtual" aria-selected="false">Virtual</button>
       <button role="tab" data-v="express" aria-selected="false">Express</button>
       <button role="tab" data-v="llamadas" aria-selected="false">Llamadas</button>
@@ -780,8 +801,9 @@ function render(){
   if(S.offline)banners.push(`<div class="banner">${esc(S.offline)}</div>`);
   const rb=remBanners();if(rb)banners.push(rb);
   if(hoy()<INICIO&&(S.view==="resumen"||S.view==="semanas"))banners.push(`<div class="banner info">El registro oficial parte el <b>lunes 2 de noviembre de 2026</b>.</div>`);
-  m.innerHTML=banners.join("")+({resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto}[S.view])();
+  m.innerHTML=banners.join("")+({resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:vAgenda,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto}[S.view])();
   {const ln=$("#lwN");if(ln){const n=(S.leadsWeb||[]).filter(l=>!l.contactadoEn&&lwActivo(l)).length;ln.textContent=n||"";ln.hidden=!n}}
+  {const an=$("#agN");if(an){const n=(S.agenda||[]).filter(c=>c.estado==="Por confirmar"&&c.fecha>=hoy()).length;an.textContent=n||"";an.hidden=!n}}
   const sgn=$("#sgN");if(sgn){const n=S.segLoaded?sgDue():0;sgn.textContent=n||"";sgn.hidden=!n}
   $("#rail").parentElement.hidden=S.soloVirtual||!(S.view==="resumen"||S.view==="semanas"||S.view==="llamadas");
   $("#btnNew").disabled=!S.canWrite;$("#btnNew").hidden=S.soloVirtual;
@@ -1149,7 +1171,7 @@ function vEquipo(){
   </ol></section></div>${critHtml()}${S.isAdmin&&esSitio()?usuariosHtml():""}${S.isAdmin&&esSitio()?rendHtml():""}${S.isAdmin?respaldoHtml():""}`;
 }
 /* ---------- Respaldo y traspaso al sitio propio ---------- */
-const RESP_COLS=["autos","semanas","llamadas","radar","virtual","virtualLlamadas","pedidos","pilotoFeedback","segRutina"];
+const RESP_COLS=["autos","semanas","llamadas","radar","virtual","virtualLlamadas","pedidos","pilotoFeedback","segRutina","leadsWeb","agenda"];
 const RESP_CONFIG=["criterios","equipo","virtual"];
 const esSitio=()=>!!window.__ANSAR_SITE;
 
@@ -1560,7 +1582,7 @@ const lwMin=l=>Math.max(0,Math.round(((l.contactadoEn?Date.parse(l.contactadoEn)
 const lwDur=m=>m<60?m+" min":m<1440?Math.floor(m/60)+" h "+(m%60?m%60+" min":""):Math.floor(m/1440)+" d";
 const lwAuto=l=>[l.marca,l.modelo].filter(Boolean).join(" ")+(l.anio?" "+l.anio:"");
 Object.assign(LW_T,{estado:{impecable:"impecable",detalles:"detalles menores",reparar:"necesita reparaciones"},publicado:{no:"sin publicar",reciente:"publicado hace <1 mes",parado:"publicado hace +1 mes"},prioridad:{precio:"prioriza precio",rapidez:"prioriza rapidez",tramites:"no quiere trámites",seguridad:"prioriza seguridad"},modalidad:{presencial:"tasación en Ansar",virtual:"parte a distancia",llamada:"quiere llamada primero"},franja:{manana:"mañanas",tarde:"tardes",sabado:"sábado"}});
-const lwResumen=l=>[lwAuto(l),l.km?Number(l.km).toLocaleString("es-CL")+" km":"",LW_T.estado[l.estado],LW_T.publicado[l.publicado],LW_T.titular[l.titular],LW_T.prenda[l.prenda],LW_T.cuando[l.cuando],LW_T.motivo[l.motivo],LW_T.prioridad[l.prioridad],l.precioEsperado?"espera "+clp(l.precioEsperado):"",LW_T.cambio[l.cambio],LW_T.modalidad[l.modalidad]?LW_T.modalidad[l.modalidad]+(LW_T.franja[l.franja]?" ("+LW_T.franja[l.franja]+")":""):""].filter(Boolean).join(" · ");
+const lwResumen=l=>[lwAuto(l),l.km?Number(l.km).toLocaleString("es-CL")+" km":"",LW_T.estado[l.estado],LW_T.publicado[l.publicado],LW_T.titular[l.titular],LW_T.prenda[l.prenda],LW_T.cuando[l.cuando],LW_T.motivo[l.motivo],LW_T.prioridad[l.prioridad],l.precioEsperado?"espera "+clp(l.precioEsperado):"",LW_T.cambio[l.cambio],LW_T.modalidad[l.modalidad]?LW_T.modalidad[l.modalidad]+(l.cita?" · cita "+agFecha(l.cita.fecha)+" "+l.cita.hora:(LW_T.franja[l.franja]?" ("+LW_T.franja[l.franja]+")":"")):""].filter(Boolean).join(" · ");
 const lwPI=l=>(l.perfil&&l.perfil.interno)||null;
 function lwMsg(l){const yo=String(miNombre()||"").split(" ")[0],pi=lwPI(l);const preg=pi&&pi.pregunta?pi.pregunta:"¿Te acomoda que lo tasemos esta semana?";return `Hola ${String(l.nombre||"").split(" ")[0]}, ${yo?"soy "+yo+" de":"te escribo de"} Ansar Automotriz. Recibimos tu solicitud para vender tu ${lwAuto(l)}. ${preg} La tasación es referencial hasta revisar el auto.`}
 /* Checklist al mandato: lo que dijo el cliente + lo que el consignador marca a mano (l.checks). */
@@ -1644,6 +1666,84 @@ function vFormulario(){
   <div class="chips" role="group" aria-label="Filtrar leads">${chip("activos","Activos",L.filter(lwActivo).length)}${chip("sin","Sin contactar",sinC.length)}${chip("cal","Calientes",cal.length)}${chip("todos","Todos",L.length)}</div>
   <div class="rlist">${sel.length?sel.map(lwCard).join(""):`<div class="empty">${L.length?"No hay leads en este filtro.":"Todavía no llegan leads. Comparte el link del formulario o úsalo en un anuncio."}</div>`}</div>`;
 }
+/* ---------- Agenda: citas que el cliente toma en el formulario (y las que se agregan a mano) ---------- */
+const AG_EST=["Por confirmar","Confirmada","Llegó","No llegó","Reagendada","Cancelada"];
+const AG_DIAS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const agDate=f=>{const [y,m,d]=f.split("-").map(Number);return new Date(Date.UTC(y,m-1,d))};
+const agAdd=(f,n)=>{const d=agDate(f);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const agFecha=f=>{if(!f)return "";const d=agDate(f);return AG_DIAS[d.getUTCDay()].slice(0,3)+" "+d.getUTCDate()+" "+MES3[d.getUTCMonth()]};
+const agLunesDef=()=>agDate(hoy()).getUTCDay()===0?agAdd(hoy(),1):agLunes(hoy());
+const agLunes=f=>{const w=agDate(f).getUTCDay();return agAdd(f,w===0?-6:1-w)};
+const AG_DEF={dias:{1:["10:00","19:00"],2:["10:00","19:00"],3:["10:00","19:00"],4:["10:00","19:00"],5:["10:00","19:00"],6:["10:00","14:00"]},duracion:60,cupos:2,diasAdelante:14,anticipacionMin:120,bloqueos:["2026-12-08","2026-12-25","2027-01-01"]};
+const agCfg=()=>({...AG_DEF,...(S.agCfg||{})});
+function agMsg(c){const yo=String(miNombre()||"").split(" ")[0],d=agDate(c.fecha);const cuando=`el ${AG_DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"][d.getUTCMonth()]} a las ${c.hora}`;
+  return c.tipo==="Videollamada"?`Hola ${String(c.nombre||"").split(" ")[0]}, ${yo?"soy "+yo+" de":"te escribo de"} Ansar Automotriz. Te confirmo la videollamada ${cuando} para ver tu ${c.auto||"auto"}. ¿Me confirmas que te acomoda?`
+    :`Hola ${String(c.nombre||"").split(" ")[0]}, ${yo?"soy "+yo+" de":"te escribo de"} Ansar Automotriz. Te confirmo tu tasación ${cuando} para tu ${c.auto||"auto"}. Si puedes, trae el padrón y la revisión técnica. ¿Me confirmas que vienes? La tasación es referencial hasta revisar el auto.`}
+function agCard(c){
+  const id=esc(c._id),tel=String(c.tel||"").replace(/\D/g,"");
+  return `<div class="agc ${esc(c.estado||"")}">
+   <span class="h">${esc(c.hora)} <span class="t">· ${esc(c.tipo||"Tasación")}</span></span>
+   <span><b>${esc(c.nombre||"Sin nombre")}</b> · ${esc(c.auto||"")}</span>
+   <span class="t">${esc([c.perfil,c.etiqueta,c.origen].filter(Boolean).join(" · "))}${c.confirmadaPor?" · confirmó "+esc(c.confirmadaPor):""}</span>
+   <div class="acts">${tel?`<a class="btn primary" href="https://wa.me/${esc(tel)}?text=${encodeURIComponent(agMsg(c))}" target="_blank" rel="noopener noreferrer">Confirmar por WhatsApp</a>`:""}
+    ${c.leadId?`<button type="button" class="btn" data-agver="${esc(c.leadId)}">Ver lead</button>`:""}
+    ${S.canWrite?`<select data-agest="${id}" aria-label="Estado de la cita">${AG_EST.map(e=>`<option ${e===(c.estado||"Por confirmar")?"selected":""}>${e}</option>`).join("")}</select>`:""}</div>
+  </div>`;
+}
+function vAgenda(){
+  const lunes=S.agLunes||agLunesDef(),cfg=agCfg(),L=(S.agenda||[]).filter(c=>c.estado!=="Cancelada"&&c.estado!=="Reagendada");
+  const dias=[0,1,2,3,4,5].map(i=>agAdd(lunes,i));
+  const hoyL=L.filter(c=>c.fecha===hoy()),porC=L.filter(c=>c.estado==="Por confirmar"&&c.fecha>=hoy());
+  const prox7=L.filter(c=>c.fecha>=hoy()&&c.fecha<=agAdd(hoy(),6)),fin=L.filter(c=>c.fecha<hoy()&&(c.estado==="Llegó"||c.estado==="No llegó"));
+  const lleg=fin.filter(c=>c.estado==="Llegó").length;
+  const col=f=>{const w=agDate(f).getUTCDay(),abierto=cfg.dias[w]&&!(cfg.bloqueos||[]).includes(f),cs=L.filter(c=>c.fecha===f).sort((a,b)=>a.hora.localeCompare(b.hora));
+    return `<section class="agday${f===hoy()?" hoy":""}${abierto?"":" cerr"}"><h3>${esc(agFecha(f))}<span>${abierto?esc(cfg.dias[w].join("–")):"cerrado"}</span></h3>${cs.map(agCard).join("")||`<p class="rdet" style="margin:0">Sin citas</p>`}</section>`};
+  return `<div class="hrow"><h2>Agenda de tasaciones</h2><span class="status">Las citas que el cliente elige en el formulario aparecen aquí solas</span></div>
+  <div class="kpis">
+   <div class="kpi${porC.length?" hl":""}"><span class="l">Por confirmar</span><span class="v num">${porC.length}</span><span class="s">confírmalas hoy por WhatsApp</span></div>
+   <div class="kpi"><span class="l">Hoy</span><span class="v num">${hoyL.length}</span><span class="s">citas</span></div>
+   <div class="kpi"><span class="l">Próximos 7 días</span><span class="v num">${prox7.length}</span><span class="s">citas activas</span></div>
+   <div class="kpi"><span class="l">Llegaron</span><span class="v num">${fin.length?Math.round(lleg/fin.length*100)+"%":"—"}</span><span class="s">${lleg} de ${fin.length} citas pasadas</span></div>
+  </div>
+  ${(()=>{const px=L.filter(c=>c.fecha>=hoy()&&!["Llegó","No llegó"].includes(c.estado)).sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).slice(0,6);
+    return px.length?`<h3 style="margin:8px 0 10px;font-size:15px">Próximas citas</h3><div class="agweek" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin-bottom:18px">${px.map(c=>`<div><p class="rdet" style="margin:0 0 4px;font-weight:600">${esc(agFecha(c.fecha))}</p>${agCard(c)}</div>`).join("")}</div>`:""})()}
+  <div class="agnav"><button type="button" class="btn" data-agsem="-7">‹</button><b>Semana del ${esc(agFecha(lunes))}</b><button type="button" class="btn" data-agsem="7">›</button><button type="button" class="btn" data-agsem="0">Esta semana</button></div>
+  <div class="agweek">${dias.map(col).join("")}</div>
+  ${S.isAdmin||esSitio()&&window.__ANSAR_ROL==="admin"?agHorarioHtml(cfg):""}`;
+}
+function agHorarioHtml(cfg){
+  const DN=["","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  return `<details class="zone z-det" data-gopen="ag_hor" ${S.gopen.ag_hor?"open":""} style="margin-top:18px"><summary><b>Horario de atención</b> · lo que el cliente ve en el calendario</summary>
+   <form class="aghor" id="agHorForm">
+    ${[1,2,3,4,5,6].map(i=>{const r=cfg.dias[i];return `<div class="r"><label><input type="checkbox" name="on${i}" ${r?"checked":""}> ${DN[i]}</label><input type="time" name="a${i}" value="${r?r[0]:"10:00"}" step="900"><input type="time" name="b${i}" value="${r?r[1]:"19:00"}" step="900"><span></span></div>`}).join("")}
+    <div class="r"><span>Duración</span><input type="number" name="duracion" min="15" max="240" step="15" value="${cfg.duracion}"><span>min</span><span></span></div>
+    <div class="r"><span>Cupos por hora</span><input type="number" name="cupos" min="1" max="20" value="${cfg.cupos}"><span></span><span></span></div>
+    <div class="r"><span>Días hacia adelante</span><input type="number" name="diasAdelante" min="1" max="60" value="${cfg.diasAdelante}"><span></span><span></span></div>
+    <div class="r"><span>Anticipación</span><input type="number" name="anticipacionMin" min="0" max="2880" step="30" value="${cfg.anticipacionMin}"><span>min</span><span></span></div>
+    <label class="rdet">Días cerrados (feriados), separados por coma, formato AAAA-MM-DD<input type="text" name="bloqueos" value="${esc((cfg.bloqueos||[]).join(", "))}" style="width:100%;margin-top:4px"></label>
+    <button type="submit" class="btn primary" style="justify-self:start">Guardar horario</button>
+   </form></details>`;
+}
+function agNotificar(c){try{if(!("Notification" in window)||Notification.permission!=="granted")return;const n=new Notification(`Nueva cita · ${agFecha(c.fecha)} ${c.hora}`,{body:`${c.nombre||""} · ${c.auto||""} · ${c.tipo||""}. Confírmala por WhatsApp.`,tag:"ag_"+c._id});n.onclick=()=>{window.focus();S.view="agenda";S.agLunes=agLunes(c.fecha);render();n.close()}}catch(_){}}
+document.addEventListener("click",e=>{
+  const s=e.target.closest("[data-agsem]");if(s){const n=Number(s.dataset.agsem);S.agLunes=n?agAdd(S.agLunes||agLunesDef(),n):agLunesDef();render();return}
+  const v=e.target.closest("[data-agver]");if(v){S.view="formulario";S.lwf="todos";S.gopen["lw_"+v.dataset.agver]=true;render();setTimeout(()=>{const el=document.getElementById("lw_"+v.dataset.agver);if(el)el.scrollIntoView({block:"center"})},50)}
+});
+document.addEventListener("change",async e=>{
+  const id=e.target.dataset&&e.target.dataset.agest;if(!id||!S.db)return;const est=e.target.value,c=(S.agenda||[]).find(x=>x._id===id);
+  try{await S.db.collection("agenda").doc(id).update({estado:est,...(est==="Confirmada"?{confirmadaPor:miNombre()||"",confirmadaEn:new Date().toISOString()}:{}),actualizadoEn:new Date().toISOString()});
+    const l=c&&c.leadId&&(S.leadsWeb||[]).find(x=>x._id===c.leadId);
+    if(l&&est==="Confirmada"&&(!l.estado||l.estado==="Nuevo"||l.estado==="Contactado"))await lwSave(l._id,{estado:"Tasación agendada",...(l.contactadoEn?{}:{contactadoEn:new Date().toISOString(),contactadoPor:miNombre()||""})});
+    toast("Cita: "+est)}catch(_){toast("No se pudo guardar. Revisa tu conexión.")}
+});
+document.addEventListener("submit",async e=>{
+  if(e.target.id!=="agHorForm")return;e.preventDefault();const f=new FormData(e.target),dias={};
+  for(const i of [1,2,3,4,5,6])if(f.get("on"+i)){const a=f.get("a"+i),b=f.get("b"+i);if(a&&b&&b>a)dias[i]=[a,b]}
+  const data={dias,duracion:Number(f.get("duracion"))||60,cupos:Number(f.get("cupos"))||1,diasAdelante:Number(f.get("diasAdelante"))||14,anticipacionMin:Number(f.get("anticipacionMin"))||0,
+    bloqueos:String(f.get("bloqueos")||"").split(/[,\s]+/).filter(x=>/^\d{4}-\d\d-\d\d$/.test(x)),actualizadoEn:new Date().toISOString()};
+  try{await S.db.doc("config/agenda").set(data);toast("Horario guardado: el formulario ya lo usa")}catch(_){toast("No se pudo guardar el horario")}
+});
+
 /* Aviso al consignador: perfil y próximo paso en la misma notificación. */
 function lwAvisoTxt(l){const pi=lwPI(l);return `Nuevo lead de consignación: ${l.nombre||""} · ${lwAuto(l)}${pi?" · "+pi.nombre+" · "+pi.proximoPaso:""}`}
 function lwNotificar(l){
@@ -2767,6 +2867,10 @@ render();
   db.collection("leadsWeb").onSnapshot(snap=>{const prev=S.leadsWeb;S.leadsWeb=snap.docs.map(d=>({...d.data(),_id:d.id}));
     if(prev){const nuevos=S.leadsWeb.filter(l=>!prev.some(p=>p._id===l._id));if(nuevos.length){toast(nuevos.length===1?lwAvisoTxt(nuevos[0]):`${nuevos.length} leads nuevos de consignación`);nuevos.forEach(lwNotificar)}}
     safeRender()},()=>{});
+  db.collection("agenda").onSnapshot(snap=>{const prev=S.agenda;S.agenda=snap.docs.map(d=>({...d.data(),_id:d.id}));
+    if(prev){const nuevas=S.agenda.filter(c=>!prev.some(p=>p._id===c._id));nuevas.forEach(c=>{toast(`Nueva cita: ${c.nombre||""} · ${agFecha(c.fecha)} ${c.hora} · ${c.auto||""}`);agNotificar(c)})}
+    safeRender()},()=>{});
+  db.doc("config/agenda").onSnapshot(d=>{S.agCfg=d.exists?d.data():null;safeRender()},()=>{});
   db.collection("pilotoFeedback").onSnapshot(snap=>{S.pfbList=snap.docs.map(d=>({...d.data(),_id:d.id}));safeRender()},()=>{});
   db.collection("radar").onSnapshot(s=>onRadarSnap(s,"radar"),err=>{S.radarErr=err.code;S.radarLoaded=true;safeRender()});
   db.collection("virtual").onSnapshot(s=>onRadarSnap(s,"virtual"),()=>{});

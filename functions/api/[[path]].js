@@ -1,7 +1,7 @@
 /* API del tablero Ansar sobre Cloudflare D1.
    Login: Cloudflare Access. Cada request trae un JWT firmado (Cf-Access-Jwt-Assertion) que se verifica aquí.
    Roles: admin ve y escribe todo; virtual solo las colecciones de Consignación virtual. */
-import { OPC as LW_OPC, perfilConsigna, puntaje as lwScore } from "../../public/js/perfil-consigna.js";
+import { OPC as LW_OPC, perfilConsigna, puntaje as lwScore, normHorario, diasDisponibles, citaValida, ahoraChile, franjaDe } from "../../public/js/perfil-consigna.js";
 const VIRTUAL_RW = new Set(["virtual", "virtualLlamadas"]);
 const VIRTUAL_RO = new Set(["config/virtual"]);
 const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra } });
@@ -106,6 +106,15 @@ async function leadConsigna(request, env) {
     precioEsperado: Math.min(999e6, Math.max(0, parseInt(String(b.precio || "").replace(/\D/g, ""), 10) || 0)) || null };
   for (const [k, ops] of Object.entries(LW_OPC)) d[k] = ops.includes(b[k]) ? b[k] : "";
   if (d.modalidad === "llamada") d.franja = "";
+  let cita = null;
+  if (b.cita && (d.modalidad === "presencial" || d.modalidad === "virtual")) {
+    const f = String(b.cita.fecha || ""), h = String(b.cita.hora || "");
+    if (!/^\d{4}-\d\d-\d\d$/.test(f) || !/^\d\d:\d\d$/.test(h)) return json({ error: "cita_invalida" }, 400);
+    const ag = await agendaEstado(env);
+    if (!citaValida(ag.cfg, f, h, ag.ahora, ag.tomados)) return json({ error: "hora_no_disponible" }, 409);
+    cita = { fecha: f, hora: h, duracion: ag.cfg.duracion, tipo: d.modalidad === "virtual" ? "Videollamada" : "Tasación presencial" };
+    d.cita = cita; d.franja = franjaDe(cita);
+  }
   if (!d.nombre || !d.marca || !d.modelo || !d.anio || !d.cuando) return json({ error: "faltan_datos" }, 400);
   const t = now(), ip = request.headers.get("CF-Connecting-IP") || "", ipHash = (await sha256hex(ip + t.slice(0, 10))).slice(0, 16);
   const hora = new Date(Date.now() - 3600e3).toISOString();
@@ -123,7 +132,10 @@ async function leadConsigna(request, env) {
   const id = "lw_" + t.replace(/\D/g, "").slice(0, 14) + "_" + randHex(3);
   await env.DB.batch([
     env.DB.prepare("INSERT INTO docs (col,id,data,version,updated_at,updated_by,deleted) VALUES ('leadsWeb',?,?,1,?,?,0)").bind(id, JSON.stringify(d), t, "formulario"),
-    env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,col,id) VALUES (?,?,?,?,?)").bind(t, "formulario", "lead_web", "leadsWeb", id)]);
+    env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,col,id) VALUES (?,?,?,?,?)").bind(t, "formulario", "lead_web", "leadsWeb", id),
+    ...(cita ? [env.DB.prepare("INSERT INTO docs (col,id,data,version,updated_at,updated_by,deleted) VALUES ('agenda',?,?,1,?,?,0)").bind(id, JSON.stringify({
+      ...cita, leadId: id, nombre: d.nombre, tel: d.tel, auto: [d.marca, d.modelo, d.anio].filter(Boolean).join(" "), etiqueta: d.etiqueta, perfil: d.perfil && d.perfil.interno ? d.perfil.interno.nombre : "",
+      origen: "Formulario web", estado: "Por confirmar", creadoEn: t }), t, "formulario")] : [])]);
   return json({ ok: true });
 }
 
@@ -153,6 +165,21 @@ export async function mercado(env, marca, modelo, anio) {
       kmMediana: kms.length >= 3 ? pct(kms, .5) : null }
   };
 }
+/* ---------- Agenda pública: solo qué horas quedan libres, nunca quién las tomó ---------- */
+const AG_ACTIVA = "json_extract(data,'$.estado') NOT IN ('Cancelada','Reagendada')";
+async function agendaEstado(env) {
+  const cfgRow = await env.DB.prepare("SELECT data FROM docs WHERE col='config' AND id='agenda' AND deleted=0").first();
+  let cfg = null; try { cfg = cfgRow ? JSON.parse(cfgRow.data) : null; } catch {}
+  cfg = normHorario(cfg);
+  const ahora = ahoraChile(), hoy = ahora.slice(0, 10);
+  const rs = await env.DB.prepare(`SELECT json_extract(data,'$.fecha') f, json_extract(data,'$.hora') h, COUNT(*) n FROM docs WHERE col='agenda' AND deleted=0 AND json_extract(data,'$.fecha')>=? AND ${AG_ACTIVA} GROUP BY f,h`).bind(hoy).all();
+  const tomados = {}; for (const r of rs.results || []) tomados[r.f + " " + r.h] = r.n;
+  return { cfg, ahora, tomados };
+}
+async function agendaPublica(env) {
+  const { cfg, ahora, tomados } = await agendaEstado(env);
+  return json({ ahora, duracion: cfg.duracion, dias: diasDisponibles(cfg, ahora, tomados) });
+}
 async function mercadoPublico(request, env) {
   const u = new URL(request.url), q = k => (u.searchParams.get(k) || "").slice(0, 40);
   const m = await mercado(env, q("marca"), q("modelo"), q("anio"));
@@ -174,6 +201,7 @@ export async function onRequest(ctx) {
   const { request, env, params } = ctx;
   if ((params.path || []).join("/") === "lead-consigna" && request.method === "POST") return leadConsigna(request, env);
   if ((params.path || []).join("/") === "mercado" && request.method === "GET") return mercadoPublico(request, env);
+  if ((params.path || []).join("/") === "agenda-libre" && request.method === "GET") return agendaPublica(env);
   const ar = await authRoutes((params.path || []).join("/"), request, env);
   if (ar) return ar;
   const email = (await sessionEmail(request, env)) || (await verifyAccess(request, env));

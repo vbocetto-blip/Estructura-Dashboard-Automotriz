@@ -1,6 +1,7 @@
 /* API del tablero Ansar sobre Cloudflare D1.
    Login: Cloudflare Access. Cada request trae un JWT firmado (Cf-Access-Jwt-Assertion) que se verifica aquí.
    Roles: admin ve y escribe todo; virtual solo las colecciones de Consignación virtual. */
+import { reconocer, TIPOS } from "../../public/js/catalogo-autos.js";
 import { OPC as LW_OPC, perfilConsigna, puntaje as lwScore, normHorario, diasDisponibles, citaValida, ahoraChile, franjaDe } from "../../public/js/perfil-consigna.js";
 const VIRTUAL_RW = new Set(["virtual", "virtualLlamadas"]);
 const VIRTUAL_RO = new Set(["config/virtual"]);
@@ -121,8 +122,14 @@ async function leadConsigna(request, env) {
   const rl = await env.DB.prepare("SELECT COUNT(*) AS n FROM docs WHERE col='leadsWeb' AND updated_at>? AND json_extract(data,'$.ipHash')=?").bind(hora, ipHash).first();
   if (rl && rl.n >= 5) return json({ error: "demasiados_envios" }, 429);
   const src = b.src && typeof b.src === "object" ? b.src : {};
-  let mk = null; try { mk = await mercado(env, d.marca, d.modelo, d.anio); } catch {}
-  if (mk) d.mercado = { nModelo: mk.modelo.n, nCercanos: mk.modelo.nCercanos, mediana: mk.modelo.mediana, p25: mk.modelo.p25, p75: mk.modelo.p75, totalRegion: mk.region.total, desde: mk.region.desde };
+  d.tipoDeclarado = TIPOS[b.tipo] ? b.tipo : "";
+  let mk = null; try { mk = await mercado(env, d.marca, d.modelo, d.anio, d.tipoDeclarado); } catch {}
+  if (mk) {
+    const c = mk.comparable;
+    d.vehiculo = { estado: mk.vehiculo.estado, marca: mk.vehiculo.marca, modelo: mk.vehiculo.modelo, tipo: mk.vehiculo.tipo, original: mk.vehiculo.original };
+    d.mercado = { nivel: c.nivel, n: c.n, nModelo: mk.modelo.n, nCercanos: c.nivel === "modelo" ? mk.modelo.nCercanos : c.n, mediana: c.mediana, p25: c.p25, p75: c.p75, kmMediana: c.kmMediana,
+      tipo: mk.vehiculo.tipoTxt, similares: c.similares, totalRegion: mk.region.total, desde: mk.region.desde };
+  }
   d.vistos = Array.isArray(b.vistos) ? b.vistos.filter(x => typeof x === "string").slice(0, 12).map(x => LW_TXT(x, 30)) : [];
   const pf = perfilConsigna(d);
   Object.assign(d, lwScore(d), { perfil: { version: pf.version, arquetipo: pf.arquetipo, cliente: pf.cliente, interno: pf.interno } }, {
@@ -144,27 +151,52 @@ async function leadConsigna(request, env) {
    Nunca devuelve links, ids, teléfonos ni avisos individuales. */
 const normTxt = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 const pct = (arr, q) => { if (!arr.length) return null; const a = [...arr].sort((x, y) => x - y), i = (a.length - 1) * q, lo = Math.floor(i); return Math.round(a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo)); };
-export async function mercado(env, marca, modelo, anio) {
+const TIPO_RADAR = { "SUV": "suv", "Pickup": "pickup", "Sedán": "sedan", "Hatchback": "hatch", "Furgón / Van": "van", "Minivan": "minivan" };
+const statsDe = lista => {
+  const precios = lista.map(x => Number(x.precio)), kms = lista.map(x => Number(x.km)).filter(k => k > 0);
+  return { n: lista.length, mediana: lista.length >= 3 ? pct(precios, .5) : null, p25: lista.length >= 4 ? pct(precios, .25) : null, p75: lista.length >= 4 ? pct(precios, .75) : null,
+    kmMediana: kms.length >= 3 ? pct(kms, .5) : null };
+};
+/* tipoCliente: el tipo que eligió el cliente cuando no reconocimos su modelo */
+export async function mercado(env, marca, modelo, anio, tipoCliente) {
   const r = await env.DB.prepare("SELECT id, data FROM docs WHERE col IN ('radar','virtual') AND deleted=0").all();
   const vistos = new Map();
   for (const row of r.results || []) { if (vistos.has(row.id)) continue; try { vistos.set(row.id, JSON.parse(row.data)); } catch {} }
-  const todos = [...vistos.values()].filter(x => x && Number(x.precio) > 0);
+  const todos = [...vistos.values()].filter(x => x && Number(x.precio) > 0).map(x => {
+    const rc = reconocer(x.marca, x.modelo);
+    return { ...x, _marca: rc.marca, _modelo: rc.modelo, _tipo: rc.tipo || TIPO_RADAR[x.perfil] || null };
+  });
   const desde = todos.reduce((m, x) => (x.primerRadar && (!m || x.primerRadar < m) ? x.primerRadar : m), null);
   const portales = new Set(todos.map(x => x.src).filter(Boolean)).size;
-  const ma = normTxt(marca), mo = normTxt(modelo), an = parseInt(anio, 10) || 0;
-  const deMarca = ma ? todos.filter(x => normTxt(x.marca) === ma) : [];
-  const deModelo = mo ? deMarca.filter(x => { const m = normTxt(x.modelo); return m && (m === mo || m.startsWith(mo) || mo.startsWith(m)); }) : [];
-  const cercanos = an ? deModelo.filter(x => Math.abs((parseInt(x.anio, 10) || 0) - an) <= 1) : deModelo;
-  const base = cercanos.length >= 3 ? cercanos : deModelo;
-  const precios = base.map(x => Number(x.precio)), kms = base.map(x => Number(x.km)).filter(k => k > 0);
+  const vh = reconocer(marca, modelo), an = parseInt(anio, 10) || 0;
+  const tipo = vh.tipo || (TIPOS[tipoCliente] ? tipoCliente : null);
+  const cerca = (lista, k) => an ? lista.filter(x => Math.abs((parseInt(x.anio, 10) || 0) - an) <= k) : lista;
+  const deMarca = vh.marca ? todos.filter(x => x._marca === vh.marca) : [];
+  const deModelo = vh.modelo ? deMarca.filter(x => x._modelo === vh.modelo) : [];
+  const modCerca = cerca(deModelo, 1);
+  const deTipo = tipo ? todos.filter(x => x._tipo === tipo) : [], tipoCerca = cerca(deTipo, 2);
+  let nivel, base;
+  if (deModelo.length >= 2) { nivel = "modelo"; base = modCerca.length >= 3 ? modCerca : deModelo; }
+  else if (tipoCerca.length >= 3) { nivel = "tipo"; base = tipoCerca; }
+  else if (deTipo.length >= 3) { nivel = "tipo"; base = deTipo; }
+  else { nivel = "region"; base = an ? cerca(todos, 2) : todos; if (base.length < 3) base = todos; }
+  const cuenta = new Map(); base.forEach(x => { if (x._marca && x._modelo) { const k = x._marca + " " + x._modelo; cuenta.set(k, (cuenta.get(k) || 0) + 1); } });
+  const similares = [...cuenta.entries()].sort((a, b) => b[1] - a[1]).filter(([k]) => k !== [vh.marca, vh.modelo].join(" ")).slice(0, 3).map(([k, n]) => ({ auto: k, n }));
+  const st = statsDe(base);
   return {
     region: { total: todos.length, desde, portales },
+    vehiculo: { ...vh, tipo, tipoTxt: tipo ? TIPOS[tipo] : null, original: [marca, modelo].filter(Boolean).join(" ") },
     marca: { n: deMarca.length },
-    modelo: { n: deModelo.length, nCercanos: cercanos.length, base: base === cercanos && an ? "anio±1" : "modelo",
-      mediana: base.length >= 3 ? pct(precios, .5) : null, p25: base.length >= 4 ? pct(precios, .25) : null, p75: base.length >= 4 ? pct(precios, .75) : null,
-      kmMediana: kms.length >= 3 ? pct(kms, .5) : null }
+    modelo: { n: deModelo.length, nCercanos: modCerca.length, base: modCerca.length >= 3 && an ? "anio±1" : "modelo", ...(nivel === "modelo" ? st : { mediana: null }) },
+    comparable: { nivel, aniosCerca: base !== deTipo && base !== deModelo && base !== todos && !!an, ...st, similares }
   };
 }
+async function mercadoPublico(request, env) {
+  const u = new URL(request.url), q = k => (u.searchParams.get(k) || "").slice(0, 40);
+  const m = await mercado(env, q("marca"), q("modelo"), q("anio"), q("tipo"));
+  return json(m, 200, { "cache-control": "public, max-age=600" });
+}
+
 /* ---------- Agenda pública: solo qué horas quedan libres, nunca quién las tomó ---------- */
 const AG_ACTIVA = "json_extract(data,'$.estado') NOT IN ('Cancelada','Reagendada')";
 async function agendaEstado(env) {
@@ -179,11 +211,6 @@ async function agendaEstado(env) {
 async function agendaPublica(env) {
   const { cfg, ahora, tomados } = await agendaEstado(env);
   return json({ ahora, duracion: cfg.duracion, dias: diasDisponibles(cfg, ahora, tomados) });
-}
-async function mercadoPublico(request, env) {
-  const u = new URL(request.url), q = k => (u.searchParams.get(k) || "").slice(0, 40);
-  const m = await mercado(env, q("marca"), q("modelo"), q("anio"));
-  return json(m, 200, { "cache-control": "public, max-age=600" });
 }
 
 function canRead(rol, col, id) {

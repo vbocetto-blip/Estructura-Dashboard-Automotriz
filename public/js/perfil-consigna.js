@@ -122,6 +122,11 @@ export function perfilConsigna(d) {
   ["estado", "publicado", "cuando", "motivo", "prioridad", "titular", "prenda", "cambio"].forEach(k => { const t = TXT[k][d[k]]; if (t) rasgos.push(t); });
 
   const alertas = [];
+  const vh = d.vehiculo;
+  if (vh && vh.estado === "desconocido") alertas.push(`Vehículo no verificado: escribió “${vh.original || auto(d)}” y no calza con ninguna marca conocida${d.tipoDeclarado ? " (dijo que es " + d.tipoDeclarado + ")" : ""}. Confirma marca, modelo y versión en la primera llamada.`);
+  else if (vh && vh.estado === "marca") alertas.push(`Modelo no reconocido: ${vh.marca} “${d.modelo}”${d.tipoDeclarado ? ", dijo que es " + d.tipoDeclarado : ""}. Confirma modelo y versión antes de tasar.`);
+  if (d.mercado && d.mercado.nivel === "tipo") alertas.push(`Sin avisos de su modelo: se le comparó con ${d.mercado.n} ${d.mercado.tipo || "autos"} de años cercanos${d.mercado.similares && d.mercado.similares.length ? " (" + d.mercado.similares.map(s => s.auto).join(", ") + ")" : ""}.`);
+  if (d.km && d.mercado && d.mercado.kmMediana) { const r = Math.round((d.km / d.mercado.kmMediana - 1) * 100); if (Math.abs(r) >= 15) alertas.push(`Kilometraje ${Math.abs(r)}% ${r < 0 ? "bajo" : "sobre"} la mediana de los parecidos (${Number(d.mercado.kmMediana).toLocaleString("es-CL")} km): ${r < 0 ? "úsalo como argumento de precio" : "considéralo en la tasación"}.`); }
   if (d.titular === "no") alertas.push("No está a su nombre: confirma quién firma (el dueño o alguien con poder) antes de agendar.");
   if (d.titular === "familiar") alertas.push("Es de un familiar: que venga el titular a firmar o alguien con poder.");
   if (d.prenda === "si" || d.prenda === "nose") alertas.push("Pide el certificado de anotaciones para ver la prenda antes de la tasación.");

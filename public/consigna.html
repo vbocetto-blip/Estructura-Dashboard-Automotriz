@@ -81,6 +81,18 @@ footer{display:flex;gap:10px;align-items:center}
 .perks li{display:flex;gap:12px;align-items:center;color:var(--ink)}
 .perks li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
 
+/* Reconocimiento del vehículo */
+.sug{display:flex;gap:6px;flex-wrap:wrap;min-height:0;margin-top:-2px}
+.sug:empty{display:none}
+.sug button,.vh .opc button{font:inherit;font-size:14px;padding:7px 12px;border-radius:980px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:transform .15s var(--ease),background .2s}
+.sug button:active,.vh .opc button:active{transform:scale(.95)}
+.sug button b{font-weight:600}
+.vh{margin-top:16px;background:var(--card);border-radius:18px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);animation:fadeup .4s var(--ease)}
+.vh p{margin:0 0 12px;font-size:16px;line-height:1.4}
+.vh .opc{display:flex;gap:8px;flex-wrap:wrap}
+.vh .opc button.si{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.vh .opc button[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.vh small{display:block;color:var(--muted);font-size:13px;margin-top:10px}
 /* Calendario */
 .cal{display:grid;gap:16px}
 .dias{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 8px;margin:0 -2px;scrollbar-width:none}
@@ -184,11 +196,13 @@ footer{display:flex;gap:10px;align-items:center}
           <label class="f">Marca<input type="text" name="marca" placeholder="Ej: Toyota" autocomplete="off" required maxlength="30"></label>
           <label class="f">Modelo<input type="text" name="modelo" placeholder="Ej: Corolla" autocomplete="off" required maxlength="40"></label>
         </div>
+        <div class="sug" id="sug" aria-label="Sugerencias"></div>
         <div class="row">
           <label class="f">Año<input type="number" name="anio" inputmode="numeric" placeholder="Ej: 2019" min="1980" max="2027" required></label>
           <label class="f">Kilómetros<input type="text" name="km" inputmode="numeric" placeholder="Ej: 68.000" maxlength="9"></label>
         </div>
       </div>
+      <div class="vh" id="vhBox" aria-live="polite" hidden></div>
     </section>
 
     <!-- 2 · Tu mercado (datos reales del radar) -->
@@ -313,6 +327,7 @@ footer{display:flex;gap:10px;align-items:center}
 </main>
 <script type="module">
 import { perfilConsigna, posicionPrecio, fechaLarga, franjaDe } from "/js/perfil-consigna.js";
+import { reconocer, marcas, modelosDe, TIPOS } from "/js/catalogo-autos.js";
 
 /* LO QUE ANSAR PROMETE: cada fila debe ser verdad. Revisar antes de publicar. */
 const PROMESAS = [
@@ -398,9 +413,9 @@ function contar(el, fin, pre = "", suf = "") {
   requestAnimationFrame(paso);
 }
 function cargaMercado() {
-  const key = [val("marca"), val("modelo"), val("anio")].join("|").toLowerCase(); if (key === mkKey && mkProm) return mkProm;
+  const key = [val("marca"), val("modelo"), val("anio"), picks.tipo || ""].join("|").toLowerCase(); if (key === mkKey && mkProm) return mkProm;
   mkKey = key; MK = null;
-  const q = new URLSearchParams({ marca: val("marca"), modelo: val("modelo"), anio: val("anio") });
+  const q = new URLSearchParams({ marca: val("marca"), modelo: val("modelo"), anio: val("anio"), tipo: picks.tipo || "" });
   mkProm = fetch("/api/mercado?" + q).then(r => r.ok ? r.json() : null).then(j => (MK = j)).catch(() => null);
   return mkProm;
 }
@@ -413,26 +428,96 @@ function rangoHTML(m, precio) {
   return `<div class="rango" aria-label="Rango de precios publicados"><div class="pista"><span class="med" style="left:${x(m.mediana)}%"></span>${precio ? `<span class="tu" data-x="${x(precio)}" style="left:${x(m.mediana)}%"></span>` : ""}</div>
     <div class="eje"><span>Más barato</span><span>mediana ${mm(m.mediana)}</span><span>Más caro</span></div></div>`;
 }
+/* Dato público por tipo de vehículo (con fuente). Solo los que están verificados. */
+const DATO_TIPO = {
+  suv: { t: "Los SUV fueron el 49% de las ventas de autos nuevos en septiembre de 2026: es el tipo de auto que más gente busca hoy.", src: "CAVEM · The Clinic, octubre 2026", url: "https://www.theclinic.cl/2026/10/06/ventas-de-vehiculos-en-chile-septiembre-2026-cavem/" },
+  pickup: { t: "Las camionetas usadas fueron las que más aceleraron su demanda en 2026: +19,1% en transferencias.", src: "CAVEM · The Clinic, junio 2026", url: "https://www.theclinic.cl/2026/06/04/mercado-vehiculos-usados-chile-2026/amp/" }
+};
+const cmpDe = m => m && m.comparable ? { ...m.comparable, nModelo: m.comparable.n, nCercanos: m.comparable.n } : null;
+function kmCard(c) {
+  const km = num("km"); if (!km || !c || !c.kmMediana) return "";
+  const r = Math.round((km / c.kmMediana - 1) * 100);
+  const juicio = r <= -15 ? "Tiene menos kilómetros que la mayoría: es un punto a favor al venderlo." : r >= 15 ? "Tiene más kilómetros que la mayoría: un precio bien puesto lo compensa." : "Está en línea con el mercado.";
+  vistos.add("km-vs-mercado");
+  return `<div class="card"><p style="margin:0">Tu auto tiene <b>${km.toLocaleString("es-CL")} km</b>; los parecidos, una mediana de <b>${Number(c.kmMediana).toLocaleString("es-CL")} km</b>. ${juicio}</p></div>`;
+}
 function renderMercado() {
   const box = $("mkBody"), auto = [val("marca"), val("modelo")].join(" ").trim();
   box.innerHTML = `<p class="hint">Buscando avisos parecidos a tu ${esc(auto)}…</p>`;
   cargaMercado().then(m => {
     if (cur !== 2) return;
-    let html;
-    if (m && m.modelo.n >= 2) {
+    let html = "";
+    const c = m && m.comparable, vh = m && m.vehiculo, tipoTxt = vh && vh.tipoTxt;
+    if (vh && vh.estado === "corregido") html += `<p class="hint" style="margin:0 0 6px">Lo encontramos como ${esc(vh.marca)} ${esc(vh.modelo)}.</p>`;
+    if (c && c.nivel === "modelo") {
       const mo = m.modelo, cerca = mo.base === "anio±1";
-      html = `<p class="big" data-cnt="${mo.n}">0</p><p class="bigsub">avisos de ${esc(auto)} de particulares vimos en la región${cerca ? `, ${mo.nCercanos} de ellos de años cercanos al tuyo` : ""}.</p>
-        ${mo.mediana ? `<div class="card"><p style="margin:0">Precio publicado de los ${cerca ? "más parecidos al tuyo" : "de tu modelo"}: la mediana es <b>${clp(mo.mediana)}</b>${mo.p25 ? ` y la mitad está entre ${clp(mo.p25)} y ${clp(mo.p75)}` : ""}.</p>${rangoHTML(mo)}</div>` : ""}`;
-    } else if (m && m.marca.n >= 2) {
-      html = `<p class="big" data-cnt="${m.marca.n}">0</p><p class="bigsub">avisos de ${esc(val("marca"))} de particulares vimos en la región. De tu modelo hay pocos: eso puede jugar a tu favor.</p>`;
+      html += `<p class="big" data-cnt="${mo.n}">0</p><p class="bigsub">avisos de ${esc(auto)} de particulares vimos en la región${cerca ? `, ${mo.nCercanos} de ellos de años cercanos al tuyo` : ""}.</p>`;
+      if (c.mediana) html += `<div class="card"><p style="margin:0">Precio publicado de los ${cerca ? "más parecidos al tuyo" : "de tu modelo"}: la mediana es <b>${clp(c.mediana)}</b>${c.p25 ? ` y la mitad está entre ${clp(c.p25)} y ${clp(c.p75)}` : ""}.</p>${rangoHTML(c)}</div>`;
+      vistos.add("mercado-radar");
+    } else if (c && c.nivel === "tipo") {
+      html += `<p class="big" data-cnt="${c.n}">0</p><p class="bigsub">${esc(tipoTxt || "autos")} de particulares${c.aniosCerca ? " de años cercanos al tuyo" : ""} vimos en la región. De tu modelo exacto no hay avisos ahora, así que te comparamos con los más parecidos.</p>`;
+      if (c.mediana) html += `<div class="card"><p style="margin:0">Precio publicado de esos ${esc(tipoTxt || "autos")}: la mediana es <b>${clp(c.mediana)}</b>${c.p25 ? ` y la mitad está entre ${clp(c.p25)} y ${clp(c.p75)}` : ""}.</p>${rangoHTML(c)}</div>`;
+      if (c.similares && c.similares.length) html += `<div class="card"><p style="margin:0">Los más publicados de ese tipo: <b>${c.similares.map(s => esc(s.auto)).join(" · ")}</b>. Contra ellos compite tu auto.</p></div>`;
+      vistos.add("mercado-tipo");
     } else if (m && m.region.total) {
-      html = `<p class="big" data-cnt="${m.region.total}">0</p><p class="bigsub">avisos de particulares vimos en la región. Tu modelo casi no aparece: eso puede jugar a tu favor.</p>`;
-    } else { html = datoCard(DATO.mercado); }
+      html += `<p class="big" data-cnt="${m.region.total}">0</p><p class="bigsub">avisos de particulares vimos en la región. Tu auto casi no aparece entre ellos: eso puede jugar a tu favor, y conviene fijar bien el precio en la tasación.</p>`;
+      if (c && c.mediana && c.n >= 3) html += `<div class="card"><p style="margin:0">Como referencia, la mediana de los autos de años cercanos al tuyo es <b>${clp(c.mediana)}</b>.</p></div>`;
+      vistos.add("mercado-region");
+    } else { html += datoCard(DATO.mercado); vistos.add("mercado-cavem"); }
+    html += kmCard(c);
+    const tp = vh && vh.tipo && DATO_TIPO[vh.tipo];
+    if (tp) { html += `<div class="card"><p style="margin:0">${esc(tp.t)}</p><span class="src">Fuente: <a href="${tp.url}" target="_blank" rel="noopener">${esc(tp.src)}</a></span></div>`; vistos.add("dato-tipo-" + vh.tipo); }
     html += `<div class="card"><p style="margin:0"><b>Qué significa para ti:</b> tu auto compite con ellos por los mismos compradores. Se vende antes el que tiene mejor precio y mejor presentación, y eso es lo que hacemos al consignar.</p></div>`;
     if (m) html += `<span class="src">${esc(fuenteRadar(m))}</span>`;
-    box.innerHTML = html; animaNumeros(box); vistos.add(m ? "mercado-radar" : "mercado-cavem");
+    box.innerHTML = html; animaNumeros(box);
   });
 }
+/* ---------- Reconocer el vehículo ---------- */
+const ntx = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+let vhOk = false, campoSug = "marca";
+function sugerir(campo) {
+  campoSug = campo; const q = ntx(val(campo)), box = $("sug");
+  let ops = [];
+  if (campo === "marca") ops = q ? marcas().filter(m => ntx(m).startsWith(q)).slice(0, 6) : [];
+  else { const mk = reconocer(val("marca"), "x").marca; ops = mk ? modelosDe(mk).filter(m => !q || ntx(m).startsWith(q) || ntx(m).includes(q)).slice(0, 8) : []; }
+  if (ops.length === 1 && ntx(ops[0]) === q) ops = [];
+  box.innerHTML = ops.map(o => `<button type="button" data-sug="${esc(o)}">${esc(o)}</button>`).join("");
+}
+function fijaVehiculo(marca, modelo) { f.elements.marca.value = marca; if (modelo) f.elements.modelo.value = modelo; }
+const tiposHTML = () => `<div class="opc">${Object.entries(TIPOS).map(([k, v]) => `<button type="button" data-tipo="${k}" aria-pressed="${picks.tipo === k}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("")}</div>`;
+const modelosHTML = (marca, ops) => `<div class="opc">${ops.map(o => `<button type="button" data-vh="mod" data-m="${esc(marca)}" data-mo="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+/* true si se puede avanzar; si no, muestra la pregunta para aclarar el vehículo. */
+function verificaVehiculo() {
+  if (vhOk) return true;
+  const r = reconocer(val("marca"), val("modelo")), box = $("vhBox");
+  if (r.estado === "exacto") { fijaVehiculo(r.marca, r.modelo); picks.tipo = r.tipo; vhOk = true; return true; }
+  box.hidden = false;
+  if (r.estado === "corregido") {
+    box.innerHTML = `<p>¿Es un <b>${esc(r.marca)} ${esc(r.modelo)}</b>?</p><div class="opc"><button type="button" class="si" data-vh="si" data-m="${esc(r.marca)}" data-mo="${esc(r.modelo)}">Sí, ese</button><button type="button" data-vh="no" data-m="${esc(r.marca)}">No, es otro</button></div>`;
+  } else if (r.estado === "marca") {
+    const q = ntx(val("modelo")), ops = modelosDe(r.marca).sort((a, b) => (ntx(b)[0] === q[0]) - (ntx(a)[0] === q[0])).slice(0, 16);
+    box.innerHTML = `<p>No encontramos “${esc(val("modelo"))}” entre los modelos de ${esc(r.marca)}. ¿Es alguno de estos?</p>${modelosHTML(r.marca, ops)}
+      <p style="margin-top:14px">Si no está, ¿qué tipo de vehículo es?</p>${tiposHTML()}<small>Con eso te comparamos con autos parecidos.</small>`;
+  } else {
+    box.innerHTML = `<p>No reconocemos la marca “${esc(val("marca"))}”. Revisa cómo está escrita o, si es correcta, cuéntanos qué tipo de vehículo es:</p>${tiposHTML()}<small>Con eso te comparamos con autos parecidos de años cercanos.</small>`;
+  }
+  return false;
+}
+f.addEventListener("input", e => { const n = e.target.name; if (n === "marca" || n === "modelo") { vhOk = false; delete picks.tipo; $("vhBox").hidden = true; sugerir(n); } });
+f.addEventListener("focusin", e => { const n = e.target.name; if (n === "marca" || n === "modelo") sugerir(n); });
+document.addEventListener("click", e => {
+  const s = e.target.closest("[data-sug]");
+  if (s) { f.elements[campoSug].value = s.dataset.sug; $("sug").innerHTML = ""; vhOk = false; (campoSug === "marca" ? f.elements.modelo : f.elements.anio).focus(); return; }
+  const v = e.target.closest("[data-vh]");
+  if (v) {
+    if (v.dataset.vh === "si" || v.dataset.vh === "mod") { fijaVehiculo(v.dataset.m, v.dataset.mo); picks.tipo = reconocer(v.dataset.m, v.dataset.mo).tipo; vhOk = true; $("vhBox").hidden = true; actualizaPerfil(""); sig.click(); }
+    else { fijaVehiculo(v.dataset.m, ""); $("vhBox").innerHTML = `<p>¿Cuál es el modelo de ${esc(v.dataset.m)}?</p>${modelosHTML(v.dataset.m, modelosDe(v.dataset.m).slice(0, 14))}<p style="margin-top:14px">Si no está, ¿qué tipo de vehículo es?</p>${tiposHTML()}`; }
+    return;
+  }
+  const tp = e.target.closest("[data-tipo]");
+  if (tp) { picks.tipo = tp.dataset.tipo; vhOk = true; document.querySelectorAll("[data-tipo]").forEach(x => x.setAttribute("aria-pressed", String(x === tp))); setTimeout(() => sig.click(), 250); }
+});
+
 /* ---------- Calendario ---------- */
 let AG = null, diaSel = null;
 function cargaAgenda() { return fetch("/api/agenda-libre", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null).then(j => (AG = j)); }
@@ -481,7 +566,7 @@ function icsDescarga() {
 $("btnIcs").addEventListener("click", icsDescarga);
 
 function renderPorque() {
-  const d = datos(), cards = [], m = MK && MK.modelo, pos = posicionPrecio(d.precioEsperado, m && { ...m, nModelo: m.n });
+  const d = datos(), cards = [], m = cmpDe(MK), pos = posicionPrecio(d.precioEsperado, m);
   const P = { precio: "quieres el mejor precio", rapidez: "quieres venderlo rápido", tramites: "no quieres hacer trámites", seguridad: "quieres vender de forma segura" };
   const C = { mes: "este mes", "1a3": "en 1 a 3 meses", viendo: "cuando te convenga" };
   $("pqSub").textContent = `Nos dijiste que ${P[d.prioridad] || "quieres venderlo bien"} y que lo quieres vender ${C[d.cuando] || "pronto"}. Esto dicen los datos:`;
@@ -509,7 +594,7 @@ function ok(i) {
   const s = steps[i];
   if (s.dataset.pick) return !!picks[s.dataset.pick];
   if (s.hasAttribute("data-cal")) return !!picks.cita || picks.sinCita === true;
-  if (i === 1) { const a = parseInt(val("anio"), 10); return val("marca") && val("modelo") && a >= 1980 && a <= 2027; }
+  if (i === 1) { const a = parseInt(val("anio"), 10); return val("marca") && val("modelo") && a >= 1980 && a <= new Date().getFullYear() + 1; }
   if (i === CONTACTO) { const t = val("tel").replace(/\D/g, ""); return val("nombre") && (t.length === 9 && t[0] === "9" || /^569\d{8}$/.test(t)) && f.elements.acepta.checked; }
   return true;
 }
@@ -603,7 +688,8 @@ f.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName =
 atras.addEventListener("click", () => { if (hist.length) show(hist.pop(), true); });
 sig.addEventListener("click", () => {
   if (!ok(cur)) { err.textContent = msg(cur); return; }
-  if (cur < CONTACTO) { if (cur === 1) { actualizaPerfil(""); cargaMercado(); } if (cur === PRECIO && val("precio")) { const ps = posicionPrecio(num("precio"), MK && { ...MK.modelo, nModelo: MK.modelo.n }); if (ps) { const tp = $("tip"); tp.textContent = ps.txtCliente; } } avanza(); return; }
+  if (cur === 1 && !verificaVehiculo()) { err.textContent = ""; return; }
+  if (cur < CONTACTO) { if (cur === 1) { $("sug").innerHTML = ""; actualizaPerfil(""); cargaMercado(); } if (cur === PRECIO && val("precio")) { const ps = posicionPrecio(num("precio"), cmpDe(MK)); if (ps) { const tp = $("tip"); tp.textContent = ps.txtCliente; } } avanza(); return; }
   if (enviando) return; enviando = true; sig.disabled = true; sig.textContent = "Enviando…";
   const body = { marca: val("marca"), modelo: val("modelo"), anio: val("anio"), km: val("km"), precio: val("precio"), nombre: val("nombre"), tel: val("tel"), comuna: val("comuna"), web: val("web"),
     acepta: f.elements.acepta.checked, textoConsentimiento: $("txtCons").textContent.trim(), versionPolitica: VERSION_POLITICA, src, vistos: [...vistos], ...picks, franja: franjaDe(picks.cita) };

@@ -1884,11 +1884,12 @@ function mezclaHtml(pend){
 const rProx=r=>{if(r.proximaFecha)return r.proximaFecha;if(!r.ultimoContacto)return "";const x=pd(r.ultimoContacto);if(!x)return "";x.setDate(x.getDate()+1);return ds(x)};
 const seguirHoy=r=>{const n=rNivel(r),p=rProx(r);return (n===2||(n===0&&(Number(r.nContactos)||0)<3))&&!r.noContactar&&r.estadoAviso!=="no publicado"&&!!p&&p<=hoy()};
 /* ---------- Filtros personales del Radar (se guardan por consignador en este navegador) ---------- */
-const RFX_DEF={q:"",pmin:"",pmax:"",adesde:"",kmax:"",src:"",liq:"",smin:"",comuna:"",media:"",ord:""};
+const RFX_DEF={q:"",trans:"",pmin:"",pmax:"",adesde:"",kmax:"",src:"",liq:"",smin:"",comuna:"",media:"",ord:""};
 const rfxKey=team=>"ansar_rfx_"+team+"_"+(rCons()||"");
 function rfx(team){S.rfx=S.rfx||{};const k=rfxKey(team);if(!S.rfx[k]){let v={};try{v=JSON.parse(lsGet(k)||"{}")}catch(_){}S.rfx[k]={...RFX_DEF,...v}}return S.rfx[k]}
 function rfxSave(team){lsSet(rfxKey(team),JSON.stringify(rfx(team)))}
 const rfxN=X=>Object.keys(RFX_DEF).filter(k=>k!=="ord"&&X[k]!=="").length;
+const rTrans=r=>{if(r.transmision)return /manual/i.test(r.transmision)?"Manual":"Automática";const t=" "+String([r.ver,r.modelo,r.titulo].join(" ")).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g," ")+" ";if(/ (mt|manual|mec|mecanico|mecanica) /.test(t)||/ \d ?mt /.test(t))return "Manual";if(/ (at|cvt|dct|dsg|aut|auto|automatico|automatica|automatic|tiptronic|steptronic|ivt|ecvt|e cvt) /.test(t)||/ \d ?at /.test(t))return "Automática";return ""};
 const rfxTxt=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 function rfxApply(arr,X,virt){
   const n=v=>v===""||v==null?null:Number(String(v).replace(",","."));
@@ -1899,6 +1900,7 @@ function rfxApply(arr,X,virt){
   if(ad!=null)arr=arr.filter(r=>Number(r.anio)>=ad);
   if(km!=null)arr=arr.filter(r=>Number(r.km)<=km);
   if(X.src)arr=arr.filter(r=>r.src===X.src);
+  if(X.trans)arr=arr.filter(r=>X.trans==="sd"?!rTrans(r):rTrans(r)===X.trans);
   if(X.liq)arr=arr.filter(r=>r.liq===X.liq);
   if(X.comuna)arr=arr.filter(r=>rfxTxt(r.comuna).includes(rfxTxt(X.comuna)));
   if(X.media==="con")arr=arr.filter(r=>Number(r.med)>0);
@@ -1925,6 +1927,7 @@ function rfxHtml(team,all,virt){
     ${inp("kmax","Km hasta","ej. 80000","number")}
     ${inp("smin",virt?"Rate mínimo":"Puntaje mínimo","ej. 70","number")}
     ${inp("comuna","Comuna","ej. La Serena")}
+    ${opt("trans",[["Automática",`Automática (${all.filter(r=>rTrans(r)==="Automática").length})`],["Manual",`Manual (${all.filter(r=>rTrans(r)==="Manual").length})`],["sd",`Sin dato (${all.filter(r=>!rTrans(r)).length})`]],"Transmisión")}
     ${opt("src",srcs,"Fuente")}
     ${opt("liq",[["A","A · alta salida"],["B","B · media"],["C","C · baja"]],"Liquidez")}
     ${opt("media",[["con","Con media de mercado"],["sin","Sin media"]],"Media")}

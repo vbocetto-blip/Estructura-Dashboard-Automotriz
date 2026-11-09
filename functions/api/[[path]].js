@@ -238,7 +238,9 @@ export async function onRequest(ctx) {
   const path = (params.path || []).join("/");
   const url = new URL(request.url);
 
-  if (path === "me") return json({ email: u.email, nombre: u.nombre, rol: u.rol });
+  /* Permiso puntual para ver el reloj de todo el equipo, sin ser administrador: config/jornada.verEquipo = [correos]. */
+  const verEquipo = async () => { if (u.rol === "admin") return true; try { const r = await env.DB.prepare("SELECT json_extract(data,'$.verEquipo') AS v FROM docs WHERE col='config' AND id='jornada' AND deleted=0").first(); return !!(r && r.v && JSON.parse(r.v).map(x => String(x).toLowerCase()).includes(u.email.toLowerCase())); } catch { return false; } };
+  if (path === "me") return json({ email: u.email, nombre: u.nombre, rol: u.rol, verEquipo: await verEquipo() });
 
   /* Prueba de rendimiento: un latido por minuto activo (pestaña visible + interacción reciente). Solo minuto sí/no, sin contenido. */
   if (path === "latido" && request.method === "POST") {
@@ -254,12 +256,13 @@ export async function onRequest(ctx) {
     const desde = okD(url.searchParams.get("desde")) ? url.searchParams.get("desde") : "2000-01-01";
     const hasta = okD(url.searchParams.get("hasta")) ? url.searchParams.get("hasta") : "2999-12-31";
     const pedido = (url.searchParams.get("email") || "").toLowerCase();
+    const puede = await verEquipo();
     if (pedido === "equipo") {
-      if (u.rol !== "admin") return json({ error: "sin_permiso" }, 403);
+      if (!puede) return json({ error: "sin_permiso" }, 403);
       const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, a.minuto, coalesce(a.estado,'activo') AS e FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.dia BETWEEN ? AND ? ORDER BY a.email, a.dia, a.minuto").bind(desde, hasta).all();
       return json({ filas: rs.results });
     }
-    const email = u.rol === "admin" && pedido ? pedido : u.email;
+    const email = puede && pedido ? pedido : u.email;
     const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, a.minuto, coalesce(a.estado,'activo') AS e FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.email=? AND a.dia BETWEEN ? AND ? ORDER BY a.dia, a.minuto").bind(email, desde, hasta).all();
     return json({ email, filas: rs.results });
   }

@@ -815,6 +815,7 @@ const inRange=(s,w)=>!!s&&s>=w.from&&s<=w.to;
    gestion = llamando o escribiendo (se abre al tocar Llamar, WhatsApp, Lo tomo, Ya le escribí o Copiar mensaje; se cierra al registrar o a los 12 min)
    activo  = usando el panel; presente = panel visible sin uso (hasta 10 min).
    Horas efectivas = gestión + activo dentro de la jornada nominal de cada consignador. */
+const relojEq=()=>!!(S.isAdmin||window.__ANSAR_VEREQ);
 const JOR_DEF={dias:[1,2,3,4,5],desde:"09:00",hasta:"18:30",colacion:60};
 const hm=t=>{const [h,m]=String(t||"0:0").split(":").map(Number);return h*60+(m||0)};
 const fmtHM=min=>{min=Math.max(0,Math.round(min));const h=Math.floor(min/60),m=min%60;return h?`${h} h ${String(m).padStart(2,"0")} m`:`${m} m`};
@@ -825,12 +826,12 @@ function relojCargar(force){
   if(!window.__ANSAR_SITE)return;jorCargar();
   if(S.relojBusy||(!force&&S.relojAt&&Date.now()-S.relojAt<150000))return;S.relojBusy=true;
   const d=pd(hoy());d.setDate(d.getDate()-6);const desde=ds(d);
-  const q=S.isAdmin&&S.relojSel&&S.relojSel!=="__yo"?"&email="+encodeURIComponent(S.relojSel):"";
+  const q=relojEq()&&S.relojSel&&S.relojSel!=="__yo"?"&email="+encodeURIComponent(S.relojSel):"";
   fetch(`/api/reloj?desde=${desde}&hasta=${hoy()}${q}`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{
     const filas=j.filas||[];S.relojAt=Date.now();S.relojBusy=false;
     if(!q){S.relojMe=filas;S.relojMeNom=(filas[0]&&filas[0].nombre)||window.__ANSAR_NOMBRE||miNombre()||""}
     S.relojData={email:j.email,nombre:(filas[0]&&filas[0].nombre)||"",filas};relojTick();if(S.view==="reloj")safeRender()}).catch(()=>{S.relojBusy=false});
-  if(S.isAdmin&&S.view==="reloj"&&(force||!S.relojEqAt||Date.now()-S.relojEqAt>150000)){
+  if(relojEq()&&S.view==="reloj"&&(force||!S.relojEqAt||Date.now()-S.relojEqAt>150000)){
     fetch(`/api/reloj?desde=${desde}&hasta=${hoy()}&email=equipo`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{S.relojEq=j.filas||[];S.relojEqAt=Date.now();if(S.view==="reloj")safeRender()}).catch(()=>{});
   }
 }
@@ -870,7 +871,7 @@ function relojLinea(r,compact){
 }
 function vReloj(){
   relojCargar(false);
-  const yo=window.__ANSAR_NOMBRE||miNombre()||"";const sel=S.isAdmin&&S.relojSel&&S.relojSel!=="__yo";
+  const yo=window.__ANSAR_NOMBRE||miNombre()||"";const sel=relojEq()&&S.relojSel&&S.relojSel!=="__yo";
   const D=S.relojData,nombre=sel?(D&&D.nombre)||S.relojSel:yo,filas=sel?(D&&D.email===S.relojSel?D.filas:[]):(S.relojMe||[]);
   const r=relojDia(filas,hoy(),nombre);
   const dias=[];for(let i=6;i>=0;i--){const d=pd(hoy());d.setDate(d.getDate()-i);dias.push(ds(d))}
@@ -878,8 +879,8 @@ function vReloj(){
   const tot=sem.reduce((o,x)=>({nom:o.nom+x.nom,efe:o.efe+x.efe,cont:o.cont+x.cont,tas:o.tas+x.tas,man:o.man+x.man}),{nom:0,efe:0,cont:0,tas:0,man:0});
   const pc=x=>x==null?"—":Math.round(x*100)+"%",f1=x=>x==null?"—":x.toLocaleString("es-CL",{maximumFractionDigits:1});
   const kpi=(l,v,s,cls)=>`<div class="kpi${cls?" "+cls:""}"><span class="l">${l}</span><span class="v num">${v}</span><span class="s">${s}</span></div>`;
-  const selector=S.isAdmin?`<label class="rwho"><span>Ver</span><select data-relsel="1"><option value="__yo">Yo (${esc(yo)})</option>${(S.relojEq?[...new Map(S.relojEq.map(f=>[f.email,f.nombre||f.email])).entries()]:[]).filter(([e])=>e!==(D&&!sel?D.email:"")).map(([e,n])=>`<option value="${esc(e)}" ${S.relojSel===e?"selected":""}>${esc(n)}</option>`).join("")}</select></label>`:"";
-  const equipo=S.isAdmin?relojEquipoHtml(dias):"";
+  const selector=relojEq()?`<label class="rwho"><span>Ver</span><select data-relsel="1"><option value="__yo">Yo (${esc(yo)})</option>${(S.relojEq?[...new Map(S.relojEq.map(f=>[f.email,f.nombre||f.email])).entries()]:[]).filter(([e])=>e!==(D&&!sel?D.email:"")).map(([e,n])=>`<option value="${esc(e)}" ${S.relojSel===e?"selected":""}>${esc(n)}</option>`).join("")}</select></label>`:"";
+  const equipo=relojEq()?relojEquipoHtml(dias):"";
   return `<section class="sec-head"><h2>${sel?"Reloj de "+esc(nombre):"Mi reloj"}</h2><p>Jornada ${r.lab?`${esc(r.J.desde)}–${esc(r.J.hasta)} · colación ${esc(r.J.colacion)} min · ${fmtHM(r.nom)} nominales`:"hoy no es día laboral para esta jornada"} ${selector}</p></section>
   <div class="kpis">
     ${kpi("Horas efectivas",fmtHM(r.efe),`gestión ${fmtHM(r.g)} · uso del panel ${fmtHM(r.ac)}`,"hl")}
@@ -913,15 +914,15 @@ function relojEquipoHtml(dias){
   const rows=[...per.values()].map(p=>{const h=relojDia(p.filas,hoy(),p.nombre);const s=dias.map(d=>relojDia(p.filas,d,p.nombre));const efe=s.reduce((a,x)=>a+x.efe,0),nom=s.reduce((a,x)=>a+x.nom,0),cont=s.reduce((a,x)=>a+x.cont,0),tas=s.reduce((a,x)=>a+x.tas,0);return {p,h,efe,nom,cont,tas}}).sort((a,b)=>b.h.efe-a.h.efe);
   const pc=x=>x==null?"—":Math.round(x*100)+"%",f1=x=>x==null?"—":x.toLocaleString("es-CL",{maximumFractionDigits:1});
   const J=S.jornada||{},pp=J.porPersona||{};
-  return `<section class="panel"><div class="sec-head"><h2 style="font-size:17px">Equipo · hoy y semana</h2><p>Solo el administrador ve esta sección. Toca un nombre para ver su reloj.</p></div>
+  return `<section class="panel"><div class="sec-head"><h2 style="font-size:17px">Equipo · hoy y semana</h2><p>Lo ven el administrador y quienes tienen permiso para ver al equipo. Toca un nombre para ver su reloj.</p></div>
    <div class="tbl"><table><thead><tr><th>Persona</th><th>Hoy efectivas</th><th>Cobertura hoy</th><th>Contactos hoy</th><th>Contactos / h</th><th>Semana efectivas</th><th>Cobertura semana</th><th>Tasaciones / h semana</th><th>Hoy, minuto a minuto</th></tr></thead><tbody>
    ${rows.map(x=>`<tr><td><button type="button" class="lnk" data-relsel2="${esc(x.p.email)}">${esc(x.p.nombre)}</button></td><td class="num"><b>${fmtHM(x.h.efe)}</b></td><td class="num">${pc(x.h.cob)}</td><td class="num">${x.h.cont}</td><td class="num">${f1(x.h.cph)}</td><td class="num">${fmtHM(x.efe)}</td><td class="num">${x.nom?pc(x.efe/x.nom):"—"}</td><td class="num">${f1(x.efe?x.tas/(x.efe/60):null)}</td><td style="min-width:240px">${relojLinea(x.h,true)}</td></tr>`).join("")||`<tr><td colspan="9" class="none">Sin actividad registrada.</td></tr>`}
    </tbody></table></div>
-   <details class="pmsg" data-gopen="jor_edit" ${S.gopen.jor_edit?"open":""}><summary>Jornada nominal por consignador</summary><div class="pbody">
+   ${S.isAdmin?`<details class="pmsg" data-gopen="jor_edit" ${S.gopen.jor_edit?"open":""}><summary>Jornada nominal por consignador</summary><div class="pbody">
     <p class="rdet">Si alguien no tiene jornada propia, usa la general: L–V 09:00–18:30 con 60 min de colación.</p>
     <div class="tbl"><table><thead><tr><th>Persona</th><th>Desde</th><th>Hasta</th><th>Colación (min)</th><th>Días</th></tr></thead><tbody>
     ${nombres.map(n=>{const j=jorOf(n),k=esc(n);return `<tr><td>${k}</td><td><input type="time" data-jor="${k}" data-k="desde" value="${esc(j.desde)}"></td><td><input type="time" data-jor="${k}" data-k="hasta" value="${esc(j.hasta)}"></td><td><input type="number" min="0" max="180" step="15" data-jor="${k}" data-k="colacion" value="${esc(j.colacion)}" style="width:80px"></td><td>${[1,2,3,4,5,6].map(w=>`<label style="margin-right:6px"><input type="checkbox" data-jor="${k}" data-k="dia" data-w="${w}" ${j.dias.includes(w)?"checked":""}> ${DSEM2[w]}</label>`).join("")}</td></tr>`}).join("")}
-    </tbody></table></div><p class="rdet">Los cambios se guardan al salir de cada campo.</p></div></details>
+    </tbody></table></div><p class="rdet">Los cambios se guardan al salir de cada campo.</p></div></details>`:""}
   </section>`;
 }
 async function jorGuardar(nombre,k,v,w,chk){

@@ -1880,14 +1880,15 @@ function vRadar(team){
   const all=S.radar.filter(r=>!r.pedidoId&&(virt?esVirt(r):!esVirt(r)));
   const cnt=g=>g==="hoy"?all.filter(seguirHoy).length:all.filter(r=>rGrupo(r)===g).length;
   const pend=all.filter(r=>rGrupo(r)==="pend"),tomados=pend.filter(r=>rClaim(r)).length;
-  let arr=F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):all.filter(r=>rGrupo(r)===F.vista);
+  const KV={hoyc:["Contactados hoy",r=>r.ultimoContacto===hoy()],tas:["Tasaciones agendadas o hechas",r=>rNivel(r)>=3],man:["Mandatos firmados",r=>rNivel(r)>=5]};
+  let arr=F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista);
   if(F.motor)arr=arr.filter(r=>r.motor===F.motor);
   if(F.tramo)arr=arr.filter(r=>F.tramo==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===F.tramo);
   if(F.quien==="libres")arr=arr.filter(r=>rNivel(r)<0&&!rClaim(r)&&!r.noContactar&&r.estadoAviso!=="no publicado");
   if(F.quien==="mios")arr=arr.filter(r=>{const c=rClaim(r);return (c&&c.mine)||(!!cons&&r.consignador===cons)});
   const sk=r=>Number(virt&&r.rateC!=null&&r.rateC!==""?r.rateC:r.puntaje)||0;
   const byScore=(a,b)=>sk(b)-sk(a)||(b.fechaRadar||"").localeCompare(a.fechaRadar||"");
-  arr.sort(F.vista==="gest"||F.vista==="cerr"?(a,b)=>(b.ultimoContacto||"").localeCompare(a.ultimoContacto||"")||byScore(a,b):F.vista==="hoy"?(a,b)=>rProx(a).localeCompare(rProx(b))||byScore(a,b):byScore);
+  arr.sort(F.vista==="gest"||F.vista==="cerr"||KV[F.vista]?(a,b)=>(b.ultimoContacto||"").localeCompare(a.ultimoContacto||"")||byScore(a,b):F.vista==="hoy"?(a,b)=>rProx(a).localeCompare(rProx(b))||byScore(a,b):byScore);
   const hoyDocs=all.filter(r=>r.ultimoContacto===hoy());
   const porCons=groupBy(hoyDocs,r=>r.consignador).map(x=>`${esc(String(x.k).split(" ")[0])} ${x.n}`).join(" · ");
   const agen=all.filter(r=>rNivel(r)>=3).length,mand=all.filter(r=>rNivel(r)>=5).length;
@@ -1904,9 +1905,9 @@ function vRadar(team){
   <div class="kpis">
     <button type="button" class="kpi kpib${cnt("hoy")?" hl":""}" data-rvk="hoy" data-team="${team}" aria-pressed="${F.vista==="hoy"}" aria-label="Ver los ${cnt("hoy")} avisos con seguimiento para hoy"><span class="l">Seguimiento hoy</span><span class="v num">${cnt("hoy")}</span><span class="s">próxima fecha vencida · ver cuáles</span></button>
     <button type="button" class="kpi kpib" data-rvk="pend" data-team="${team}" aria-pressed="${F.vista==="pend"}" aria-label="Ver los ${pend.length} avisos sin contactar"><span class="l">Sin contactar</span><span class="v num">${pend.length}</span><span class="s">${pend.length-tomados} libres · ${tomados} tomados · ver cuáles</span></button>
-    <div class="kpi"><span class="l">Contactados hoy</span><span class="v num">${hoyDocs.length}</span><span class="s">${porCons||"nadie todavía"}</span></div>
-    <div class="kpi"><span class="l">Tasaciones</span><span class="v num">${agen}</span><span class="s">agendadas o hechas</span></div>
-    <div class="kpi hl"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">${virt?"virtuales":"desde el radar"}</span></div>
+    <button type="button" class="kpi kpib" data-rvk="hoyc" data-team="${team}" aria-pressed="${F.vista==="hoyc"}" aria-label="Ver los ${hoyDocs.length} avisos contactados hoy"><span class="l">Contactados hoy</span><span class="v num">${hoyDocs.length}</span><span class="s">${porCons||"nadie todavía"} · ver cuáles</span></button>
+    <button type="button" class="kpi kpib" data-rvk="tas" data-team="${team}" aria-pressed="${F.vista==="tas"}" aria-label="Ver las ${agen} tasaciones"><span class="l">Tasaciones</span><span class="v num">${agen}</span><span class="s">agendadas o hechas · ver cuáles</span></button>
+    <button type="button" class="kpi kpib hl" data-rvk="man" data-team="${team}" aria-pressed="${F.vista==="man"}" aria-label="Ver los ${mand} mandatos"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">${virt?"virtuales":"desde el radar"} · ver cuáles</span></button>
   </div>
   ${remStrip(team)}
   <section class="panel"><div class="rbar">
@@ -1918,6 +1919,7 @@ function vRadar(team){
     <div class="chips">${[["","Toda antigüedad"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<button type="button" data-rtr="${k}" data-team="${team}" aria-pressed="${(F.tramo||"")===k}">${l} <span class="num">${k?all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length:""}</span></button>`).join("")}</div>
     ${mezclaHtml(pend)}
   </section>
+  ${KV[F.vista]?`<div id="rvkb" class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Mostrando: <b>${KV[F.vista][0]}</b> · ${arr.length}</span><button type="button" class="btn sm" data-rv="pend" data-team="${team}">Volver a Sin contactar</button></div>`:""}
   ${!S.radarLoaded&&S.db?`<p class="none">Cargando radar…</p>`:arr.length?`<div class="rlist">${arr.map(rCard).join("")}</div>`:`<div class="empty"><h3>${all.length?"Nada en esta vista":(virt?"Los primeros avisos llegan con la próxima carga del radar":"El radar está vacío")}</h3><p>${all.length?"Cambia el filtro para ver otros avisos.":virt?"Cada mañana hábil a las 9:50 llegan aquí avisos propios: particulares de la IV Región con motor Consignar y rate de consignación 70 o más, distintos de los del Radar.":"Cada mañana de lunes a viernes llegan aquí los avisos nuevos de particulares, con precio contra mercado y mensaje listo."}</p></div>`}`;
 }
 /* ---------- Recordatorio: volver a llamar ---------- */
@@ -2725,7 +2727,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.rv){S.rf[t.dataset.team||"pres"].vista=t.dataset.rv;render();return}
-  if(t.dataset.rvk){const F=S.rf[t.dataset.team||"pres"];F.vista=t.dataset.rvk;F.quien="";F.motor="";F.tramo="";render();requestAnimationFrame(()=>{const l=document.querySelector(".rlist")||document.querySelector("main .empty");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
+  if(t.dataset.rvk){const F=S.rf[t.dataset.team||"pres"];F.vista=t.dataset.rvk;F.quien="";F.motor="";F.tramo="";render();requestAnimationFrame(()=>{const l=document.getElementById("rvkb")||document.querySelector(".rlist")||document.querySelector("main .empty");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   if(t.dataset.ctdim){S.ctDim=t.dataset.ctdim;lsSet("ansar_ctdim",S.ctDim);render();return}
   if(t.dataset.ctsort){const k=t.dataset.ctsort;if(S.ctSort===k)S.ctDir=-(S.ctDir||-1);else{S.ctSort=k;S.ctDir=k==="k"?1:-1}render();return}
   if(t.dataset.ctexp){ctSaveExp(t);return}

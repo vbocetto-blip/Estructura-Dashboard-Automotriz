@@ -233,6 +233,7 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .rvc{gap:6px;margin-top:10px}.rvc button{padding:4px 11px!important;font-size:13px!important;min-height:0!important}
 .rsel{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.rsel label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 12px;font-size:12.5px;color:var(--muted)}.rsel select{border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--ink);font-weight:600;padding:2px 4px}
 .rmez{margin:8px 2px 0;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}.rmez .off b{color:var(--bad)}
+.pill.mkp{background:#e3efff;color:#0b4fb3;border:1px solid #9cc2f5;font-weight:600}[data-theme="dark"] .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}}
 .rbarc{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start}
 .rwho{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:var(--sunk);font-size:14px;line-height:1.2}
 .rwho span{font-size:12px;color:var(--muted);font-weight:600}.rwho select{border:0;background:transparent;font:inherit;font-weight:700;padding:0;color:inherit}
@@ -1863,7 +1864,7 @@ function rCard(r){
      <span class="rsm"><span class="rt">${esc(rModelo(r))} <span class="ry">${esc(r.anio||"")}</span></span>
       <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
      <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}"${r.medFuente?` title="Media de ${esc(r.medFuente)}${r.n?" · "+esc(r.n)+" avisos":""}"`:""}>${vsLbl}${r.medFuente&&/referencial/.test(r.medFuente)?" · ref. ML":""}</span>`:r.sinMedia?`<span class="vs" title="Menos de 4 avisos comparables: sin media de mercado">sin media</span>`:""}</span>
-     <span class="rsf">${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
+     <span class="rsf">${r.src==="Facebook Marketplace"?`<span class="pill mkp" title="${r.lote&&/^apify-fb/.test(r.lote)?"Rastreo de Marketplace del "+esc(fmtD(r.fechaRadar)):"Aviso de Facebook Marketplace"}">⚑ Marketplace</span>`:""}${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
      <span class="rchev" aria-hidden="true"></span>
     </summary>
     <div class="rexp">

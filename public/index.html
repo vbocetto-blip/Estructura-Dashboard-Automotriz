@@ -235,6 +235,7 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .rmez{margin:8px 2px 0;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}.rmez .off b{color:var(--bad)}
 .pill.mkp{background:#e3efff;color:#0b4fb3;border:1px solid #9cc2f5;font-weight:600}[data-theme="dark"] .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}}
 .mkpbtn{border:1px solid #9cc2f5;background:transparent;color:#0b4fb3;border-radius:999px;padding:4px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}.mkpbtn[aria-pressed="true"]{background:#0b4fb3;color:#fff;border-color:#0b4fb3}
+.crow{flex-wrap:wrap}.cav{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin:6px 0 2px;width:100%}.cavd{flex:1 1 100%}.cavd summary{cursor:pointer;font-size:13px;color:var(--muted);display:inline-block;padding:3px 10px;border:1px solid var(--line);border-radius:999px}.cavd[open] summary{color:var(--ink);border-color:var(--accent)}.cavdl{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 18px;margin:10px 2px 4px;font-size:14px}.cavdl dt{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.cavdl dd{margin:0}
 .rbarc{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start}
 .rwho{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:var(--sunk);font-size:14px;line-height:1.2}
 .rwho span{font-size:12px;color:var(--muted);font-weight:600}.rwho select{border:0;background:transparent;font:inherit;font-weight:700;padding:0;color:inherit}
@@ -1426,6 +1427,31 @@ function statTable(title,col,rows){
     return `<tr><td>${esc(r.k)}</td><td class="num">${r.n}</td><td class="num">${pct(r.cont,r.n)}%</td><td class="num">${r.int}</td><td class="num">${r.agen}</td><td class="num"><b>${r.mand}</b></td><td><div class="mbar"><i style="width:${r.n?(r.mand/r.n)/maxR*100:0}%"></i><span class="num">${m100.toLocaleString("es-CL")}</span></div></td></tr>`}).join("")}</tbody></table></div>`:`<p class="none">Sin llamadas en el período.</p>`}</section>`;
 }
 
+function callAviso(c){
+  const r=c.radarId&&S.radarMap?S.radarMap[c.radarId]:null;
+  const url=(r&&r.url)||((String(c.notas||"").match(/Radar:\s*(\S+)/)||[])[1])||"";
+  if(!r&&!url)return "";
+  const open=!!S.gopen["cav_"+c._id];
+  const pct=r&&Number(r.med)?Math.round((Number(r.precio)/Number(r.med)-1)*100):null;
+  const fila=(k,v)=>v===""||v==null?"":`<div><dt>${k}</dt><dd>${v}</dd></div>`;
+  const det=r?`<dl class="cavdl">
+    ${fila("Auto",esc([r.marca,r.modelo,r.anio].filter(Boolean).join(" "))+(r.ver?` <span class="rdet" style="display:inline">${esc(r.ver)}</span>`:""))}
+    ${fila("Precio publicado",r.precio?`<span class="num">${clp(r.precio)}</span>`:"")}
+    ${fila("Media de mercado",Number(r.med)?`<span class="num">${clp(r.med)}</span> · ${pct<=0?Math.abs(pct)+"% bajo":pct+"% sobre"} la media${r.n?` · ${esc(r.n)} avisos`:""}${r.medFuente?` · ${esc(r.medFuente)}`:""}`:(r.sinMedia?"sin media":""))}
+    ${fila("Precio negociado est.",r.precioNeg?`<span class="num">${clp(r.precioNeg)}</span> (referencial)`:"")}
+    ${fila("Km",r.km?`<span class="num">${Number(r.km).toLocaleString("es-CL")}</span>`:"sin dato")}
+    ${fila("Transmisión",typeof rTrans==="function"&&rTrans(r)?rTrans(r):"")}
+    ${fila("Comuna",esc(r.comuna||""))}
+    ${fila("Fuente",esc(r.src||"")+(r.diasPublicado!=null?` · ${esc(r.diasPublicado)} d publicado`:""))}
+    ${fila("Motor y ruta",esc([r.motor,r.ruta].filter(Boolean).join(" · ")))}
+    ${fila("Puntaje / rate",`${r.puntaje??"–"} / ${r.rateC??"–"}`)}
+    ${fila("Señal",esc(r.senal||""))}
+    ${fila("A favor",esc(r.pros||""))}
+    ${fila("Riesgos",esc(r.contras||""))}
+    ${fila("Estado del aviso",esc(r.estadoAviso||"")+(r.verificadoEn?` · revisado ${fmtD(r.verificadoEn)}`:""))}
+  </dl>`:`<p class="rdet">Este aviso ya no está en el radar; solo queda el enlace.</p>`;
+  return `<div class="cav">${url?`<a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}<details class="cavd" data-gopen="cav_${esc(c._id)}" ${open?"open":""}><summary>Detalles del auto</summary>${det}</details></div>`;
+}
 function vLlamadas(){
   if(!S.cf)S.cf=cfDefault();
   const mo=MONTHS[S.mes],ws=weeksOf(mo),F=S.callFiltro,cf=S.cf,ro=S.canWrite?"":"disabled";
@@ -1515,7 +1541,7 @@ function vLlamadas(){
     ${!S.callsLoaded&&S.db?`<p class="none">Cargando llamadas…</p>`:arr.length?`<div class="list">${(S.gopen.call_all?arr:arr.slice(0,15)).map(c=>{const l=NIVEL[c.resultado]??0;
       return `<div class="crow"><button type="button" class="cmain" data-call="${esc(c._id)}"><span class="cd num">${DIAS[pd(c.fecha)?.getDay()??0]} ${fmtD(c.fecha)}</span><span class="ct"><b>${esc(c.consignador||"Sin consignador")}</b> · ${esc([c.marca,c.modelo,c.anio].filter(Boolean).join(" ")||"vehículo sin datos")}${c.perfil?" · "+esc(c.perfil):""}</span>
         <span class="meta"><span class="pill ${lvlCls(l)}">${esc(c.resultado||"Sin resultado")}</span>${c.ruta?`<span class="pill st-Tasación">${esc(c.ruta)}</span>`:""}${equipoDe(c)==="Virtual"?`<span class="pill virt">Virtual</span>`:""}${c.noContactar?`<span class="pill gap">No contactar</span>`:""}<span class="num">${esc(maskTel(c.telefono))}</span>${c.fuente?`<span>${esc(c.fuente)}</span>`:""}${c.precioPide?`<span class="num">pide ${clp(c.precioPide)}</span>`:""}${c.proximaFecha?`<span${c.proximaFecha<hoy()?' style="color:var(--bad);font-weight:600"':""}>volver a llamar ${fmtD(c.proximaFecha)}</span>`:""}</span></button>
-        ${l>=3&&S.canWrite?`<button type="button" class="btn" data-toauto="${esc(c._id)}">Pasar a Autos</button>`:""}</div>`}).join("")}</div>${arr.length>15?`<button type="button" class="btn sm" data-callall>${S.gopen.call_all?"Ver solo las 15 más recientes":`Ver las ${arr.length}`}</button>`:""}`:`<div class="empty"><h3>Sin llamadas registradas</h3><p>Cada llamado a un posible consignante se anota en 20 segundos: consignador, ruta, perfil y resultado. Con eso el embudo y el gráfico muestran qué ruta, perfil, fuente y día traen más mandatos.</p></div>`}
+        ${l>=3&&S.canWrite?`<button type="button" class="btn" data-toauto="${esc(c._id)}">Pasar a Autos</button>`:""}${callAviso(c)}</div>`}).join("")}</div>${arr.length>15?`<button type="button" class="btn sm" data-callall>${S.gopen.call_all?"Ver solo las 15 más recientes":`Ver las ${arr.length}`}</button>`:""}`:`<div class="empty"><h3>Sin llamadas registradas</h3><p>Cada llamado a un posible consignante se anota en 20 segundos: consignador, ruta, perfil y resultado. Con eso el embudo y el gráfico muestran qué ruta, perfil, fuente y día traen más mandatos.</p></div>`}
     </div>
   </details>
   <details class="zone z-acc" id="z-callform" data-gopen="call_form" ${editOpen||S.gopen.call_form!==false?"open":""}>

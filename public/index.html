@@ -229,6 +229,11 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .guide ol{margin:0;padding-left:20px;display:grid;gap:6px}
 /* Radar */
 .rbar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end}
+.rbarc{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start}
+.rwho{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:var(--sunk);font-size:14px;line-height:1.2}
+.rwho span{font-size:12px;color:var(--muted);font-weight:600}.rwho select{border:0;background:transparent;font:inherit;font-weight:700;padding:0;color:inherit}
+.rmini{flex:0 1 auto;max-width:100%}.rmini summary{cursor:pointer;padding:5px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);list-style:none}.rmini summary::-webkit-details-marker{display:none}
+.rmini[open]{flex-basis:100%}.rmini[open] summary{color:var(--ink);border-color:var(--accent)}.rmini>p,.rmini>ol{margin:8px 2px 0;font-size:14px}
 .rbar .field{min-width:180px}
 .rlist{display:grid;gap:10px}
 .rcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:grid;grid-template-columns:76px minmax(0,1fr);overflow:hidden}
@@ -1973,10 +1978,11 @@ function vRadar(team){
     <button type="button" class="kpi kpib hl" data-rvk="man" data-team="${team}" aria-pressed="${F.vista==="man"}" aria-label="Ver los ${mand} mandatos"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">${virt?"virtuales":"desde el radar"} · ver cuáles</span></button>
   </div>
   ${remStrip(team)}
-  <section class="panel"><div class="rbar">
-    ${miNombre()?consFijo("r_cons_"+team,"Quién contacta"):`<div class="field"><label for="r_cons_${team}">Quién contacta</label><select id="r_cons_${team}" data-rcons="1" ${ro}><option value="">—</option>${uniq([...miembros,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`}
-    <p class="none" style="font-style:normal;flex:1;min-width:220px;margin:0">${intro}</p></div>
-    <details class="pmsg guion" data-gopen="__reglas" ${S.gopen.__reglas?"open":""}><summary>Cómo llevar la llamada con un cliente difícil · 8 reglas</summary><div class="pbody"><ol class="greglas">${GREGLAS.map(x=>`<li>${x}</li>`).join("")}</ol><p class="gwhy">Cada aviso trae su guion paso a paso con los datos de ese auto. Ábrelo antes de marcar.</p></div></details>
+  <section class="panel"><div class="rbarc">
+    ${miNombre()?`<span class="rwho" title="Según tu correo"><span>Contacta</span><b>${esc(miNombre())}</b></span>`:`<label class="rwho" for="r_cons_${team}"><span>Contacta</span><select id="r_cons_${team}" data-rcons="1" ${ro}><option value="">— elige —</option>${uniq([...miembros,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></label>`}
+    <details class="rmini" data-gopen="__rhow_${team}" ${S.gopen["__rhow_"+team]?"open":""}><summary>Cómo se trabaja</summary><p>${intro}</p></details>
+    <details class="rmini" data-gopen="__reglas" ${S.gopen.__reglas?"open":""}><summary>Cliente difícil · 8 reglas</summary><ol class="greglas">${GREGLAS.map(x=>`<li>${x}</li>`).join("")}</ol><p class="gwhy">Cada aviso trae su guion paso a paso con los datos de ese auto. Ábrelo antes de marcar.</p></details>
+  </div>
     <div class="chips">${vistas.map(([k,l])=>`<button type="button" data-rv="${k}" data-team="${team}" aria-pressed="${F.vista===k}">${l} <span class="num">${k==="todos"?all.length:cnt(k)}</span></button>`).join("")}</div>
     <div class="chips">${[["","Todo el equipo"],["libres","Libres"],["mios","Míos"]].map(([k,l])=>`<button type="button" data-rq="${k}" data-team="${team}" aria-pressed="${F.quien===k}">${l}</button>`).join("")}<span style="width:12px"></span>${[["","Todo motor"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<button type="button" data-rm="${k}" data-team="${team}" aria-pressed="${F.motor===k}">${l}</button>`).join("")}</div>
     <div class="chips">${[["","Toda antigüedad"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<button type="button" data-rtr="${k}" data-team="${team}" aria-pressed="${(F.tramo||"")===k}">${l} <span class="num">${k?all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length:""}</span></button>`).join("")}</div>

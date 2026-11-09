@@ -234,6 +234,7 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .rsel{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.rsel label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 12px;font-size:12.5px;color:var(--muted)}.rsel select{border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--ink);font-weight:600;padding:2px 4px}
 .rmez{margin:8px 2px 0;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}.rmez .off b{color:var(--bad)}
 .pill.mkp{background:#e3efff;color:#0b4fb3;border:1px solid #9cc2f5;font-weight:600}[data-theme="dark"] .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}}
+.mkpbtn{border:1px solid #9cc2f5;background:transparent;color:#0b4fb3;border-radius:999px;padding:4px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}.mkpbtn[aria-pressed="true"]{background:#0b4fb3;color:#fff;border-color:#0b4fb3}
 .rbarc{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start}
 .rwho{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:var(--sunk);font-size:14px;line-height:1.2}
 .rwho span{font-size:12px;color:var(--muted);font-weight:600}.rwho select{border:0;background:transparent;font:inherit;font-weight:700;padding:0;color:inherit}
@@ -1992,6 +1993,7 @@ function vRadar(team){
     <div class="rsel">
       <label><span>Quién</span><select data-rqs="1" data-team="${team}">${[["","Todo el equipo"],["libres","Libres"],["mios","Míos"]].map(([k,l])=>`<option value="${k}" ${F.quien===k?"selected":""}>${l}</option>`).join("")}</select></label>
       <label><span>Motor</span><select data-rms="1" data-team="${team}">${[["","Todos"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<option value="${k}" ${F.motor===k?"selected":""}>${l}</option>`).join("")}</select></label>
+      <button type="button" class="mkpbtn" data-rmkp="${team}" aria-pressed="${rfx(team).src==="Facebook Marketplace"}">⚑ Solo Marketplace <span class="num">${(F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista)).filter(r=>r.src==="Facebook Marketplace").length}</span></button>
       <label><span>Antigüedad</span><select data-rtrs="1" data-team="${team}">${[["","Toda"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<option value="${k}" ${(F.tramo||"")===k?"selected":""}>${l}${k?" ("+all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length+")":""}</option>`).join("")}</select></label>
     </div>
     ${mezclaHtml(pend)}
@@ -2808,6 +2810,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.rv){S.rf[t.dataset.team||"pres"].vista=t.dataset.rv;render();return}
+  if(t.dataset.rmkp){const tm=t.dataset.rmkp,X=rfx(tm);X.src=X.src==="Facebook Marketplace"?"":"Facebook Marketplace";rfxSave(tm);render();return}
   if(t.dataset.rfxclr){const tm=t.dataset.rfxclr;S.rfx[rfxKey(tm)]={...RFX_DEF};rfxSave(tm);render();return}
   if(t.dataset.rvk){const F=S.rf[t.dataset.team||"pres"];F.vista=t.dataset.rvk;F.quien="";F.motor="";F.tramo="";render();requestAnimationFrame(()=>{const l=document.getElementById("rvkb")||document.querySelector(".rlist")||document.querySelector("main .empty");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   if(t.dataset.ctdim){S.ctDim=t.dataset.ctdim;lsSet("ansar_ctdim",S.ctDim);render();return}

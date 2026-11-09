@@ -256,7 +256,8 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .racts a.btn{text-decoration:none;color:var(--ink)}
 .rreg{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--sunk);border-radius:8px;padding:8px}
 .rreg select,.rreg input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;min-width:0}
-.rreg select{flex:1 1 200px} .rreg input{flex:2 1 200px}
+.rreg select{flex:1 1 200px} .rreg input{flex:2 1 200px} .rreg input.rtel{flex:1 1 150px} .rreg input.rnom{flex:1 1 120px}
+.sgtel{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sgtel input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;flex:0 1 190px;min-width:0}
 .rlast{font-size:12.5px;color:var(--muted)}
 .rcard.flash{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .claim{background:var(--info-soft);color:var(--info)} .claim.mine{background:var(--accent-soft);color:var(--accent)}
@@ -1292,6 +1293,8 @@ const FUENTES=["Facebook Marketplace","Chileautos","Yapo","Mercado Libre","Insta
 const RUTAS=[["Empresa","lead que entrega Ansar"],["Propio","gestión del consignador"]];
 const normTel=s=>String(s||"").replace(/\D/g,"").replace(/^56/,"");
 const maskTel=s=>{const d=normTel(s);return d?"•••• "+d.slice(-4):"sin teléfono"};
+const telOk=s=>{const d=normTel(s);return d.length===9||d.length===8};
+const telFmt=s=>{const d=normTel(s);return d.length===9?"+56 "+d[0]+" "+d.slice(1,5)+" "+d.slice(5):d.length===8?"+56 9 "+d.slice(0,4)+" "+d.slice(4):String(s||"").trim()};
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const DIAS=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 const diaSem=c=>{const d=pd(c.fecha);return d?DIAS[d.getDay()]:""};
@@ -1826,7 +1829,7 @@ function rCard(r){
   const copy=!activo||otro?"":r.pedidoId?`<button type="button" class="btn primary" data-rcopy="${id}" data-k="Pedido">Copiar mensaje: Cliente busca</button>`:(r.motor?`<button type="button" class="btn primary" data-rcopy="${id}" data-k="${esc(r.ruta==="Consignación por tiempo"||r.ruta==="Ajuste de precio"?r.ruta:r.motor)}">Copiar mensaje: ${esc(r.ruta==="Consignación por tiempo"||r.ruta==="Ajuste de precio"?r.ruta:r.motor)}</button><button type="button" class="btn" data-rcopy="${id}" data-k="${esc(alt)}">Alternativo: ${esc(alt)}</button>`:`<button type="button" class="btn" data-rcopy="${id}" data-k="Consignar">Copiar mensaje: Consignar</button>`);
   const quick=!S.canWrite||!activo||otro||rNivel(r)>=0?"":`<button type="button" class="btn" data-rquick="${id}">Ya le escribí</button>`;
   const busy=otro?`<p class="rbusy">Lo está contactando ${esc(cl.by)}. Si en 24 horas no registra nada, el aviso se libera solo.</p>`:"";
-  const reg=r.noContactar||!S.canWrite||otro?"":`<div class="rreg"><select id="r_res_${id}" data-rres="${id}" aria-label="Resultado del contacto"><option value="">Resultado del contacto…</option>${RRES.map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><input id="r_nota_${id}" data-rnota="${id}" type="text" value="${esc(f.nota||"")}" placeholder="nota opcional: qué respondió, objeción" autocomplete="off"><button type="button" class="btn primary" data-rreg="${id}">Registrar${rCons()?" como "+esc(String(rCons()).split(" ")[0]):""}</button></div>`;
+  const reg=r.noContactar||!S.canWrite||otro?"":`<div class="rreg"><select id="r_res_${id}" data-rres="${id}" aria-label="Resultado del contacto"><option value="">Resultado del contacto…</option>${RRES.map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><input id="r_tel_${id}" data-rtel="${id}" type="tel" inputmode="tel" value="${esc(f.tel??r.telefono??((S.pm[r._id]||{}).tel||""))}" placeholder="teléfono del dueño · 9 1234 5678" aria-label="Teléfono o WhatsApp del dueño" autocomplete="off" class="rtel"><input id="r_nom_${id}" data-rnom="${id}" type="text" value="${esc(f.nom??r.contacto??((S.pm[r._id]||{}).nombre||""))}" placeholder="nombre (opcional)" aria-label="Nombre del dueño" autocomplete="off" class="rnom"><input id="r_nota_${id}" data-rnota="${id}" type="text" value="${esc(f.nota||"")}" placeholder="nota opcional: qué respondió, objeción" autocomplete="off"><button type="button" class="btn primary" data-rreg="${id}">Registrar${rCons()?" como "+esc(String(rCons()).split(" ")[0]):""}</button></div>`;
   const rm=remOf(r),myRem=rm&&rm.a===rCons();
   const remPill=rm?`<span class="pill rem${rm.at<=Date.now()?" due":""}">Volver a llamar ${hhmm(new Date(rm.at))}${rm.a?" · "+esc(String(rm.a).split(" ")[0]):""}</span>`:"";
   const remCtl=!S.canWrite||!activo||otro?"":`<select class="rrem" data-rmin="${id}" aria-label="Volver a llamar dentro de"><option value="">${myRem?"Cambiar recordatorio…":"Volver a llamar dentro de…"}</option>${REM_OPTS.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select>${myRem?`<button type="button" class="btn" data-rclr="${id}">Quitar recordatorio</button>`:""}`;
@@ -2056,17 +2059,21 @@ async function regRadar(id,btn,quick){
   if(!f.res){toast("Elige el resultado del contacto");return}
   const cl=rClaim(r);if(cl&&!cl.mine){toast("Lo está contactando "+cl.by);return}
   const fecha=hoy(),nivel=NIVEL[f.res]??0;
+  const tel=String(quick?(r.telefono||(S.pm[id]||{}).tel||""):(f.tel??r.telefono??((S.pm[id]||{}).tel||""))).trim();
+  const nom=String(quick?(r.contacto||(S.pm[id]||{}).nombre||""):(f.nom??r.contacto??((S.pm[id]||{}).nombre||""))).trim();
+  if(tel&&!telOk(tel)){toast("Revisa el teléfono: 9 dígitos, ej. 9 1234 5678");const el=$("#r_tel_"+id);if(el)el.focus();return}
+  if(nivel>=2&&!tel){toast("Anota el teléfono del dueño: pasa a Seguimiento y ahí lo vas a necesitar");const el=$("#r_tel_"+id);if(el)el.focus();return}
   const plus=d=>{const x=pd(fecha);x.setDate(x.getDate()+d);return ds(x)};
   const prox=f.res==="No contesta"||f.res==="Interesado · seguimiento"||f.res==="Tiene prenda"?plus(1):"";
   const dest=f.res==="Pidió no ser contactado"?"Cerrados":f.res==="Tiene prenda"?"Con prenda":nivel===1||nivel>=5?"Cerrados":"En gestión";
   const now=new Date().toISOString();
-  const data={fecha,consignador:cons,ruta:"Propio",fuente:r.src||"Radar",telefono:"",telefonoN:"",contacto:"",perfil:r.perfil||"",marca:r.marca||"",modelo:r.modelo||"",anio:r.anio===""||r.anio==null?"":Number(r.anio),precioPide:Number(r.precio)||"",resultado:f.res,nivel,proximaFecha:prox,
+  const data={fecha,consignador:cons,ruta:"Propio",fuente:r.src||"Radar",telefono:tel?telFmt(tel):"",telefonoN:normTel(tel),contacto:nom,perfil:r.perfil||"",marca:r.marca||"",modelo:r.modelo||"",anio:r.anio===""||r.anio==null?"":Number(r.anio),precioPide:Number(r.precio)||"",resultado:f.res,nivel,proximaFecha:prox,
     notas:[(f.nota||"").trim(),"Radar: "+(r.url||"")].filter(Boolean).join(" · "),noContactar:f.res==="Pidió no ser contactado",radarId:id,...(r.pedidoId?{pedidoId:r.pedidoId}:{}),equipo:esVirt(r)?"Virtual":"Presencial",creadoPor:S.uid||null,creadoEn:now,updatedAt:now,updatedBy:S.uid||null};
   btn.disabled=true;btn.textContent="Guardando…";
   try{
     const ref=S.db.collection(callCol(r)).doc();
     await ref.set(data);S.writeProbe=true;
-    await rRef(id).update({ultimoResultado:f.res,nivel,ultimoContacto:fecha,consignador:cons,asignado:cons,asignadoEn:now,ultimaLlamadaId:ref.id,proximaFecha:prox,...(r.recordarEn&&Date.parse(r.recordarEn)<=Date.now()?{recordarEn:"",recordarA:"",recordarMin:""}:{}),nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
+    await rRef(id).update({ultimoResultado:f.res,nivel,ultimoContacto:fecha,consignador:cons,asignado:cons,asignadoEn:now,ultimaLlamadaId:ref.id,...(tel?{telefono:telFmt(tel),telefonoN:normTel(tel)}:{}),...(nom?{contacto:nom}:{}),proximaFecha:prox,...(r.recordarEn&&Date.parse(r.recordarEn)<=Date.now()?{recordarEn:"",recordarA:"",recordarMin:""}:{}),nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
     lsSet("ansar_cons",cons);delete S.rform[id];render();toast((quick?"Marcado como contactado":"Registrado en Llamadas")+" · pasó a "+dest);
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
 }
@@ -2123,7 +2130,8 @@ function sgGroups(){
     const estado=maxN>=5?"ganado":(no||ln===1)?"perdido":maxN>=2?"activo":"frio";
     const fi=cs.find(c=>sgNiv(c)>=2);
     let trail=0;for(let i=cs.length-1;i>=0;i--){if(sgNiv(cs[i])===0)trail++;else break}
-    return {k,cs,last,r,maxN,etapa:Math.min(4,Math.max(2,maxN)),estado,prox:last.proximaFecha||"",first:fi?fi.fecha:last.fecha,firstCons:fi?fi.consignador:last.consignador,trail,radar:!!last.radarId};
+    const tc=[...cs].reverse().find(c=>normTel(c.telefono)),tel=tc?tc.telefono:(r&&r.telefono)||"",nc=[...cs].reverse().find(c=>(c.contacto||"").trim()),nom=nc?nc.contacto:(r&&r.contacto)||"";
+    return {k,cs,last,r,tel,nom,maxN,etapa:Math.min(4,Math.max(2,maxN)),estado,prox:last.proximaFecha||"",first:fi?fi.fecha:last.fecha,firstCons:fi?fi.consignador:last.consignador,trail,radar:!!last.radarId};
   });
 }
 function sgScore(g){
@@ -2161,6 +2169,26 @@ function sgPri(g){
   return {p,why};
 }
 function sgDue(){const t=hoy();return sgGroups().filter(g=>g.radar&&g.estado==="activo"&&(!g.prox||g.prox<=t)).length}
+function sgTelHtml(g,sid){
+  const nom=g.nom?`<b>${esc(g.nom)}</b>`:"";
+  if(normTel(g.tel)){const w=waTel(g.tel),tf=telFmt(g.tel);
+    return `<div class="sgtel">${nom}<a class="btn" href="tel:+${esc(w)}">Llamar ${esc(tf)}</a><a class="btn" href="https://wa.me/${esc(w)}" target="_blank" rel="noopener noreferrer">WhatsApp ↗</a></div>`}
+  if(!S.canWrite)return `<p class="rbusy">Sin teléfono registrado</p>`;
+  return `<div class="sgtel">${nom}<span style="color:var(--bad);font-weight:600">Sin teléfono</span><input id="sg_tel_${sid}" type="tel" inputmode="tel" data-sgtelin="${esc(g.k)}" placeholder="9 1234 5678" aria-label="Teléfono del dueño" autocomplete="off"><button type="button" class="btn" data-sgtel="${esc(g.k)}">Guardar teléfono</button></div>`;
+}
+async function sgSaveTel(k,btn){
+  if(!S.db){toast("Sin conexión a la base del equipo");return}
+  const g=S.sgMap&&S.sgMap.get(k);if(!g)return;
+  const el=$("#sg_tel_"+sgId(k)),tel=String(el?el.value:"").trim();
+  if(!telOk(tel)){toast("Revisa el teléfono: 9 dígitos, ej. 9 1234 5678");if(el)el.focus();return}
+  const L=g.last,now=new Date().toISOString(),upd={telefono:telFmt(tel),telefonoN:normTel(tel),updatedAt:now,updatedBy:S.uid||null};
+  btn.disabled=true;btn.textContent="Guardando…";
+  try{
+    await S.db.collection(L._col==="virtualLlamadas"?"virtualLlamadas":"llamadas").doc(L._id).update(upd);S.writeProbe=true;
+    if(L.radarId&&g.r)await rRef(L.radarId).update(upd);
+    toast("Teléfono guardado");safeRender();
+  }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
+}
 function sgCard(x){
   const g=x.g,L=g.last,r=g.r,sid=sgId(g.k),t=hoy(),f=S.sgform[g.k]||{};
   const band=x.sc.label==="CALIENTE"?["Caliente","hoy"]:x.sc.label==="TIBIO"?["Tibio","sem"]:["Frío","tar"];
@@ -2179,6 +2207,7 @@ function sgCard(x){
     <div class="rtop"><div style="min-width:0"><h3>${esc(auto)} ${esc(L.anio||"")}</h3><span class="vv">${esc(r&&r.ver?r.ver:"")}</span></div>
      <div class="chips"><span class="pill ${etCls}">${SG_ET[g.etapa]}</span>${prenda?`<span class="pill gap m">Con prenda</span>`:""}${equipoDe(L)==="Virtual"?`<span class="pill virt">Virtual</span>`:""}${g.radar?"":`<span class="pill st-Tasación">Llamada directa</span>`}</div></div>
     <div class="rmeta">${proxTxt}<span>Último: ${esc(L.resultado||"")} · ${fmtD(L.fecha)} · ${esc(L.consignador||"")}</span><span class="num">${g.cs.length} contacto${g.cs.length===1?"":"s"}</span>${L.fuente?`<span>${esc(L.fuente)}</span>`:""}${L.precioPide?`<span class="num">pide ${clp(L.precioPide)}</span>`:""}${r&&r.comuna?`<span>${esc(r.comuna)}</span>`:""}</div>
+    ${sgTelHtml(g,sid)}
     ${x.why.length?`<p class="rbusy">${x.why.map(esc).join(" · ")}</p>`:""}
     ${nota?`<p class="rdet">Última nota: ${esc(nota)}</p>`:""}
     <p class="rdet">Puntaje: ${esc(x.sc.det)}</p>
@@ -2364,7 +2393,7 @@ async function regSeg(k,btn){
   else if(!prox){toast(res==="Agendó tasación"?"Pon la fecha de la tasación":"Pon la próxima fecha");const el=$("#sg_prox_"+sid);if(el)el.focus();return}
   else if(prox<hoy()){toast("La próxima fecha no puede quedar en el pasado");return}
   const L=g.last,r=g.r,now=new Date().toISOString(),fecha=hoy();
-  const data={fecha,consignador:cons,ruta:L.ruta||"Propio",fuente:L.fuente||"",telefono:L.telefono||"",telefonoN:L.telefonoN||"",contacto:L.contacto||"",perfil:L.perfil||"",marca:L.marca||"",modelo:L.modelo||"",anio:L.anio??"",precioPide:L.precioPide??"",resultado:res,nivel,proximaFecha:prox,
+  const data={fecha,consignador:cons,ruta:L.ruta||"Propio",fuente:L.fuente||"",telefono:g.tel||"",telefonoN:normTel(g.tel),contacto:g.nom||"",perfil:L.perfil||"",marca:L.marca||"",modelo:L.modelo||"",anio:L.anio??"",precioPide:L.precioPide??"",resultado:res,nivel,proximaFecha:prox,
     notas:[String(nota).trim(),"Seguimiento",r&&r.url?"Radar: "+r.url:""].filter(Boolean).join(" · "),noContactar:res==="Pidió no ser contactado",...(L.radarId?{radarId:L.radarId}:{}),...(L.pedidoId?{pedidoId:L.pedidoId}:{}),equipo:equipoDe(L),seguimiento:true,creadoPor:S.uid||null,creadoEn:now,updatedAt:now,updatedBy:S.uid||null};
   btn.disabled=true;btn.textContent="Guardando…";
   try{
@@ -2377,7 +2406,7 @@ async function regSeg(k,btn){
 function sgAuto(k){
   const g=S.sgMap&&S.sgMap.get(k);if(!g)return;
   if(g.r){rAuto(g.r._id);return}
-  const c=g.last;openSheet(null,{marca:c.marca||"",modelo:c.modelo||"",anio:c.anio||"",propNombre:c.contacto||"",propTelefono:c.telefono||"",precioPropietario:c.precioPide||"",responsable:c.consignador||"",notas:"Desde Seguimiento, contacto del "+fmtD(c.fecha)+(c.fuente?" ("+c.fuente+")":"")+(sgNota(c.notas)?": "+sgNota(c.notas):"")});
+  const c=g.last;openSheet(null,{marca:c.marca||"",modelo:c.modelo||"",anio:c.anio||"",propNombre:g.nom||"",propTelefono:g.tel||"",precioPropietario:c.precioPide||"",responsable:c.consignador||"",notas:"Desde Seguimiento, contacto del "+fmtD(c.fecha)+(c.fuente?" ("+c.fuente+")":"")+(sgNota(c.notas)?": "+sgNota(c.notas):"")});
 }
 async function sgRutSave(key,item,on){
   if(!S.db)return;const cur={...((S.segRut[key]||{}).done||{})};cur[item]=on;S.segRut[key]={...(S.segRut[key]||{}),done:cur};
@@ -2405,7 +2434,7 @@ function callSlot(){
 function pmState(r){
   const id=r._id;
   if(!S.pm[id]){const s=slots(),pct=Number(r.med)?Number(r.precio)/Number(r.med):0;
-    S.pm[id]={tpl:rNivel(r)<0?"nocontesta":pct>1.02?"precio":"visita",nombre:"",motivo:"",h1:s[0]||"",h2:s[1]||"",hl:callSlot(),tel:"",comp:false,fin:false,com:false,custom:null}}
+    S.pm[id]={tpl:rNivel(r)<0?"nocontesta":pct>1.02?"precio":"visita",nombre:r.contacto||"",motivo:"",h1:s[0]||"",h2:s[1]||"",hl:callSlot(),tel:r.telefono||"",comp:false,fin:false,com:false,custom:null}}
   return S.pm[id];
 }
 function waTel(t){let d=String(t||"").replace(/\D/g,"");if(!d)return "";if(d.length===9&&d[0]==="9")d="56"+d;else if(d.length===8)d="569"+d;return d}
@@ -2470,7 +2499,7 @@ function pmHtml(r){
     <div class="pgrid">${pf("nombre",p.tpl==="nocontesta"?"Nombre (si lo sabes)":"Nombre del cliente",p.nombre,"ej. Jorge")}${p.tpl==="nocontesta"?pf("hl","Cuándo lo vuelves a llamar",p.hl,"ej. hoy a las 18:00"):(p.tpl==="visita"?pf("motivo","Lo que te contó (opcional)",p.motivo,"ej. quiere cambiarse a una SUV"):"")+pf("h1","Horario 1",p.h1,"ej. mañana a las 11:00")+pf("h2","Horario 2",p.h2,"ej. el sábado a las 10:30")}${pf("tel","WhatsApp del cliente",p.tel,"ej. 9 1234 5678")}</div>
     ${p.tpl==="nocontesta"?"":`<div class="ptog"><span class="lbl2">Incluir solo si es cierto:</span>${pt("comp","Hay clientes buscando algo parecido",p.tpl!=="solo")}${pt("fin","Ansar ofrece financiamiento al comprador",true)}${pt("com","La comisión solo se paga si se vende",p.tpl==="solo")}</div>`}
     <textarea id="p_txt_${id}" data-ptxt="${id}" aria-label="Mensaje para el cliente">${esc(p.custom??pmText(r,p))}</textarea>
-    <div class="racts"><a class="btn primary" data-pwa="${id}" href="${esc(waHref(r._id,p.custom??pmText(r,p)))}" target="_blank" rel="noopener noreferrer">Abrir en WhatsApp ↗</a><button type="button" class="btn" data-pcopy="${id}">Copiar mensaje</button><span class="pwhy">Puedes editar el texto antes de enviar. Si cambias un campo, se vuelve a armar. El nombre y el teléfono no se guardan.</span></div>
+    <div class="racts"><a class="btn primary" data-pwa="${id}" href="${esc(waHref(r._id,p.custom??pmText(r,p)))}" target="_blank" rel="noopener noreferrer">Abrir en WhatsApp ↗</a><button type="button" class="btn" data-pcopy="${id}">Copiar mensaje</button><span class="pwhy">Puedes editar el texto antes de enviar. Si cambias un campo, se vuelve a armar. El teléfono y el nombre se guardan en el aviso al registrar el contacto.</span></div>
   </div></details>`;
 }
 function pmRefresh(id){
@@ -2705,6 +2734,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.sgt){S.sgf.tile=S.sgf.tile===t.dataset.sgt?"":t.dataset.sgt;render();return}
   if(t.dataset.sgo){S.sgf.orig=t.dataset.sgo;render();return}
   if(t.dataset.sgreg){regSeg(t.dataset.sgreg,t);return}
+  if(t.dataset.sgtel){sgSaveTel(t.dataset.sgtel,t);return}
   if(t.dataset.sgauto){sgAuto(t.dataset.sgauto);return}
   if(t.dataset.rtr!==undefined){S.rf[t.dataset.team||"pres"].tramo=t.dataset.rtr;render();return}
   if(t.dataset.rm!==undefined){S.rf[t.dataset.team||"pres"].motor=t.dataset.rm;render();return}
@@ -2762,8 +2792,10 @@ document.addEventListener("click",e=>{if(e.target.id==="sheet")closeSheet()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&editing)closeSheet();if(e.key==="Enter"&&!e.isComposing&&e.target&&e.target.tagName==="INPUT"&&e.target.id!=="c_veh"&&e.target.closest&&e.target.closest("#callForm")){e.preventDefault();saveCall()}});
 document.addEventListener("input",e=>{
   if(e.target.dataset&&e.target.dataset.sgnota){(S.sgform[e.target.dataset.sgnota]=S.sgform[e.target.dataset.sgnota]||{}).nota=e.target.value;return}
+  if(e.target.dataset&&e.target.dataset.rtel){const id=e.target.dataset.rtel;(S.rform[id]=S.rform[id]||{}).tel=e.target.value;const r=S.radarMap&&S.radarMap[id];if(r){pmState(r).tel=e.target.value;waSync(id);const pi=document.getElementById("p_tel_"+id);if(pi&&pi!==e.target)pi.value=e.target.value}return}
+  if(e.target.dataset&&e.target.dataset.rnom){const id=e.target.dataset.rnom;(S.rform[id]=S.rform[id]||{}).nom=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.rnota){const id=e.target.dataset.rnota;(S.rform[id]=S.rform[id]||{}).nota=e.target.value;return}
-  if(e.target.dataset&&e.target.dataset.pf){const id=e.target.dataset.pid,k=e.target.dataset.pf,r=S.radarMap&&S.radarMap[id];if(r){pmState(r)[k]=e.target.value;if(k==="tel")waSync(id);else pmRefresh(id)}return}
+  if(e.target.dataset&&e.target.dataset.pf){const id=e.target.dataset.pid,k=e.target.dataset.pf,r=S.radarMap&&S.radarMap[id];if(r){pmState(r)[k]=e.target.value;if(k==="tel"||k==="nombre"){const f=(S.rform[id]=S.rform[id]||{});f[k==="tel"?"tel":"nom"]=e.target.value;const ri=document.getElementById((k==="tel"?"r_tel_":"r_nom_")+id);if(ri)ri.value=e.target.value}if(k==="tel")waSync(id);else pmRefresh(id)}return}
   if(e.target.dataset&&e.target.dataset.ptxt){const id=e.target.dataset.ptxt,r=S.radarMap&&S.radarMap[id];if(r){pmState(r).custom=e.target.value;waSync(id)}return}
   if(e.target.id&&e.target.id.startsWith("c_")){const k=e.target.id.slice(2);if(S.cf)S.cf[k]=e.target.value;if(k==="veh"){const pv=$("#vehPrev");if(pv)pv.innerHTML=vehPrev(e.target.value)}if(k==="precioPide"){const pv=$("#precioPrev");if(pv)pv.textContent=precioPrev(e.target.value)}if(k==="proximaFecha"&&S.cf)S.cf._proxManual=true;if(k==="marca"){const d=$("#dl_cmodelo");if(d)d.innerHTML=optsHtml(LISTS.modelo({marca:e.target.value}))}return}
   if(e.target.id&&e.target.id.startsWith("f_")&&MGK.includes(e.target.id.slice(2))){const v={};MGK.forEach(k=>{const el=document.getElementById("f_"+k);v[k]=el?el.value:""});const p=$("#mgPanel");if(p)p.innerHTML=mgHtml(v);return}
@@ -2798,7 +2830,7 @@ document.addEventListener("submit",e=>{if(e.target.id==="usrForm"){e.preventDefa
 
 /* Don't re-render under someone typing in a week form or the sheet */
 document.addEventListener("toggle",e=>{const d=e.target;if(!d||!d.dataset)return;if(d.dataset.popen)S.popen[d.dataset.popen]=d.open;if(d.dataset.gopen)S.gopen[d.dataset.gopen]=d.open},true);
-function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota)){S.pendingRender=true;return}if(a&&a.id&&a.id.startsWith("c_")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
+function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota)){S.pendingRender=true;return}if(a&&a.id&&a.id.startsWith("c_")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
 /* When someone else updated the list while you typed, refresh once you leave the field (never mid-click) */
 let ptrDown=false,lateT=null;
 document.addEventListener("pointerdown",()=>{ptrDown=true},true);

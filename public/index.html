@@ -1763,7 +1763,7 @@ function lwNotificar(l){
 }
 async function lwSave(id,data){try{await S.db.collection("leadsWeb").doc(id).update(data)}catch(_){toast("No se pudo guardar. Revisa tu conexión.")}}
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-lwwa],[data-lwf],[data-lwcopy],[data-lwlink],[data-lwnotif],[data-lwck]");if(!t)return;
+  const t=e.target.closest("[data-lwwa],[data-lwf],[data-lwk],[data-lwcopy],[data-lwlink],[data-lwnotif],[data-lwck]");if(!t)return;
   if(t.dataset.lwck){const l=(S.leadsWeb||[]).find(x=>x._id===t.dataset.lwck);if(!l)return;const c=lwCk(l).find(x=>x.k===t.dataset.k);lwSave(l._id,{checks:{...(l.checks||{}),[t.dataset.k]:!(c&&c.ok)}});return}
   if(t.dataset.lwnotif){try{Notification.requestPermission().then(p=>{toast(p==="granted"?"Avisos activados: te llega el perfil de cada lead nuevo":"Avisos no activados");render()})}catch(_){}return}
   if(t.dataset.lwf){S.lwf=t.dataset.lwf;render();return}

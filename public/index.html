@@ -1849,10 +1849,10 @@ function rCard(r){
   return `<article id="card_${id}" class="rcard rcx${g==="nopub"||g==="cerr"?" muted":""}${flash?" flash":""}">
    <details class="rx" data-gopen="rc_${id}" ${ropen?"open":""}>
     <summary class="rsum">
-     <span class="rsc ${b?b[1]:"tar"}" title="${b?esc(b[0]):"Sin puntaje"}">${hasSc?`<b class="num">${esc(score)}</b>`:"–"}</span>
+     <span class="rsc ${b?b[1]:"tar"}" title="${b?esc(b[0]):r.sinMedia?"Sin media de mercado: no se puede calcular el puntaje":"Sin puntaje"}">${hasSc?`<b class="num">${esc(score)}</b>`:r.sinMedia?`<b style="font-size:11px">s/m</b>`:"–"}</span>
      <span class="rsm"><span class="rt">${esc(rModelo(r))} <span class="ry">${esc(r.anio||"")}</span></span>
       <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
-     <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}">${vsLbl}</span>`:""}</span>
+     <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}"${r.medFuente?` title="Media de ${esc(r.medFuente)}${r.n?" · "+esc(r.n)+" avisos":""}"`:""}>${vsLbl}${r.medFuente&&/referencial/.test(r.medFuente)?" · ref. ML":""}</span>`:r.sinMedia?`<span class="vs" title="Menos de 4 avisos comparables: sin media de mercado">sin media</span>`:""}</span>
      <span class="rsf">${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
      <span class="rchev" aria-hidden="true"></span>
     </summary>

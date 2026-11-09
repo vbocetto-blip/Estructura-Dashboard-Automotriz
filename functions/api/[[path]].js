@@ -4,7 +4,7 @@
 import { reconocer, TIPOS } from "../../public/js/catalogo-autos.js";
 import { OPC as LW_OPC, perfilConsigna, puntaje as lwScore, normHorario, diasDisponibles, citaValida, ahoraChile, franjaDe } from "../../public/js/perfil-consigna.js";
 const VIRTUAL_RW = new Set(["virtual", "virtualLlamadas"]);
-const VIRTUAL_RO = new Set(["config/virtual"]);
+const VIRTUAL_RO = new Set(["config/virtual", "config/jornada"]);
 const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra } });
 const now = () => new Date().toISOString();
 
@@ -243,9 +243,25 @@ export async function onRequest(ctx) {
   /* Prueba de rendimiento: un latido por minuto activo (pestaña visible + interacción reciente). Solo minuto sí/no, sin contenido. */
   if (path === "latido" && request.method === "POST") {
     const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()).map(x => [x.type, x.value]));
-    let pag = ""; try { pag = String((await request.json()).pagina || "").slice(0, 20); } catch {}
-    await env.DB.prepare("INSERT INTO actividad (email,dia,minuto,pagina) VALUES (?,?,?,?) ON CONFLICT DO NOTHING").bind(u.email, `${p.year}-${p.month}-${p.day}`, `${p.hour === "24" ? "00" : p.hour}:${p.minute}`, pag).run();
+    let pag = "", est = "activo"; try { const b = await request.json(); pag = String(b.pagina || "").slice(0, 20); if (["activo", "gestion", "presente"].includes(b.estado)) est = b.estado; } catch {}
+    /* Un minuto guarda su mejor estado: gestión (llamando o escribiendo) > activo (usando el panel) > presente (panel abierto sin uso). */
+    await env.DB.prepare("INSERT INTO actividad (email,dia,minuto,pagina,estado) VALUES (?,?,?,?,?) ON CONFLICT(email,dia,minuto) DO UPDATE SET estado = CASE WHEN (CASE excluded.estado WHEN 'gestion' THEN 3 WHEN 'activo' THEN 2 ELSE 1 END) > (CASE coalesce(actividad.estado,'activo') WHEN 'gestion' THEN 3 WHEN 'activo' THEN 2 ELSE 1 END) THEN excluded.estado ELSE coalesce(actividad.estado,'activo') END").bind(u.email, `${p.year}-${p.month}-${p.day}`, `${p.hour === "24" ? "00" : p.hour}:${p.minute}`, pag, est).run();
     return json({ ok: true });
+  }
+  /* Reloj: cada persona ve sus minutos; el administrador puede ver a cualquiera o el resumen del equipo. */
+  if (path === "reloj" && request.method === "GET") {
+    const okD = d => /^\d{4}-\d{2}-\d{2}$/.test(d || "");
+    const desde = okD(url.searchParams.get("desde")) ? url.searchParams.get("desde") : "2000-01-01";
+    const hasta = okD(url.searchParams.get("hasta")) ? url.searchParams.get("hasta") : "2999-12-31";
+    const pedido = (url.searchParams.get("email") || "").toLowerCase();
+    if (pedido === "equipo") {
+      if (u.rol !== "admin") return json({ error: "sin_permiso" }, 403);
+      const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, a.minuto, coalesce(a.estado,'activo') AS e FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.dia BETWEEN ? AND ? ORDER BY a.email, a.dia, a.minuto").bind(desde, hasta).all();
+      return json({ filas: rs.results });
+    }
+    const email = u.rol === "admin" && pedido ? pedido : u.email;
+    const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, a.minuto, coalesce(a.estado,'activo') AS e FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.email=? AND a.dia BETWEEN ? AND ? ORDER BY a.dia, a.minuto").bind(email, desde, hasta).all();
+    return json({ email, filas: rs.results });
   }
   if (path === "actividad" && request.method === "GET") {
     if (u.rol !== "admin") return json({ error: "sin_permiso" }, 403);

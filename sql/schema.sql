@@ -3,3 +3,5 @@ CREATE INDEX IF NOT EXISTS idx_docs_col_updated ON docs(col, updated_at);
 CREATE INDEX IF NOT EXISTS idx_docs_updated ON docs(updated_at);
 CREATE TABLE IF NOT EXISTS usuarios (email TEXT PRIMARY KEY, nombre TEXT NOT NULL, rol TEXT NOT NULL CHECK (rol IN ('admin','equipo','virtual')), activo INTEGER NOT NULL DEFAULT 1, creado_en TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS auditoria (n INTEGER PRIMARY KEY AUTOINCREMENT, cuando TEXT NOT NULL, email TEXT, accion TEXT NOT NULL, col TEXT, id TEXT);
+
+CREATE TABLE IF NOT EXISTS actividad (email TEXT NOT NULL, dia TEXT NOT NULL, minuto TEXT NOT NULL, pagina TEXT, estado TEXT, PRIMARY KEY (email, dia, minuto));

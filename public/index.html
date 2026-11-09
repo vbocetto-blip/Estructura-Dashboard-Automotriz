@@ -238,6 +238,13 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .crow{flex-wrap:wrap}.cav{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin:6px 0 2px;width:100%}.cavd{flex:1 1 100%}.cavd summary{cursor:pointer;font-size:13px;color:var(--muted);display:inline-block;padding:3px 10px;border:1px solid var(--line);border-radius:999px}.cavd[open] summary{color:var(--ink);border-color:var(--accent)}.cavdl{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 18px;margin:10px 2px 4px;font-size:14px}.cavdl dt{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.cavdl dd{margin:0}
 .pill.sml{background:#fff6d1;color:#7a5a00;border:1px solid #f0d675}.pill.sca{background:#ffe9e3;color:#a1300f;border:1px solid #f4b3a0}.pill.syp{background:#f1e8ff;color:#5b2aa6;border:1px solid #cdb4f5}.pill.sot{background:var(--sunk);color:var(--muted)}
 [data-theme="dark"] .pill.sml{background:#3a3112;color:#f2d77a;border-color:#6b5a1c}[data-theme="dark"] .pill.sca{background:#3d1d15;color:#ffb4a0;border-color:#7a3624}[data-theme="dark"] .pill.syp{background:#2a1d42;color:#d2bcff;border-color:#55389a}
+.btn.reloj{display:inline-flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums}.rdot{width:9px;height:9px;border-radius:50%;background:#b9c0bc;display:inline-block}.rdot.gestion{background:#0b8a5f;box-shadow:0 0 0 3px rgba(11,138,95,.2)}.rdot.activo{background:#3ba776}.rdot.presente{background:#e0b341}
+.rline{position:relative;margin:6px 0 2px}.rline .rcells{display:grid;grid-template-columns:repeat(156,1fr);gap:1px}.rline.sm .rcells{gap:0}.rc{display:block;height:22px;background:transparent;border-radius:2px}.rline.sm .rc{height:12px;border-radius:0}.rc.nom{background:var(--sunk)}.rc.hueco{background:#f6d9d6}.rc.presente{background:#f2e3b3}.rc.activo{background:#7cc8a0}.rc.gestion{background:#0b8a5f}
+.rtks{position:relative;height:9px}.rline.sm .rtks{height:5px}.rtk{position:absolute;top:0;width:3px;height:9px;margin-left:-1px;background:#0b4fb3;border-radius:1px}.rline.sm .rtk{height:5px;width:2px}
+.rhs{display:grid;grid-template-columns:repeat(13,1fr) 0;font-size:11px;color:var(--muted);margin-top:2px}.rhs span{border-left:1px solid var(--line);padding-left:3px}
+.rleg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted);margin:10px 2px 0}.rleg span{display:inline-flex;align-items:center;gap:6px}.rleg .rc{width:14px;height:12px;display:inline-block}
+.kpi.bad{border-color:var(--bad)}.lnk{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline}
+[data-theme="dark"] .rc.hueco{background:#4a2421}[data-theme="dark"] .rc.presente{background:#4a3f1c}[data-theme="dark"] .rc.activo{background:#2f7d55}
 .rbarc{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start}
 .rwho{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:var(--sunk);font-size:14px;line-height:1.2}
 .rwho span{font-size:12px;color:var(--muted);font-weight:600}.rwho select{border:0;background:transparent;font:inherit;font-weight:700;padding:0;color:inherit}
@@ -681,6 +688,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
       </div>
       <span class="status" id="status"><span class="dot"></span><span>Conectando…</span></span>
       <a class="btn" id="lnkPatio" href="/patio.html" hidden title="Mapa en vivo de autos entrando y saliendo">Patio en vivo</a><button class="btn" id="btnSync" type="button" title="Traer los datos más recientes">↻ Actualizar</button>
+      <button class="btn reloj" id="btnReloj" type="button" data-v="reloj" title="Tu reloj de gestión de hoy"><span class="rdot" id="relojDot"></span><span id="relojTxt">Mi reloj</span></button>
       <button class="btn primary" id="btnNew" type="button">+ Ingresar auto</button>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
@@ -801,6 +809,128 @@ function weeksOf(mo){
 }
 const inRange=(s,w)=>!!s&&s>=w.from&&s<=w.to;
 
+
+/* ===================== RELOJ DE GESTIÓN =====================
+   Cada minuto con el panel abierto se guarda con su estado:
+   gestion = llamando o escribiendo (se abre al tocar Llamar, WhatsApp, Lo tomo, Ya le escribí o Copiar mensaje; se cierra al registrar o a los 12 min)
+   activo  = usando el panel; presente = panel visible sin uso (hasta 10 min).
+   Horas efectivas = gestión + activo dentro de la jornada nominal de cada consignador. */
+const JOR_DEF={dias:[1,2,3,4,5],desde:"09:00",hasta:"18:30",colacion:60};
+const hm=t=>{const [h,m]=String(t||"0:0").split(":").map(Number);return h*60+(m||0)};
+const fmtHM=min=>{min=Math.max(0,Math.round(min));const h=Math.floor(min/60),m=min%60;return h?`${h} h ${String(m).padStart(2,"0")} m`:`${m} m`};
+const DSEM2=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+function jorOf(nombre){const c=S.jornada||{};return {...JOR_DEF,...(c.def||{}),...((c.porPersona||{})[nombre]||{})}}
+function jorCargar(){if(S.jorBusy||S.jornada)return;S.jorBusy=true;fetch("/api/doc?col=config&id=jornada",{credentials:"same-origin"}).then(r=>r.json()).then(j=>{S.jornada=j&&j.exists?j.data:{};S.jorV=j&&j.exists?j.v:null;S.jorBusy=false;safeRender()}).catch(()=>{S.jornada={};S.jorBusy=false})}
+function relojCargar(force){
+  if(!window.__ANSAR_SITE)return;jorCargar();
+  if(S.relojBusy||(!force&&S.relojAt&&Date.now()-S.relojAt<150000))return;S.relojBusy=true;
+  const d=pd(hoy());d.setDate(d.getDate()-6);const desde=ds(d);
+  const q=S.isAdmin&&S.relojSel&&S.relojSel!=="__yo"?"&email="+encodeURIComponent(S.relojSel):"";
+  fetch(`/api/reloj?desde=${desde}&hasta=${hoy()}${q}`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{
+    const filas=j.filas||[];S.relojAt=Date.now();S.relojBusy=false;
+    if(!q){S.relojMe=filas;S.relojMeNom=(filas[0]&&filas[0].nombre)||window.__ANSAR_NOMBRE||miNombre()||""}
+    S.relojData={email:j.email,nombre:(filas[0]&&filas[0].nombre)||"",filas};relojTick();if(S.view==="reloj")safeRender()}).catch(()=>{S.relojBusy=false});
+  if(S.isAdmin&&S.view==="reloj"&&(force||!S.relojEqAt||Date.now()-S.relojEqAt>150000)){
+    fetch(`/api/reloj?desde=${desde}&hasta=${hoy()}&email=equipo`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{S.relojEq=j.filas||[];S.relojEqAt=Date.now();if(S.view==="reloj")safeRender()}).catch(()=>{});
+  }
+}
+function relojDia(filas,dia,nombre){
+  const J=jorOf(nombre),d=pd(dia),w=d?d.getDay():1,lab=J.dias.includes(w),a=hm(J.desde),b=hm(J.hasta);
+  const nom=lab?Math.max(0,b-a-(Number(J.colacion)||0)):0;
+  const mins=filas.filter(f=>f.dia===dia).map(f=>({m:hm(f.minuto),e:f.e}));
+  const by=new Map(mins.map(x=>[x.m,x.e]));
+  let g=0,ac=0,pr=0,fuera=0;mins.forEach(x=>{const dentro=lab&&x.m>=a&&x.m<b;if(x.e==="presente"){pr++;return}if(!dentro){fuera++;return}if(x.e==="gestion")g++;else ac++});
+  const efe=g+ac;
+  const efm=mins.filter(x=>x.e!=="presente").map(x=>x.m).sort((x,y)=>x-y);
+  let racha=0,cur=0,prev=-9,pausas=0,pausaMin=0;
+  efm.forEach(m=>{if(m-prev<=3){cur+=m-prev}else{cur=1}racha=Math.max(racha,cur);if(prev>=0&&lab&&m-prev>15&&prev>=a&&m<=b){pausas++;pausaMin+=m-prev-1}prev=m});
+  const ahora=new Date(),esHoy=dia===hoy(),nowM=ahora.getHours()*60+ahora.getMinutes();
+  const transc=!lab?0:esHoy?Math.max(0,Math.min(nowM,b)-a)*(nom/Math.max(1,b-a)):nom;
+  const calls=(S.segCalls&&S.segCalls.length?S.segCalls:S.llamadas||[]).filter(c=>c.fecha===dia&&c.consignador===nombre);
+  const tas=calls.filter(c=>sgNiv(c)>=3).length,man=calls.filter(c=>sgNiv(c)>=5).length;
+  const tick=calls.map(c=>{const t=c.creadoEn?new Date(c.creadoEn):null;return t?t.getHours()*60+t.getMinutes():null}).filter(x=>x!=null);
+  return {dia,lab,J,a,b,nom,transc,g,ac,pr,fuera,efe,racha,pausas,pausaMin,primero:efm[0],ultimo:efm[efm.length-1],by,cont:calls.length,tas,man,tick,
+    cob:transc?efe/transc:null,cph:efe?calls.length/(efe/60):null,mpc:calls.length?efe/calls.length:null};
+}
+function relojTick(){
+  const el=$("#relojTxt"),dot=$("#relojDot");if(!el)return;
+  const est=window.__ansarEstado||"";if(dot){dot.className="rdot "+(est||"pausa");dot.title={gestion:"En gestión",activo:"Activo",presente:"Presente sin uso",pausa:"En pausa"}[est]||""}
+  if(!S.relojMe){el.textContent="Mi reloj";return}
+  const nom=S.relojMeNom||window.__ANSAR_NOMBRE||"";const r=relojDia(S.relojMe,hoy(),nom);
+  el.textContent=`${fmtHM(r.efe)}${r.cob!=null?" · "+Math.round(r.cob*100)+"%":""}`;
+}
+setInterval(()=>{relojTick();if(!document.hidden)relojCargar(false)},60000);
+function relojLinea(r,compact){
+  const ini=8*60,fin=21*60,paso=5,cells=[];
+  for(let m=ini;m<fin;m+=paso){let best="";for(let k=m;k<m+paso;k++){const e=r.by.get(k);if(e==="gestion"){best="gestion";break}if(e==="activo")best="activo";else if(e==="presente"&&!best)best="presente"}
+    const dentro=r.lab&&m>=r.a&&m<r.b;cells.push(`<i class="rc ${best||(dentro?"hueco":"")}${dentro?" nom":""}" title="${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")} ${best?{gestion:"en gestión",activo:"activo",presente:"presente sin uso"}[best]:dentro?"sin actividad en jornada":"fuera de jornada"}"></i>`)}
+  const ticks=r.tick.map(m=>m>=ini&&m<fin?`<b class="rtk" style="left:${((m-ini)/(fin-ini)*100).toFixed(2)}%" title="Contacto registrado ${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}"></b>`:"").join("");
+  const horas=compact?"":`<div class="rhs">${Array.from({length:14},(_,i)=>`<span>${8+i}</span>`).join("")}</div>`;
+  return `<div class="rline${compact?" sm":""}"><div class="rtks">${ticks}</div><div class="rcells">${cells.join("")}</div>${horas}</div>`;
+}
+function vReloj(){
+  relojCargar(false);
+  const yo=window.__ANSAR_NOMBRE||miNombre()||"";const sel=S.isAdmin&&S.relojSel&&S.relojSel!=="__yo";
+  const D=S.relojData,nombre=sel?(D&&D.nombre)||S.relojSel:yo,filas=sel?(D&&D.email===S.relojSel?D.filas:[]):(S.relojMe||[]);
+  const r=relojDia(filas,hoy(),nombre);
+  const dias=[];for(let i=6;i>=0;i--){const d=pd(hoy());d.setDate(d.getDate()-i);dias.push(ds(d))}
+  const sem=dias.map(d=>relojDia(filas,d,nombre));
+  const tot=sem.reduce((o,x)=>({nom:o.nom+x.nom,efe:o.efe+x.efe,cont:o.cont+x.cont,tas:o.tas+x.tas,man:o.man+x.man}),{nom:0,efe:0,cont:0,tas:0,man:0});
+  const pc=x=>x==null?"—":Math.round(x*100)+"%",f1=x=>x==null?"—":x.toLocaleString("es-CL",{maximumFractionDigits:1});
+  const kpi=(l,v,s,cls)=>`<div class="kpi${cls?" "+cls:""}"><span class="l">${l}</span><span class="v num">${v}</span><span class="s">${s}</span></div>`;
+  const selector=S.isAdmin?`<label class="rwho"><span>Ver</span><select data-relsel="1"><option value="__yo">Yo (${esc(yo)})</option>${(S.relojEq?[...new Map(S.relojEq.map(f=>[f.email,f.nombre||f.email])).entries()]:[]).filter(([e])=>e!==(D&&!sel?D.email:"")).map(([e,n])=>`<option value="${esc(e)}" ${S.relojSel===e?"selected":""}>${esc(n)}</option>`).join("")}</select></label>`:"";
+  const equipo=S.isAdmin?relojEquipoHtml(dias):"";
+  return `<section class="sec-head"><h2>${sel?"Reloj de "+esc(nombre):"Mi reloj"}</h2><p>Jornada ${r.lab?`${esc(r.J.desde)}–${esc(r.J.hasta)} · colación ${esc(r.J.colacion)} min · ${fmtHM(r.nom)} nominales`:"hoy no es día laboral para esta jornada"} ${selector}</p></section>
+  <div class="kpis">
+    ${kpi("Horas efectivas",fmtHM(r.efe),`gestión ${fmtHM(r.g)} · uso del panel ${fmtHM(r.ac)}`,"hl")}
+    ${kpi("Cobertura de jornada",pc(r.cob),r.lab?`de ${fmtHM(r.transc)} nominales transcurridas`:"sin jornada hoy",r.cob!=null&&r.cob<0.5?"bad":"")}
+    ${kpi("Contactos",r.cont,`${f1(r.cph)} por hora efectiva${r.mpc?" · "+Math.round(r.mpc)+" min c/u":""}`)}
+    ${kpi("Pausas en jornada",r.pausas,r.pausas?`${fmtHM(r.pausaMin)} en pausas de 15 min o más`:"ninguna de 15 min o más")}
+    ${kpi("Mejor racha",fmtHM(r.racha),r.primero!=null?`de ${String(Math.floor(r.primero/60)).padStart(2,"0")}:${String(r.primero%60).padStart(2,"0")} a ${String(Math.floor(r.ultimo/60)).padStart(2,"0")}:${String(r.ultimo%60).padStart(2,"0")}`:"sin actividad aún")}
+  </div>
+  <section class="panel"><div class="sec-head"><h2 style="font-size:17px">Hoy, minuto a minuto</h2><p>Cada cuadro son 5 minutos de 8:00 a 21:00. Las marcas de arriba son contactos registrados.</p></div>
+    ${relojLinea(r,false)}
+    <p class="rleg"><span><i class="rc gestion"></i>En gestión</span><span><i class="rc activo"></i>Usando el panel</span><span><i class="rc presente"></i>Panel abierto sin uso</span><span><i class="rc hueco nom"></i>Sin actividad en jornada</span><span><b class="rtk" style="position:static;display:inline-block"></b> Contacto registrado</span>${r.fuera?`<span>Fuera de jornada: ${fmtHM(r.fuera)}</span>`:""}</p>
+  </section>
+  <section class="panel"><div class="sec-head"><h2 style="font-size:17px">Últimos 7 días</h2><p>Horas efectivas contra nominales y lo que produjeron</p></div>
+    <div class="tbl"><table><thead><tr><th>Día</th><th>Nominal</th><th>Efectivas</th><th>Cobertura</th><th>Gestión</th><th>Contactos</th><th>Contactos / h</th><th>Tasaciones</th><th>Línea del día</th></tr></thead><tbody>
+    ${sem.map(x=>`<tr><td>${DSEM2[pd(x.dia).getDay()]} ${fmtD(x.dia)}</td><td class="num">${x.nom?fmtHM(x.nom):"—"}</td><td class="num"><b>${fmtHM(x.efe)}</b></td><td class="num">${x.nom?pc(x.efe/x.nom):"—"}</td><td class="num">${fmtHM(x.g)}</td><td class="num">${x.cont}</td><td class="num">${f1(x.cph)}</td><td class="num">${x.tas}</td><td style="min-width:240px">${relojLinea(x,true)}</td></tr>`).join("")}
+    </tbody><tfoot><tr><th>Semana</th><td class="num">${fmtHM(tot.nom)}</td><td class="num"><b>${fmtHM(tot.efe)}</b></td><td class="num">${tot.nom?pc(tot.efe/tot.nom):"—"}</td><td></td><td class="num">${tot.cont}</td><td class="num">${f1(tot.efe?tot.cont/(tot.efe/60):null)}</td><td class="num">${tot.tas}</td><td></td></tr></tfoot></table></div>
+  </section>
+  ${equipo}
+  <details class="zone z-det" data-gopen="reloj_metodo" ${S.gopen.reloj_metodo?"open":""}><summary class="zh"><span class="zn">?</span><div class="zt"><h2>Cómo se mide</h2><p>Qué cuenta, qué no y qué se guarda</p></div><span class="chev" aria-hidden="true">▾</span></summary><div class="zb"><ul class="insights">
+    <li><b>En gestión:</b> se abre al tocar Llamar, WhatsApp, Lo tomo, Ya le escribí o Copiar mensaje, y dura hasta registrar el resultado (máximo 12 minutos). Cuenta aunque estés en el teléfono o en WhatsApp con el panel minimizado.</li>
+    <li><b>Usando el panel:</b> panel a la vista con uso del mouse o teclado en el último minuto y medio.</li>
+    <li><b>Panel abierto sin uso:</b> visible pero sin uso hasta 10 minutos. Se muestra, pero no suma horas efectivas.</li>
+    <li><b>Horas efectivas</b> = gestión + uso del panel dentro de tu jornada. Lo de fuera de jornada se muestra aparte.</li>
+    <li><b>Cobertura</b> = horas efectivas ÷ horas nominales transcurridas (jornada menos colación). Es una medida de ritmo, no un control de asistencia.</li>
+    <li><b>Qué se guarda:</b> solo el minuto y su estado. No se guardan pantallas, teclas ni contenido. Cada persona ve su propio reloj; el administrador ve el del equipo.</li></ul></div></details>`;
+}
+function relojEquipoHtml(dias){
+  const eq=S.relojEq;if(!eq)return `<section class="panel"><p class="none">Cargando equipo…</p></section>`;
+  const per=new Map();eq.forEach(f=>{const k=f.email;if(!per.has(k))per.set(k,{email:k,nombre:f.nombre||k,filas:[]});per.get(k).filas.push(f)});
+  const nombres=uniq([...per.values()].map(p=>p.nombre).concat(S.equipo||[]));
+  const rows=[...per.values()].map(p=>{const h=relojDia(p.filas,hoy(),p.nombre);const s=dias.map(d=>relojDia(p.filas,d,p.nombre));const efe=s.reduce((a,x)=>a+x.efe,0),nom=s.reduce((a,x)=>a+x.nom,0),cont=s.reduce((a,x)=>a+x.cont,0),tas=s.reduce((a,x)=>a+x.tas,0);return {p,h,efe,nom,cont,tas}}).sort((a,b)=>b.h.efe-a.h.efe);
+  const pc=x=>x==null?"—":Math.round(x*100)+"%",f1=x=>x==null?"—":x.toLocaleString("es-CL",{maximumFractionDigits:1});
+  const J=S.jornada||{},pp=J.porPersona||{};
+  return `<section class="panel"><div class="sec-head"><h2 style="font-size:17px">Equipo · hoy y semana</h2><p>Solo el administrador ve esta sección. Toca un nombre para ver su reloj.</p></div>
+   <div class="tbl"><table><thead><tr><th>Persona</th><th>Hoy efectivas</th><th>Cobertura hoy</th><th>Contactos hoy</th><th>Contactos / h</th><th>Semana efectivas</th><th>Cobertura semana</th><th>Tasaciones / h semana</th><th>Hoy, minuto a minuto</th></tr></thead><tbody>
+   ${rows.map(x=>`<tr><td><button type="button" class="lnk" data-relsel2="${esc(x.p.email)}">${esc(x.p.nombre)}</button></td><td class="num"><b>${fmtHM(x.h.efe)}</b></td><td class="num">${pc(x.h.cob)}</td><td class="num">${x.h.cont}</td><td class="num">${f1(x.h.cph)}</td><td class="num">${fmtHM(x.efe)}</td><td class="num">${x.nom?pc(x.efe/x.nom):"—"}</td><td class="num">${f1(x.efe?x.tas/(x.efe/60):null)}</td><td style="min-width:240px">${relojLinea(x.h,true)}</td></tr>`).join("")||`<tr><td colspan="9" class="none">Sin actividad registrada.</td></tr>`}
+   </tbody></table></div>
+   <details class="pmsg" data-gopen="jor_edit" ${S.gopen.jor_edit?"open":""}><summary>Jornada nominal por consignador</summary><div class="pbody">
+    <p class="rdet">Si alguien no tiene jornada propia, usa la general: L–V 09:00–18:30 con 60 min de colación.</p>
+    <div class="tbl"><table><thead><tr><th>Persona</th><th>Desde</th><th>Hasta</th><th>Colación (min)</th><th>Días</th></tr></thead><tbody>
+    ${nombres.map(n=>{const j=jorOf(n),k=esc(n);return `<tr><td>${k}</td><td><input type="time" data-jor="${k}" data-k="desde" value="${esc(j.desde)}"></td><td><input type="time" data-jor="${k}" data-k="hasta" value="${esc(j.hasta)}"></td><td><input type="number" min="0" max="180" step="15" data-jor="${k}" data-k="colacion" value="${esc(j.colacion)}" style="width:80px"></td><td>${[1,2,3,4,5,6].map(w=>`<label style="margin-right:6px"><input type="checkbox" data-jor="${k}" data-k="dia" data-w="${w}" ${j.dias.includes(w)?"checked":""}> ${DSEM2[w]}</label>`).join("")}</td></tr>`}).join("")}
+    </tbody></table></div><p class="rdet">Los cambios se guardan al salir de cada campo.</p></div></details>
+  </section>`;
+}
+async function jorGuardar(nombre,k,v,w,chk){
+  const J=JSON.parse(JSON.stringify(S.jornada||{}));J.porPersona=J.porPersona||{};const j={...jorOf(nombre)};
+  if(k==="dia"){const set=new Set(j.dias);chk?set.add(w):set.delete(w);j.dias=[...set].sort()}else j[k]=k==="colacion"?Math.max(0,Number(v)||0):v;
+  J.porPersona[nombre]=j;J.actualizadoEn=new Date().toISOString();
+  try{const r=await fetch("/api/doc",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({col:"config",id:"jornada",data:J})});if(!r.ok)throw 0;S.jornada=J;toast("Jornada de "+nombre+" guardada");safeRender()}catch(_){toast("No se pudo guardar la jornada")}
+}
+
 /* ---------- Render ---------- */
 const $=s=>document.querySelector(s);
 function render(){
@@ -818,7 +948,7 @@ function render(){
   if(S.offline)banners.push(`<div class="banner">${esc(S.offline)}</div>`);
   const rb=remBanners();if(rb)banners.push(rb);
   if(hoy()<INICIO&&(S.view==="resumen"||S.view==="semanas"))banners.push(`<div class="banner info">El registro oficial parte el <b>lunes 2 de noviembre de 2026</b>.</div>`);
-  m.innerHTML=banners.join("")+({resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:vAgenda,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto}[S.view])();
+  m.innerHTML=banners.join("")+({resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:vAgenda,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto,reloj:vReloj}[S.view])();
   {const ln=$("#lwN");if(ln){const n=(S.leadsWeb||[]).filter(l=>!l.contactadoEn&&lwActivo(l)).length;ln.textContent=n||"";ln.hidden=!n}}
   {const an=$("#agN");if(an){const n=(S.agenda||[]).filter(c=>c.estado==="Por confirmar"&&c.fecha>=hoy()).length;an.textContent=n||"";an.hidden=!n}}
   const sgn=$("#sgN");if(sgn){const n=S.segLoaded?sgDue():0;sgn.textContent=n||"";sgn.hidden=!n}
@@ -1610,7 +1740,7 @@ async function saveCall(){
     const keep={consignador:c.consignador,ruta:c.ruta,fuente:c.fuente,fecha:c.fecha};
     const was=S.cfEdit;S.cfEdit=null;S.cf={...cfDefault(),...keep};
     if(!data.fecha.startsWith(MONTHS[S.mes].key)){const i=MONTHS.findIndex(m=>data.fecha.startsWith(m.key));if(i>=0){S.mes=i;ensureCalls()}}
-    render();toast((was?"Llamada actualizada":"Llamada registrada")+conv);const f=$("#c_telefono");if(f&&!was)f.focus();
+    window.__ansarGestion=Date.now()+60000;render();toast((was?"Llamada actualizada":"Llamada registrada")+conv);const f=$("#c_telefono");if(f&&!was)f.focus();
   }catch(e){b.disabled=false;b.textContent="Reintentar";handleWriteErr(e)}
 }
 async function delCall(btn){
@@ -2188,7 +2318,7 @@ async function regRadar(id,btn,quick){
     const ref=S.db.collection(callCol(r)).doc();
     await ref.set(data);S.writeProbe=true;
     await rRef(id).update({ultimoResultado:f.res,nivel,ultimoContacto:fecha,consignador:cons,asignado:cons,asignadoEn:now,ultimaLlamadaId:ref.id,...(tel?{telefono:telFmt(tel),telefonoN:normTel(tel)}:{}),...(nom?{contacto:nom}:{}),proximaFecha:prox,...(r.recordarEn&&Date.parse(r.recordarEn)<=Date.now()?{recordarEn:"",recordarA:"",recordarMin:""}:{}),nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
-    lsSet("ansar_cons",cons);delete S.rform[id];render();toast((quick?"Marcado como contactado":"Registrado en Llamadas")+" · pasó a "+dest);
+    window.__ansarGestion=Date.now()+60000;lsSet("ansar_cons",cons);delete S.rform[id];render();toast((quick?"Marcado como contactado":"Registrado en Llamadas")+" · pasó a "+dest);
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
 }
 function onRadarSnap(snap,col){
@@ -2515,7 +2645,7 @@ async function regSeg(k,btn){
     const ref=S.db.collection(L._col==="virtualLlamadas"?"virtualLlamadas":"llamadas").doc();await ref.set(data);S.writeProbe=true;
     if(L.radarId&&r)await rRef(L.radarId).update({ultimoResultado:res,nivel,ultimoContacto:fecha,consignador:cons,ultimaLlamadaId:ref.id,proximaFecha:prox,nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
     lsSet("ansar_cons",cons);delete S.sgform[k];
-    toast(cierra?(nivel>=5?"Mandato registrado · sale del seguimiento":"Registrado · sale del seguimiento"):`Registrado · próximo contacto ${fmtD(prox)}`);safeRender();
+    window.__ansarGestion=Date.now()+60000;toast(cierra?(nivel>=5?"Mandato registrado · sale del seguimiento":"Registrado · sale del seguimiento"):`Registrado · próximo contacto ${fmtD(prox)}`);safeRender();
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
 }
 function sgAuto(k){
@@ -2838,7 +2968,8 @@ function setStatus(kind,txt){$("#status").innerHTML=`<span class="dot ${kind}"><
 /* ---------- Events ---------- */
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
-  if(t.dataset.v){S.view=t.dataset.v;ensureCalls();render();window.scrollTo(0,0);return}
+  if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
+  if(t.dataset.v){S.view=t.dataset.v;ensureCalls();if(S.view==="reloj")relojCargar(true);render();window.scrollTo(0,0);return}
   if(t.dataset.rv){S.rf[t.dataset.team||"pres"].vista=t.dataset.rv;render();return}
   if(t.dataset.rmkp){const tm=t.dataset.rmkp,X=rfx(tm);X.src=X.src==="Facebook Marketplace"?"":"Facebook Marketplace";rfxSave(tm);render();return}
   if(t.dataset.rfxclr){const tm=t.dataset.rfxclr;S.rfx[rfxKey(tm)]={...RFX_DEF};rfxSave(tm);render();return}
@@ -2927,6 +3058,8 @@ document.addEventListener("input",e=>{
   if(e.target.id==="fq"){S.filtro.q=e.target.value;const pos=e.target.selectionStart;render();const el=$("#fq");el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}}
 });
 document.addEventListener("change",e=>{
+  if(e.target.dataset&&e.target.dataset.relsel){S.relojSel=e.target.value;S.relojData=null;relojCargar(true);render();return}
+  if(e.target.dataset&&e.target.dataset.jor){const x=e.target.dataset;jorGuardar(x.jor,x.k,e.target.value,Number(x.w),e.target.checked);return}
   if(e.target.dataset&&(e.target.dataset.rqs||e.target.dataset.rms||e.target.dataset.rtrs)){const F=S.rf[e.target.dataset.team||"pres"];F[e.target.dataset.rqs?"quien":e.target.dataset.rms?"motor":"tramo"]=e.target.value;render();return}
   if(e.target.dataset&&e.target.dataset.rfx){const tm=e.target.dataset.team||"pres",X=rfx(tm);X[e.target.dataset.rfx]=String(e.target.value||"").trim();rfxSave(tm);S.gopen["rfx_"+tm]=true;render();return}
   if(e.target.dataset&&e.target.dataset.xs){S.xf[e.target.dataset.xs]=e.target.value;return}
@@ -3001,7 +3134,7 @@ render();
   if(user){try{S.uid=await user.id();S.isAdmin=(await user.canEdit())===true;{const lp=document.getElementById("lnkPatio");if(lp&&window.__ANSAR_SITE)lp.hidden=false}S.soloVirtual=window.__ANSAR_SITE?window.__ANSAR_ROL==="virtual":!S.isAdmin;
     const cw=await user.can("data.write");if(cw===false){S.canWrite=false;if(S.soloVirtual)S.sinAccesoVirtual=true}}catch(_){S.soloVirtual=true}}
   else S.soloVirtual=true;
-  S.accesoListo=true;
+  S.accesoListo=true;setTimeout(()=>{relojCargar(true);relojTick()},1500);
   if(S.soloVirtual){
     S.view="virtual";render();
     const t2=setTimeout(()=>{if(!S.radarLoaded){S.offline="No se pudo cargar la sección Virtual todavía. Revisa tu conexión; se actualizará sola.";setStatus("err","Sin conexión");render()}},10000);

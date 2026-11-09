@@ -132,13 +132,22 @@
     };
     draw(); document.body.appendChild(box);
   }
-  /* Prueba de rendimiento: marca un minuto activo si la pestaña está visible y hubo interacción en los últimos 2 minutos. */
+  /* Reloj de gestión: un latido por minuto con su estado.
+     gestion = ventana abierta al llamar, escribir por WhatsApp o tomar un aviso (aunque el panel no esté a la vista), hasta registrar el resultado o 12 min;
+     activo = panel visible y uso en el último minuto y medio; presente = panel visible sin uso hasta 10 min. Solo se guarda minuto y estado, sin contenido. */
   function latidos() {
     if (window.__ansarLatido) return; window.__ansarLatido = true;
-    let ult = Date.now();
+    let ult = Date.now(); window.__ansarGestion = window.__ansarGestion || 0;
     ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach(ev => addEventListener(ev, () => { ult = Date.now(); }, { passive: true, capture: true }));
+    addEventListener("click", e => { const t = e.target.closest && e.target.closest('a[href^="tel:"],a[href*="wa.me"],a[href*="whatsapp"],[data-rtake],[data-rquick],[data-pwa],[data-rcopy],[data-sgconf],[data-lwwa],[data-pcopy]'); if (t) window.__ansarGestion = Date.now() + 12 * 60000; }, true);
     const pag = location.pathname.includes("patio") ? "patio" : "tablero";
-    const tick = () => { if (document.visibilityState === "visible" && Date.now() - ult < 120000) fetch("/api/latido", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ pagina: pag }), keepalive: true }).catch(() => {}); };
+    const estado = () => { const now = Date.now(), vis = document.visibilityState === "visible";
+      if (window.__ansarGestion > now) return "gestion";
+      if (vis && now - ult < 90000) return "activo";
+      if (vis && now - ult < 600000) return "presente";
+      return ""; };
+    const tick = () => { const e = estado(); window.__ansarEstado = e || "pausa"; if (!e) return;
+      fetch("/api/latido", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ pagina: pag, estado: e }), keepalive: true }).catch(() => {}); };
     setInterval(tick, 60000); setTimeout(tick, 5000);
   }
   function logoutButton() {

@@ -236,6 +236,8 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .pill.mkp{background:#e3efff;color:#0b4fb3;border:1px solid #9cc2f5;font-weight:600}[data-theme="dark"] .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}}
 .mkpbtn{border:1px solid #9cc2f5;background:transparent;color:#0b4fb3;border-radius:999px;padding:4px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}.mkpbtn[aria-pressed="true"]{background:#0b4fb3;color:#fff;border-color:#0b4fb3}
 .crow{flex-wrap:wrap}.cav{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin:6px 0 2px;width:100%}.cavd{flex:1 1 100%}.cavd summary{cursor:pointer;font-size:13px;color:var(--muted);display:inline-block;padding:3px 10px;border:1px solid var(--line);border-radius:999px}.cavd[open] summary{color:var(--ink);border-color:var(--accent)}.cavdl{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 18px;margin:10px 2px 4px;font-size:14px}.cavdl dt{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.cavdl dd{margin:0}
+.pill.sml{background:#fff6d1;color:#7a5a00;border:1px solid #f0d675}.pill.sca{background:#ffe9e3;color:#a1300f;border:1px solid #f4b3a0}.pill.syp{background:#f1e8ff;color:#5b2aa6;border:1px solid #cdb4f5}.pill.sot{background:var(--sunk);color:var(--muted)}
+[data-theme="dark"] .pill.sml{background:#3a3112;color:#f2d77a;border-color:#6b5a1c}[data-theme="dark"] .pill.sca{background:#3d1d15;color:#ffb4a0;border-color:#7a3624}[data-theme="dark"] .pill.syp{background:#2a1d42;color:#d2bcff;border-color:#55389a}
 .rbarc{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start}
 .rwho{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:var(--sunk);font-size:14px;line-height:1.2}
 .rwho span{font-size:12px;color:var(--muted);font-weight:600}.rwho select{border:0;background:transparent;font:inherit;font-weight:700;padding:0;color:inherit}
@@ -1891,7 +1893,7 @@ function rCard(r){
      <span class="rsm"><span class="rt">${esc(rModelo(r))} <span class="ry">${esc(r.anio||"")}</span></span>
       <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
      <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}"${r.medFuente?` title="Media de ${esc(r.medFuente)}${r.n?" · "+esc(r.n)+" avisos":""}"`:""}>${vsLbl}${r.medFuente&&/referencial/.test(r.medFuente)?" · ref. ML":""}</span>`:r.sinMedia?`<span class="vs" title="Menos de 4 avisos comparables: sin media de mercado">sin media</span>`:""}</span>
-     <span class="rsf">${r.src==="Facebook Marketplace"?`<span class="pill mkp" title="${r.lote&&/^apify-fb/.test(r.lote)?"Rastreo de Marketplace del "+esc(fmtD(r.fechaRadar)):"Aviso de Facebook Marketplace"}">⚑ Marketplace</span>`:""}${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
+     <span class="rsf">${srcPill(r)}${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
      <span class="rchev" aria-hidden="true"></span>
     </summary>
     <div class="rexp">
@@ -1973,6 +1975,8 @@ function rfxHtml(team,all,virt){
    ${na||X.ord?`<button type="button" class="btn sm" data-rfxclr="${t}">Limpiar mis filtros</button>`:""}
   </details>`;
 }
+const SRCP={"Facebook Marketplace":["mkp","⚑ Marketplace"],"Mercado Libre":["sml","Mercado Libre"],"Chileautos":["sca","Chileautos"],"Yapo":["syp","Yapo"]};
+function srcPill(r){const v=SRCP[r.src];if(!r.src)return "";const tt=(r.lote&&/^apify-fb/.test(r.lote)?"Rastreo de Marketplace del "+fmtD(r.fechaRadar):"Aviso de "+r.src)+(r.fechaRadar?" · en el radar desde "+fmtD(r.primerRadar||r.fechaRadar):"");return `<span class="pill ${v?v[0]:"sot"}" title="${esc(tt)}">${esc(v?v[1]:r.src)}</span>`}
 function vRadar(team){
   const virt=team==="virt",F=S.rf[team],cons=rCons(),ro=S.canWrite?"":"disabled";
   const all=S.radar.filter(r=>!r.pedidoId&&(virt?esVirt(r):!esVirt(r)));
@@ -2315,7 +2319,7 @@ function sgCard(x){
    <div class="rrail"><span class="sc num">${x.sc.total}</span><span class="rl">puntaje</span><span class="bd ${band[1]}">${band[0]}</span><span class="rl num sgp">${Math.round(x.pr*100)}% mandato</span></div>
    <div class="rbody">
     <div class="rtop"><div style="min-width:0"><h3>${esc(auto)} ${esc(L.anio||"")}</h3><span class="vv">${esc(r&&r.ver?r.ver:"")}</span></div>
-     <div class="chips"><span class="pill ${etCls}">${SG_ET[g.etapa]}</span>${prenda?`<span class="pill gap m">Con prenda</span>`:""}${equipoDe(L)==="Virtual"?`<span class="pill virt">Virtual</span>`:""}${g.radar?"":`<span class="pill st-Tasación">Llamada directa</span>`}</div></div>
+     <div class="chips">${r?srcPill(r):""}<span class="pill ${etCls}">${SG_ET[g.etapa]}</span>${prenda?`<span class="pill gap m">Con prenda</span>`:""}${equipoDe(L)==="Virtual"?`<span class="pill virt">Virtual</span>`:""}${g.radar?"":`<span class="pill st-Tasación">Llamada directa</span>`}</div></div>
     <div class="rmeta">${proxTxt}<span>Último: ${esc(L.resultado||"")} · ${fmtD(L.fecha)} · ${esc(L.consignador||"")}</span><span class="num">${g.cs.length} contacto${g.cs.length===1?"":"s"}</span>${L.fuente?`<span>${esc(L.fuente)}</span>`:""}${L.precioPide?`<span class="num">pide ${clp(L.precioPide)}</span>`:""}${r&&r.comuna?`<span>${esc(r.comuna)}</span>`:""}</div>
     ${sgTelHtml(g,sid)}
     ${x.why.length?`<p class="rbusy">${x.why.map(esc).join(" · ")}</p>`:""}
@@ -2976,6 +2980,11 @@ async function refrescar(manual){
   }catch(e){if(manual)toast("No se pudo actualizar. Revisa tu conexión.")}
   finally{syncing=false;b.disabled=false;b.textContent="↻ Actualizar"}
 }
+/* ---------- Aviso de versión nueva: todos ven los cambios sin quedarse con una pestaña vieja ---------- */
+(function(){let base=null;const sig=t=>{let h=0;for(let i=0;i<t.length;i+=7)h=(h*31+t.charCodeAt(i))|0;return t.length+":"+h};
+ async function chk(){try{const r=await fetch(location.pathname+"?v="+Date.now(),{cache:"no-store",credentials:"same-origin"});if(!r.ok)return;const t=await r.text();if(!/<title>/i.test(t))return;const k=sig(t);if(base===null){base=k;return}
+  if(k!==base&&!document.getElementById("verbar")){const b=document.createElement("div");b.id="verbar";b.setAttribute("role","status");b.style.cssText="position:sticky;top:0;z-index:50;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px 12px;background:#0b4fb3;color:#fff;font-size:14px";b.innerHTML='Hay una versión nueva del panel con cambios. <button type="button" style="border:0;border-radius:999px;padding:4px 12px;font:inherit;font-weight:700;cursor:pointer">Actualizar ahora</button>';b.querySelector("button").onclick=()=>location.reload();document.body.prepend(b)}}catch(_){}}
+ chk();setInterval(()=>{if(!document.hidden)chk()},120000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk()})})();
 setInterval(()=>refrescar(false),3600000);
 setInterval(remTick,15000);
 setInterval(()=>{if((S.view==="radar"||S.view==="virtual"||S.view==="express")&&!document.hidden&&!$("#sheet"))safeRender()},60000);

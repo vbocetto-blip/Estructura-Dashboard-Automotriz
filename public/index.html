@@ -1655,20 +1655,22 @@ function vFormulario(){
   const sinC=L.filter(l=>!l.contactadoEn&&lwActivo(l)),hoyL=L.filter(l=>new Date(l.creadoEn).toDateString()===hoyS);
   const c30=L.filter(l=>l.contactadoEn&&Date.now()-Date.parse(l.creadoEn)<30*864e5),rap=c30.filter(l=>lwMin(l)<=5).length;
   const cal=L.filter(l=>l.etiqueta==="CALIENTE"&&lwActivo(l)),mand=L.filter(l=>l.estado==="Mandato firmado").length;
-  const sel={activos:L.filter(lwActivo),sin:sinC,cal,todos:L}[f]||L;
+  const LWV={hoy:["Llegaron hoy",hoyL],rap:["Contactados en menos de 5 min · últimos 30 días",c30.filter(l=>lwMin(l)<=5)],c30:["Contactados · últimos 30 días",c30],man:["Mandatos desde el formulario",L.filter(l=>l.estado==="Mandato firmado")]};
+  const sel=({activos:L.filter(lwActivo),sin:sinC,cal,todos:L}[f])||(LWV[f]&&LWV[f][1])||L;
   const chip=(k,t,n)=>`<button type="button" data-lwf="${k}" aria-pressed="${f===k}">${t} ${n}</button>`;
   const link=location.origin+"/consigna.html";
   return `<div class="hrow"><h2>Formulario de Consignación</h2><span class="status">Leads que llegan desde el formulario público · se actualiza solo</span></div>
   <div class="kpis">
-   <div class="kpi${sinC.length?" hl":""}"><span class="l">Sin contactar</span><span class="v num">${sinC.length}</span><span class="s">meta: menos de 5 min</span></div>
-   <div class="kpi"><span class="l">Llegaron hoy</span><span class="v num">${hoyL.length}</span><span class="s">${L.length} en total</span></div>
-   <div class="kpi"><span class="l">Contactados en 5 min</span><span class="v num">${c30.length?Math.round(rap/c30.length*100)+"%":"—"}</span><span class="s">últimos 30 días · ${c30.length} contactados</span></div>
-   <div class="kpi"><span class="l">Calientes activos</span><span class="v num">${cal.length}</span><span class="s">puntaje 75 o más</span></div>
-   <div class="kpi"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">desde el formulario</span></div>
+   <button type="button" class="kpi kpib${sinC.length?" hl":""}" data-lwk="sin" aria-pressed="${f==="sin"}"><span class="l">Sin contactar</span><span class="v num">${sinC.length}</span><span class="s">meta: menos de 5 min · ver cuáles</span></button>
+   <button type="button" class="kpi kpib" data-lwk="hoy" aria-pressed="${f==="hoy"}"><span class="l">Llegaron hoy</span><span class="v num">${hoyL.length}</span><span class="s">${L.length} en total · ver cuáles</span></button>
+   <button type="button" class="kpi kpib" data-lwk="rap" aria-pressed="${f==="rap"}"><span class="l">Contactados en 5 min</span><span class="v num">${c30.length?Math.round(rap/c30.length*100)+"%":"—"}</span><span class="s">últimos 30 días · ${rap} de ${c30.length} · ver cuáles</span></button>
+   <button type="button" class="kpi kpib" data-lwk="cal" aria-pressed="${f==="cal"}"><span class="l">Calientes activos</span><span class="v num">${cal.length}</span><span class="s">puntaje 75 o más · ver cuáles</span></button>
+   <button type="button" class="kpi kpib" data-lwk="man" aria-pressed="${f==="man"}"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">desde el formulario · ver cuáles</span></button>
   </div>
   <div class="panel lwlink"><div><b>Link para tus anuncios</b><p class="rdet">Agrégale la campaña para medir cada anuncio: <code>${esc(link)}?utm_source=meta&amp;utm_campaign=consigna-nov</code></p></div><div class="racts">${"Notification" in window&&Notification.permission==="default"?`<button type="button" class="btn" data-lwnotif="1">Activar avisos en este equipo</button>`:""}<a class="btn" href="/consigna.html" target="_blank" rel="noopener">Ver formulario ↗</a><button type="button" class="btn" data-lwlink="1">Copiar link</button></div></div>
   <div class="chips" role="group" aria-label="Filtrar leads">${chip("activos","Activos",L.filter(lwActivo).length)}${chip("sin","Sin contactar",sinC.length)}${chip("cal","Calientes",cal.length)}${chip("todos","Todos",L.length)}</div>
-  <div class="rlist">${sel.length?sel.map(lwCard).join(""):`<div class="empty">${L.length?"No hay leads en este filtro.":"Todavía no llegan leads. Comparte el link del formulario o úsalo en un anuncio."}</div>`}</div>`;
+  ${LWV[f]?`<div id="lwkb" class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Mostrando: <b>${LWV[f][0]}</b> · ${sel.length}</span><button type="button" class="btn sm" data-lwf="activos">Volver a Activos</button></div>`:""}
+  <div class="rlist" id="lwlist">${sel.length?sel.map(lwCard).join(""):`<div class="empty">${L.length?"No hay leads en este filtro.":"Todavía no llegan leads. Comparte el link del formulario o úsalo en un anuncio."}</div>`}</div>`;
 }
 /* ---------- Agenda: citas que el cliente toma en el formulario (y las que se agregan a mano) ---------- */
 const AG_EST=["Por confirmar","Confirmada","Llegó","No llegó","Reagendada","Cancelada"];
@@ -1704,11 +1706,14 @@ function vAgenda(){
     return `<section class="agday${f===hoy()?" hoy":""}${abierto?"":" cerr"}"><h3>${esc(agFecha(f))}<span>${abierto?esc(cfg.dias[w].join("–")):"cerrado"}</span></h3>${cs.map(agCard).join("")||`<p class="rdet" style="margin:0">Sin citas</p>`}</section>`};
   return `<div class="hrow"><h2>Agenda de tasaciones</h2><span class="status">Las citas que el cliente elige en el formulario aparecen aquí solas</span></div>
   <div class="kpis">
-   <div class="kpi${porC.length?" hl":""}"><span class="l">Por confirmar</span><span class="v num">${porC.length}</span><span class="s">confírmalas hoy por WhatsApp</span></div>
-   <div class="kpi"><span class="l">Hoy</span><span class="v num">${hoyL.length}</span><span class="s">citas</span></div>
-   <div class="kpi"><span class="l">Próximos 7 días</span><span class="v num">${prox7.length}</span><span class="s">citas activas</span></div>
-   <div class="kpi"><span class="l">Llegaron</span><span class="v num">${fin.length?Math.round(lleg/fin.length*100)+"%":"—"}</span><span class="s">${lleg} de ${fin.length} citas pasadas</span></div>
+   <button type="button" class="kpi kpib${porC.length?" hl":""}" data-agk="porc" aria-pressed="${S.agk==="porc"}"><span class="l">Por confirmar</span><span class="v num">${porC.length}</span><span class="s">confírmalas hoy por WhatsApp · ver cuáles</span></button>
+   <button type="button" class="kpi kpib" data-agk="hoy" aria-pressed="${S.agk==="hoy"}"><span class="l">Hoy</span><span class="v num">${hoyL.length}</span><span class="s">citas · ver cuáles</span></button>
+   <button type="button" class="kpi kpib" data-agk="p7" aria-pressed="${S.agk==="p7"}"><span class="l">Próximos 7 días</span><span class="v num">${prox7.length}</span><span class="s">citas activas · ver cuáles</span></button>
+   <button type="button" class="kpi kpib" data-agk="fin" aria-pressed="${S.agk==="fin"}"><span class="l">Llegaron</span><span class="v num">${fin.length?Math.round(lleg/fin.length*100)+"%":"—"}</span><span class="s">${lleg} de ${fin.length} citas pasadas · ver cuáles</span></button>
   </div>
+  ${(()=>{const AK={porc:["Por confirmar",porC],hoy:["Citas de hoy",hoyL],p7:["Próximos 7 días",prox7],fin:["Citas pasadas: llegaron y no llegaron",fin]}[S.agk];if(!AK)return "";
+    const cs=AK[1].slice().sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora));
+    return `<section id="agkb" class="panel" style="margin-bottom:18px;display:grid;gap:10px"><div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Mostrando: <b>${AK[0]}</b> · ${cs.length}</span><button type="button" class="btn sm" data-agk="">Cerrar</button></div>${cs.length?`<div class="agweek" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${cs.map(c=>`<div><p class="rdet" style="margin:0 0 4px;font-weight:600">${esc(agFecha(c.fecha))} · ${esc(c.hora||"")}</p>${agCard(c)}</div>`).join("")}</div>`:`<p class="none">No hay citas en este grupo.</p>`}</section>`})()}
   ${(()=>{const px=L.filter(c=>c.fecha>=hoy()&&!["Llegó","No llegó"].includes(c.estado)).sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).slice(0,6);
     return px.length?`<h3 style="margin:8px 0 10px;font-size:15px">Próximas citas</h3><div class="agweek" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin-bottom:18px">${px.map(c=>`<div><p class="rdet" style="margin:0 0 4px;font-weight:600">${esc(agFecha(c.fecha))}</p>${agCard(c)}</div>`).join("")}</div>`:""})()}
   <div class="agnav"><button type="button" class="btn" data-agsem="-7">‹</button><b>Semana del ${esc(agFecha(lunes))}</b><button type="button" class="btn" data-agsem="7">›</button><button type="button" class="btn" data-agsem="0">Esta semana</button></div>
@@ -1731,6 +1736,7 @@ function agHorarioHtml(cfg){
 function agNotificar(c){try{if(!("Notification" in window)||Notification.permission!=="granted")return;const n=new Notification(`Nueva cita · ${agFecha(c.fecha)} ${c.hora}`,{body:`${c.nombre||""} · ${c.auto||""} · ${c.tipo||""}. Confírmala por WhatsApp.`,tag:"ag_"+c._id});n.onclick=()=>{window.focus();S.view="agenda";S.agLunes=agLunes(c.fecha);render();n.close()}}catch(_){}}
 document.addEventListener("click",e=>{
   const s=e.target.closest("[data-agsem]");if(s){const n=Number(s.dataset.agsem);S.agLunes=n?agAdd(S.agLunes||agLunesDef(),n):agLunesDef();render();return}
+  const ak=e.target.closest("[data-agk]");if(ak){S.agk=ak.dataset.agk===S.agk?"":ak.dataset.agk;render();if(S.agk)requestAnimationFrame(()=>{const l=document.getElementById("agkb");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   const v=e.target.closest("[data-agver]");if(v){S.view="formulario";S.lwf="todos";S.gopen["lw_"+v.dataset.agver]=true;render();setTimeout(()=>{const el=document.getElementById("lw_"+v.dataset.agver);if(el)el.scrollIntoView({block:"center"})},50)}
 });
 document.addEventListener("change",async e=>{
@@ -1761,6 +1767,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.lwck){const l=(S.leadsWeb||[]).find(x=>x._id===t.dataset.lwck);if(!l)return;const c=lwCk(l).find(x=>x.k===t.dataset.k);lwSave(l._id,{checks:{...(l.checks||{}),[t.dataset.k]:!(c&&c.ok)}});return}
   if(t.dataset.lwnotif){try{Notification.requestPermission().then(p=>{toast(p==="granted"?"Avisos activados: te llega el perfil de cada lead nuevo":"Avisos no activados");render()})}catch(_){}return}
   if(t.dataset.lwf){S.lwf=t.dataset.lwf;render();return}
+  if(t.dataset.lwk){S.lwf=t.dataset.lwk;render();requestAnimationFrame(()=>{const l=document.getElementById("lwkb")||document.getElementById("lwlist");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   if(t.dataset.lwlink){copyText(location.origin+"/consigna.html?utm_source=meta&utm_campaign=consigna","Link copiado");return}
   const id=t.dataset.lwwa||t.dataset.lwcopy,l=(S.leadsWeb||[]).find(x=>x._id===id);if(!l)return;
   if(t.dataset.lwcopy)copyText(lwMsg(l));
@@ -2301,21 +2308,22 @@ function vSeg(){
       const cell=(e,c)=>rows.filter(x=>x.g.etapa===e&&dSin(x)>=c[1]&&dSin(x)<=c[2]).length;
       const prenda=rows.filter(x=>x.g.cs.some(c=>c.resultado==="Tiene prenda")).length;
       const enfr=rows.filter(x=>dSin(x)>=8).length;
-      const tbl=rows.slice().sort((a,b)=>dSin(b)-dSin(a)||b.sc.total-a.sc.total);
+      const CF={enfr:["Se están enfriando",x=>dSin(x)>=8],prenda:["Con prenda",x=>x.g.cs.some(c=>c.resultado==="Tiene prenda")],ciclo:["3 intentos sin respuesta",x=>x.g.trail>=3]},cf=CF[F.capf];
+      const tbl=rows.filter(x=>!cf||cf[1](x)).sort((a,b)=>dSin(b)-dSin(a)||b.sc.total-a.sc.total);
       body=`${ctrl(false)}
         <div class="sgkpis">
           <div class="sgk"><span class="l">Temperatura</span>
             <span class="sgstack" role="img" aria-label="${T.c} calientes, ${T.ti} tibios, ${T.f} fríos">${T.c?`<i class="c" style="flex:${T.c}"></i>`:""}${T.ti?`<i class="t" style="flex:${T.ti}"></i>`:""}${T.f?`<i class="f" style="flex:${T.f}"></i>`:""}${rows.length?"":`<i class="e" style="flex:1"></i>`}</span>
             <span class="sglg"><span><i class="c"></i>Calientes <b class="num">${T.c}</b></span><span><i class="t"></i>Tibios <b class="num">${T.ti}</b></span><span><i class="f"></i>Fríos <b class="num">${T.f}</b></span></span></div>
-          <div class="sgk"><span class="l">Se están enfriando</span><span class="v num${enfr?" alarm":""}">${enfr}</span><span class="s">${pct(enfr,n)}% lleva 8 días o más sin contacto</span></div>
-          <div class="sgk"><span class="l">Con prenda</span><span class="v num">${prenda}</span><span class="s">requieren revisar deuda antes del mandato</span></div>
-          <div class="sgk"><span class="l">3 intentos sin respuesta</span><span class="v num">${ciclo}</span><span class="s">cerrar ciclo si no hay razón nueva</span></div>
+          <button type="button" class="sgk kpib" data-sgcap="enfr" aria-pressed="${F.capf==="enfr"}"><span class="l">Se están enfriando</span><span class="v num${enfr?" alarm":""}">${enfr}</span><span class="s">${pct(enfr,n)}% lleva 8 días o más sin contacto · ver cuáles</span></button>
+          <button type="button" class="sgk kpib" data-sgcap="prenda" aria-pressed="${F.capf==="prenda"}"><span class="l">Con prenda</span><span class="v num">${prenda}</span><span class="s">requieren revisar deuda antes del mandato · ver cuáles</span></button>
+          <button type="button" class="sgk kpib" data-sgcap="ciclo" aria-pressed="${F.capf==="ciclo"}"><span class="l">3 intentos sin respuesta</span><span class="v num">${ciclo}</span><span class="s">cerrar ciclo si no hay razón nueva · ver cuáles</span></button>
         </div>
         <section class="panel"><div class="sec-head"><h2 style="font-size:18px">Etapa × días sin contacto</h2><p>Mientras más a la derecha, más se enfría. Rojo = hay que moverlo ya.</p></div>
           <div class="tbl"><table class="sgheat"><thead><tr><th>Etapa</th>${COLS.map(c=>`<th>${c[0]}</th>`).join("")}<th>Total</th></tr></thead><tbody>
           ${[2,3,4].map(e=>`<tr><th scope="row">${SG_ET[e]}</th>${COLS.map((c,i)=>{const v=cell(e,c);return `<td class="num ${v?(i>=2?"h3":i===1?"h2":"h1"):""}">${v||"·"}</td>`}).join("")}<td class="num"><b>${rows.filter(x=>x.g.etapa===e).length}</b></td></tr>`).join("")}
           </tbody></table></div></section>
-        <section class="panel"><div class="sec-head"><h2 style="font-size:18px">Toda la cartera</h2><p>Ordenada por días sin contacto: arriba los que más riesgo tienen de perderse.</p></div>
+        <section class="panel" id="sgtbl"><div class="sec-head"><h2 style="font-size:18px">${cf?esc(cf[0])+" · "+tbl.length:"Toda la cartera"}</h2><p>${cf?`Filtrado desde el cuadro. <button type="button" class="btn sm" data-sgcap="${esc(F.capf)}">Ver toda la cartera</button>`:"Ordenada por días sin contacto: arriba los que más riesgo tienen de perderse."}</p></div>
           ${tbl.length?`<div class="tbl"><table><thead><tr><th>Auto</th><th>Etapa</th><th>Temperatura</th><th>Puntaje</th><th>Sin contacto</th><th>Próximo contacto</th><th>Quién</th><th>% mandato</th></tr></thead><tbody>
           ${tbl.map(x=>{const b=temp(x),d=dSin(x);return `<tr><td>${esc(auto(x))}</td><td>${SG_ET[x.g.etapa]}</td><td><span class="bd ${b[1]}">${b[0]}</span></td><td class="num">${x.sc.total}</td><td class="num"${d>=8?' style="color:var(--bad);font-weight:700"':""}>${d} d</td><td${x.g.prox&&x.g.prox<t||!x.g.prox?' style="color:var(--bad)"':""}>${x.g.prox?fmtD(x.g.prox)+(x.g.prox<t?" · vencido":""):"sin fecha"}</td><td>${esc(x.g.last.consignador||"—")}</td><td class="num">${Math.round(x.pr*100)}%</td></tr>`}).join("")}
           </tbody></table></div>`:`<p class="none">Aún no hay interesados activos.</p>`}
@@ -2736,6 +2744,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.rsem!=null){S.rendSem=Number(t.dataset.rsem);render();return}
   if(t.dataset.rref){rendLoad(true);return}
   if(t.dataset.sgt){S.sgf.tile=S.sgf.tile===t.dataset.sgt?"":t.dataset.sgt;render();return}
+  if(t.dataset.sgcap){S.sgf.capf=S.sgf.capf===t.dataset.sgcap?"":t.dataset.sgcap;render();if(S.sgf.capf)requestAnimationFrame(()=>{const l=document.getElementById("sgtbl");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   if(t.dataset.sgo){S.sgf.orig=t.dataset.sgo;render();return}
   if(t.dataset.sgreg){regSeg(t.dataset.sgreg,t);return}
   if(t.dataset.sgtel){sgSaveTel(t.dataset.sgtel,t);return}

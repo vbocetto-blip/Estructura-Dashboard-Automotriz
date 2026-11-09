@@ -229,6 +229,10 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .guide ol{margin:0;padding-left:20px;display:grid;gap:6px}
 /* Radar */
 .rbar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end}
+.greglasc{margin:8px 0 0;padding-left:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:2px 18px;font-size:13px}.gwhyc{margin:4px 2px 0;font-size:12px;color:var(--muted)}
+.rvc{gap:6px;margin-top:10px}.rvc button{padding:4px 11px!important;font-size:13px!important;min-height:0!important}
+.rsel{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.rsel label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 12px;font-size:12.5px;color:var(--muted)}.rsel select{border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--ink);font-weight:600;padding:2px 4px}
+.rmez{margin:8px 2px 0;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}.rmez .off b{color:var(--bad)}
 .rbarc{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start}
 .rwho{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:var(--sunk);font-size:14px;line-height:1.2}
 .rwho span{font-size:12px;color:var(--muted);font-weight:600}.rwho select{border:0;background:transparent;font:inherit;font-weight:700;padding:0;color:inherit}
@@ -1884,7 +1888,7 @@ function mezclaHtml(pend){
   const meta=(S.crit&&S.crit.tramos&&S.crit.tramos.mezcla)||{"24 horas":20,"Última semana":25,"20 a 30 días":30,"40 a 50 días":25};
   const conDato=pend.filter(r=>rTramo(r));if(!conDato.length)return "";
   const tot=pend.length;
-  return `<p class="remstrip">Mezcla por antigüedad (sin contactar): ${TRAMOS.map(([k,l])=>{const n=pend.filter(r=>rTramo(r)===k).length;return `<b>${l}</b> ${n} (${tot?Math.round(n/tot*100):0}% · meta ${meta[k]||0}%)`}).join(" · ")} · sin dato ${pend.filter(r=>!rTramo(r)).length}</p>`;
+  return `<p class="rmez" title="Porcentaje de los avisos sin contactar en cada tramo de antigüedad, contra la meta">Mezcla vs meta: ${TRAMOS.map(([k,l])=>{const n=pend.filter(r=>rTramo(r)===k).length,pc=tot?Math.round(n/tot*100):0,m=meta[k]||0;return `<span class="${Math.abs(pc-m)>10?"off":""}">${l} <b class="num">${pc}%</b>/${m}</span>`}).join("")}</p>`;
 }
 const rProx=r=>{if(r.proximaFecha)return r.proximaFecha;if(!r.ultimoContacto)return "";const x=pd(r.ultimoContacto);if(!x)return "";x.setDate(x.getDate()+1);return ds(x)};
 const seguirHoy=r=>{const n=rNivel(r),p=rProx(r);return (n===2||(n===0&&(Number(r.nContactos)||0)<3))&&!r.noContactar&&r.estadoAviso!=="no publicado"&&!!p&&p<=hoy()};
@@ -1981,11 +1985,14 @@ function vRadar(team){
   <section class="panel"><div class="rbarc">
     ${miNombre()?`<span class="rwho" title="Según tu correo"><span>Contacta</span><b>${esc(miNombre())}</b></span>`:`<label class="rwho" for="r_cons_${team}"><span>Contacta</span><select id="r_cons_${team}" data-rcons="1" ${ro}><option value="">— elige —</option>${uniq([...miembros,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></label>`}
     <details class="rmini" data-gopen="__rhow_${team}" ${S.gopen["__rhow_"+team]?"open":""}><summary>Cómo se trabaja</summary><p>${intro}</p></details>
-    <details class="rmini" data-gopen="__reglas" ${S.gopen.__reglas?"open":""}><summary>Cliente difícil · 8 reglas</summary><ol class="greglas">${GREGLAS.map(x=>`<li>${x}</li>`).join("")}</ol><p class="gwhy">Cada aviso trae su guion paso a paso con los datos de ese auto. Ábrelo antes de marcar.</p></details>
+    <details class="rmini" data-gopen="__reglas" ${S.gopen.__reglas?"open":""}><summary>Cliente difícil · 8 reglas</summary><ol class="greglasc">${GREGLAS_C.map(x=>`<li>${x}</li>`).join("")}</ol><p class="gwhyc">El guion de cada aviso está en su tarjeta: ábrelo antes de marcar.</p></details>
   </div>
-    <div class="chips">${vistas.map(([k,l])=>`<button type="button" data-rv="${k}" data-team="${team}" aria-pressed="${F.vista===k}">${l} <span class="num">${k==="todos"?all.length:cnt(k)}</span></button>`).join("")}</div>
-    <div class="chips">${[["","Todo el equipo"],["libres","Libres"],["mios","Míos"]].map(([k,l])=>`<button type="button" data-rq="${k}" data-team="${team}" aria-pressed="${F.quien===k}">${l}</button>`).join("")}<span style="width:12px"></span>${[["","Todo motor"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<button type="button" data-rm="${k}" data-team="${team}" aria-pressed="${F.motor===k}">${l}</button>`).join("")}</div>
-    <div class="chips">${[["","Toda antigüedad"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<button type="button" data-rtr="${k}" data-team="${team}" aria-pressed="${(F.tramo||"")===k}">${l} <span class="num">${k?all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length:""}</span></button>`).join("")}</div>
+    <div class="chips rvc">${vistas.map(([k,l])=>`<button type="button" data-rv="${k}" data-team="${team}" aria-pressed="${F.vista===k}">${l} <span class="num">${k==="todos"?all.length:cnt(k)}</span></button>`).join("")}</div>
+    <div class="rsel">
+      <label><span>Quién</span><select data-rqs="1" data-team="${team}">${[["","Todo el equipo"],["libres","Libres"],["mios","Míos"]].map(([k,l])=>`<option value="${k}" ${F.quien===k?"selected":""}>${l}</option>`).join("")}</select></label>
+      <label><span>Motor</span><select data-rms="1" data-team="${team}">${[["","Todos"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<option value="${k}" ${F.motor===k?"selected":""}>${l}</option>`).join("")}</select></label>
+      <label><span>Antigüedad</span><select data-rtrs="1" data-team="${team}">${[["","Toda"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<option value="${k}" ${(F.tramo||"")===k?"selected":""}>${l}${k?" ("+all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length+")":""}</option>`).join("")}</select></label>
+    </div>
     ${mezclaHtml(pend)}
     ${rfxHtml(team,baseArr,virt)}
   </section>
@@ -2584,6 +2591,7 @@ function pmRefresh(id){
 }
 
 /* ---------- Guion de llamada ---------- */
+const GREGLAS_C=["Pregunta, no contradigas.","Reconoce antes de corregir.","Di “el mercado muestra”, nunca “está caro”.","Pide permiso antes de la verdad incómoda.","Tras cada pregunta, calla 3 segundos.","Muestra que puedes irte.","Un objetivo: agendar la visita.","Nada inventado: compradores, ofertas ni plazos."];
 const GREGLAS=[
   "<b>No lo contradigas: pregúntale.</b> Lo que una persona orgullosa concluye sola, no lo discute.",
   "<b>Reconoce antes de corregir.</b> “Tú conoces tu auto mejor que nadie” abre la puerta a los datos.",
@@ -2885,6 +2893,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="fq"){S.filtro.q=e.target.value;const pos=e.target.selectionStart;render();const el=$("#fq");el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}}
 });
 document.addEventListener("change",e=>{
+  if(e.target.dataset&&(e.target.dataset.rqs||e.target.dataset.rms||e.target.dataset.rtrs)){const F=S.rf[e.target.dataset.team||"pres"];F[e.target.dataset.rqs?"quien":e.target.dataset.rms?"motor":"tramo"]=e.target.value;render();return}
   if(e.target.dataset&&e.target.dataset.rfx){const tm=e.target.dataset.team||"pres",X=rfx(tm);X[e.target.dataset.rfx]=String(e.target.value||"").trim();rfxSave(tm);S.gopen["rfx_"+tm]=true;render();return}
   if(e.target.dataset&&e.target.dataset.xs){S.xf[e.target.dataset.xs]=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.sgres){const k=e.target.dataset.sgres;(S.sgform[k]=S.sgform[k]||{}).res=e.target.value;return}

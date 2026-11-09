@@ -257,6 +257,7 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .racts a.btn{text-decoration:none;color:var(--ink)}
 .rreg{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--sunk);border-radius:8px;padding:8px}
 .rreg select,.rreg input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;min-width:0}
+.rfx{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.rfx summary{cursor:pointer;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}.rfxg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:10px 0}.rfxf{display:grid;gap:3px;font-size:12.5px;color:var(--muted)}.rfxf input,.rfxf select{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 9px;font:inherit;font-size:14px;min-width:0}
 .rreg select{flex:1 1 200px} .rreg input{flex:2 1 200px} .rreg input.rtel{flex:1 1 150px} .rreg input.rnom{flex:1 1 120px}
 .sgtel{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sgtel input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;flex:0 1 190px;min-width:0}
 .rlast{font-size:12.5px;color:var(--muted)}
@@ -1882,6 +1883,56 @@ function mezclaHtml(pend){
 }
 const rProx=r=>{if(r.proximaFecha)return r.proximaFecha;if(!r.ultimoContacto)return "";const x=pd(r.ultimoContacto);if(!x)return "";x.setDate(x.getDate()+1);return ds(x)};
 const seguirHoy=r=>{const n=rNivel(r),p=rProx(r);return (n===2||(n===0&&(Number(r.nContactos)||0)<3))&&!r.noContactar&&r.estadoAviso!=="no publicado"&&!!p&&p<=hoy()};
+/* ---------- Filtros personales del Radar (se guardan por consignador en este navegador) ---------- */
+const RFX_DEF={q:"",pmin:"",pmax:"",adesde:"",kmax:"",src:"",liq:"",smin:"",comuna:"",media:"",ord:""};
+const rfxKey=team=>"ansar_rfx_"+team+"_"+(rCons()||"");
+function rfx(team){S.rfx=S.rfx||{};const k=rfxKey(team);if(!S.rfx[k]){let v={};try{v=JSON.parse(lsGet(k)||"{}")}catch(_){}S.rfx[k]={...RFX_DEF,...v}}return S.rfx[k]}
+function rfxSave(team){lsSet(rfxKey(team),JSON.stringify(rfx(team)))}
+const rfxN=X=>Object.keys(RFX_DEF).filter(k=>k!=="ord"&&X[k]!=="").length;
+const rfxTxt=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+function rfxApply(arr,X,virt){
+  const n=v=>v===""||v==null?null:Number(String(v).replace(",","."));
+  if(X.q){const ws=rfxTxt(X.q).split(/\s+/).filter(Boolean);arr=arr.filter(r=>{const h=rfxTxt([r.marca,r.modelo,r.ver,r.comuna,r.anio].join(" "));return ws.every(w=>h.includes(w))})}
+  const pmin=n(X.pmin),pmax=n(X.pmax),ad=n(X.adesde),km=n(X.kmax),sm=n(X.smin);
+  if(pmin!=null)arr=arr.filter(r=>Number(r.precio)>=pmin*1e6);
+  if(pmax!=null)arr=arr.filter(r=>Number(r.precio)<=pmax*1e6);
+  if(ad!=null)arr=arr.filter(r=>Number(r.anio)>=ad);
+  if(km!=null)arr=arr.filter(r=>Number(r.km)<=km);
+  if(X.src)arr=arr.filter(r=>r.src===X.src);
+  if(X.liq)arr=arr.filter(r=>r.liq===X.liq);
+  if(X.comuna)arr=arr.filter(r=>rfxTxt(r.comuna).includes(rfxTxt(X.comuna)));
+  if(X.media==="con")arr=arr.filter(r=>Number(r.med)>0);
+  if(X.media==="sin")arr=arr.filter(r=>!(Number(r.med)>0));
+  if(sm!=null)arr=arr.filter(r=>Number(virt?r.rateC:r.puntaje)>=sm);
+  return arr;
+}
+function rfxSort(arr,X){
+  const pv=r=>Number(r.med)>0?Number(r.precio)/Number(r.med):9;
+  const S2={precio:(a,b)=>Number(a.precio)-Number(b.precio),precio_desc:(a,b)=>Number(b.precio)-Number(a.precio),km:(a,b)=>Number(a.km||9e9)-Number(b.km||9e9),anio:(a,b)=>Number(b.anio)-Number(a.anio),bajo:(a,b)=>pv(a)-pv(b),reciente:(a,b)=>String(b.fechaRadar||"").localeCompare(String(a.fechaRadar||""))}[X.ord];
+  return S2?arr.slice().sort(S2):arr;
+}
+function rfxHtml(team,all,virt){
+  const X=rfx(team),na=rfxN(X),t=esc(team);
+  const opt=(k,list,lab)=>`<label class="rfxf"><span>${lab}</span><select data-rfx="${k}" data-team="${t}"><option value="">Todas</option>${list.map(([v,l])=>`<option value="${esc(v)}" ${X[k]===v?"selected":""}>${esc(l)}</option>`).join("")}</select></label>`;
+  const inp=(k,lab,ph,type)=>`<label class="rfxf"><span>${lab}</span><input data-rfx="${k}" data-team="${t}" type="${type||"text"}" inputmode="${type==="number"?"decimal":"text"}" value="${esc(X[k])}" placeholder="${esc(ph)}" autocomplete="off"></label>`;
+  const srcs=[...new Set(all.map(r=>r.src).filter(Boolean))].sort().map(v=>[v,v]);
+  return `<details class="rfx" data-gopen="rfx_${t}" ${S.gopen["rfx_"+team]||na?"open":""}><summary><b>Mis filtros</b>${na?` · <span class="num">${na}</span> activo${na===1?"":"s"}`:""}${X.ord?" · orden personalizado":""} <span class="rdet" style="margin:0">se guardan para ${esc(String(rCons()||"este navegador").split(" ")[0])}</span></summary>
+   <div class="rfxg">
+    ${inp("q","Buscar","marca, modelo, versión o comuna")}
+    ${inp("pmin","Precio desde (millones)","ej. 8","number")}
+    ${inp("pmax","Precio hasta (millones)","ej. 20","number")}
+    ${inp("adesde","Año desde","ej. 2020","number")}
+    ${inp("kmax","Km hasta","ej. 80000","number")}
+    ${inp("smin",virt?"Rate mínimo":"Puntaje mínimo","ej. 70","number")}
+    ${inp("comuna","Comuna","ej. La Serena")}
+    ${opt("src",srcs,"Fuente")}
+    ${opt("liq",[["A","A · alta salida"],["B","B · media"],["C","C · baja"]],"Liquidez")}
+    ${opt("media",[["con","Con media de mercado"],["sin","Sin media"]],"Media")}
+    <label class="rfxf"><span>Ordenar por</span><select data-rfx="ord" data-team="${t}">${[["",virt?"Rate":"Puntaje"],["bajo","Más bajo la media"],["precio","Precio menor"],["precio_desc","Precio mayor"],["km","Menos km"],["anio","Año más nuevo"],["reciente","Más reciente en el radar"]].map(([v,l])=>`<option value="${v}" ${X.ord===v?"selected":""}>${l}</option>`).join("")}</select></label>
+   </div>
+   ${na||X.ord?`<button type="button" class="btn sm" data-rfxclr="${t}">Limpiar mis filtros</button>`:""}
+  </details>`;
+}
 function vRadar(team){
   const virt=team==="virt",F=S.rf[team],cons=rCons(),ro=S.canWrite?"":"disabled";
   const all=S.radar.filter(r=>!r.pedidoId&&(virt?esVirt(r):!esVirt(r)));
@@ -1893,9 +1944,11 @@ function vRadar(team){
   if(F.tramo)arr=arr.filter(r=>F.tramo==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===F.tramo);
   if(F.quien==="libres")arr=arr.filter(r=>rNivel(r)<0&&!rClaim(r)&&!r.noContactar&&r.estadoAviso!=="no publicado");
   if(F.quien==="mios")arr=arr.filter(r=>{const c=rClaim(r);return (c&&c.mine)||(!!cons&&r.consignador===cons)});
+  const X=rfx(team),nAntes=arr.length;arr=rfxApply(arr,X,virt);
   const sk=r=>Number(virt&&r.rateC!=null&&r.rateC!==""?r.rateC:r.puntaje)||0;
   const byScore=(a,b)=>sk(b)-sk(a)||(b.fechaRadar||"").localeCompare(a.fechaRadar||"");
   arr.sort(F.vista==="gest"||F.vista==="cerr"||KV[F.vista]?(a,b)=>(b.ultimoContacto||"").localeCompare(a.ultimoContacto||"")||byScore(a,b):F.vista==="hoy"?(a,b)=>rProx(a).localeCompare(rProx(b))||byScore(a,b):byScore);
+  if(X.ord)arr=rfxSort(arr,X);
   const hoyDocs=all.filter(r=>r.ultimoContacto===hoy());
   const porCons=groupBy(hoyDocs,r=>r.consignador).map(x=>`${esc(String(x.k).split(" ")[0])} ${x.n}`).join(" · ");
   const agen=all.filter(r=>rNivel(r)>=3).length,mand=all.filter(r=>rNivel(r)>=5).length;
@@ -1925,7 +1978,9 @@ function vRadar(team){
     <div class="chips">${[["","Todo el equipo"],["libres","Libres"],["mios","Míos"]].map(([k,l])=>`<button type="button" data-rq="${k}" data-team="${team}" aria-pressed="${F.quien===k}">${l}</button>`).join("")}<span style="width:12px"></span>${[["","Todo motor"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<button type="button" data-rm="${k}" data-team="${team}" aria-pressed="${F.motor===k}">${l}</button>`).join("")}</div>
     <div class="chips">${[["","Toda antigüedad"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<button type="button" data-rtr="${k}" data-team="${team}" aria-pressed="${(F.tramo||"")===k}">${l} <span class="num">${k?all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length:""}</span></button>`).join("")}</div>
     ${mezclaHtml(pend)}
+    ${rfxHtml(team,all,virt)}
   </section>
+  ${rfxN(X)?`<p class="rdet" style="margin:4px 2px">Mis filtros: se muestran <b class="num">${arr.length}</b> de <b class="num">${nAntes}</b> en esta vista.</p>`:""}
   ${KV[F.vista]?`<div id="rvkb" class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Mostrando: <b>${KV[F.vista][0]}</b> · ${arr.length}</span><button type="button" class="btn sm" data-rv="pend" data-team="${team}">Volver a Sin contactar</button></div>`:""}
   ${!S.radarLoaded&&S.db?`<p class="none">Cargando radar…</p>`:arr.length?`<div class="rlist">${arr.map(rCard).join("")}</div>`:`<div class="empty"><h3>${all.length?"Nada en esta vista":(virt?"Los primeros avisos llegan con la próxima carga del radar":"El radar está vacío")}</h3><p>${all.length?"Cambia el filtro para ver otros avisos.":virt?"Cada mañana hábil a las 9:50 llegan aquí avisos propios: particulares de la IV Región con motor Consignar y rate de consignación 70 o más, distintos de los del Radar.":"Cada mañana de lunes a viernes llegan aquí los avisos nuevos de particulares, con precio contra mercado y mensaje listo."}</p></div>`}`;
 }
@@ -2735,6 +2790,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.rv){S.rf[t.dataset.team||"pres"].vista=t.dataset.rv;render();return}
+  if(t.dataset.rfxclr){const tm=t.dataset.rfxclr;S.rfx[rfxKey(tm)]={...RFX_DEF};rfxSave(tm);render();return}
   if(t.dataset.rvk){const F=S.rf[t.dataset.team||"pres"];F.vista=t.dataset.rvk;F.quien="";F.motor="";F.tramo="";render();requestAnimationFrame(()=>{const l=document.getElementById("rvkb")||document.querySelector(".rlist")||document.querySelector("main .empty");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   if(t.dataset.ctdim){S.ctDim=t.dataset.ctdim;lsSet("ansar_ctdim",S.ctDim);render();return}
   if(t.dataset.ctsort){const k=t.dataset.ctsort;if(S.ctSort===k)S.ctDir=-(S.ctDir||-1);else{S.ctSort=k;S.ctDir=k==="k"?1:-1}render();return}
@@ -2820,6 +2876,7 @@ document.addEventListener("input",e=>{
   if(e.target.id==="fq"){S.filtro.q=e.target.value;const pos=e.target.selectionStart;render();const el=$("#fq");el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}}
 });
 document.addEventListener("change",e=>{
+  if(e.target.dataset&&e.target.dataset.rfx){const tm=e.target.dataset.team||"pres",X=rfx(tm);X[e.target.dataset.rfx]=String(e.target.value||"").trim();rfxSave(tm);S.gopen["rfx_"+tm]=true;render();return}
   if(e.target.dataset&&e.target.dataset.xs){S.xf[e.target.dataset.xs]=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.sgres){const k=e.target.dataset.sgres;(S.sgform[k]=S.sgform[k]||{}).res=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.sgprox){const k=e.target.dataset.sgprox;(S.sgform[k]=S.sgform[k]||{}).prox=e.target.value;return}
@@ -2843,7 +2900,7 @@ document.addEventListener("submit",e=>{if(e.target.id==="usrForm"){e.preventDefa
 
 /* Don't re-render under someone typing in a week form or the sheet */
 document.addEventListener("toggle",e=>{const d=e.target;if(!d||!d.dataset)return;if(d.dataset.popen)S.popen[d.dataset.popen]=d.open;if(d.dataset.gopen)S.gopen[d.dataset.gopen]=d.open},true);
-function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota)){S.pendingRender=true;return}if(a&&a.id&&a.id.startsWith("c_")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
+function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota)){S.pendingRender=true;return}if(a&&a.id&&a.id.startsWith("c_")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
 /* When someone else updated the list while you typed, refresh once you leave the field (never mid-click) */
 let ptrDown=false,lateT=null;
 document.addEventListener("pointerdown",()=>{ptrDown=true},true);

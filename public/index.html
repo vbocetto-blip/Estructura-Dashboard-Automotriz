@@ -1947,7 +1947,7 @@ function vRadar(team){
   if(F.tramo)arr=arr.filter(r=>F.tramo==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===F.tramo);
   if(F.quien==="libres")arr=arr.filter(r=>rNivel(r)<0&&!rClaim(r)&&!r.noContactar&&r.estadoAviso!=="no publicado");
   if(F.quien==="mios")arr=arr.filter(r=>{const c=rClaim(r);return (c&&c.mine)||(!!cons&&r.consignador===cons)});
-  const X=rfx(team),nAntes=arr.length;arr=rfxApply(arr,X,virt);
+  const X=rfx(team),nAntes=arr.length,baseArr=arr;arr=rfxApply(arr,X,virt);
   const sk=r=>Number(virt&&r.rateC!=null&&r.rateC!==""?r.rateC:r.puntaje)||0;
   const byScore=(a,b)=>sk(b)-sk(a)||(b.fechaRadar||"").localeCompare(a.fechaRadar||"");
   arr.sort(F.vista==="gest"||F.vista==="cerr"||KV[F.vista]?(a,b)=>(b.ultimoContacto||"").localeCompare(a.ultimoContacto||"")||byScore(a,b):F.vista==="hoy"?(a,b)=>rProx(a).localeCompare(rProx(b))||byScore(a,b):byScore);
@@ -1981,7 +1981,7 @@ function vRadar(team){
     <div class="chips">${[["","Todo el equipo"],["libres","Libres"],["mios","Míos"]].map(([k,l])=>`<button type="button" data-rq="${k}" data-team="${team}" aria-pressed="${F.quien===k}">${l}</button>`).join("")}<span style="width:12px"></span>${[["","Todo motor"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<button type="button" data-rm="${k}" data-team="${team}" aria-pressed="${F.motor===k}">${l}</button>`).join("")}</div>
     <div class="chips">${[["","Toda antigüedad"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<button type="button" data-rtr="${k}" data-team="${team}" aria-pressed="${(F.tramo||"")===k}">${l} <span class="num">${k?all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length:""}</span></button>`).join("")}</div>
     ${mezclaHtml(pend)}
-    ${rfxHtml(team,all,virt)}
+    ${rfxHtml(team,baseArr,virt)}
   </section>
   ${rfxN(X)?`<p class="rdet" style="margin:4px 2px">Mis filtros: se muestran <b class="num">${arr.length}</b> de <b class="num">${nAntes}</b> en esta vista.</p>`:""}
   ${KV[F.vista]?`<div id="rvkb" class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Mostrando: <b>${KV[F.vista][0]}</b> · ${arr.length}</span><button type="button" class="btn sm" data-rv="pend" data-team="${team}">Volver a Sin contactar</button></div>`:""}

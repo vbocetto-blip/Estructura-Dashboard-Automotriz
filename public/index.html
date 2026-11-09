@@ -81,6 +81,7 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .kpi .v{font-family:var(--f-display);font-size:32px;font-weight:700;line-height:1.05}
 .kpi .s{font-size:12.5px;color:var(--muted)}
 .kpi.hl{border-color:var(--accent);background:var(--accent-soft)}
+.kpib{font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}.kpib:hover{border-color:var(--accent)}.kpib:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.kpib[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-2px}
 
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:12px;min-width:0}
 .two{display:grid;grid-template-columns:1fr;gap:20px}
@@ -1823,7 +1824,7 @@ function rCard(r){
   const vsLbl=pct==null?"":pct===100?"en la "+mlab:(pct<100?(100-pct)+"% bajo":(pct-100)+"% sobre")+" la "+mlab;
   const vsCls=pct!=null&&pct<=90?"low":pct!=null&&pct>100?"high":"";
   const alt=rAlt(r),activo=g!=="nopub"&&!r.noContactar;
-  const last=rNivel(r)>=0?`<p class="rlast">Último contacto: <b>${esc(r.ultimoResultado||"")}</b> · ${fmtD(r.ultimoContacto)} · ${esc(r.consignador||"")}${Number(r.nContactos)>1?` · ${Number(r.nContactos)} contactos`:""}</p>`:"";
+  const last=rNivel(r)>=0?`<p class="rlast">Último contacto: <b>${esc(r.ultimoResultado||"")}</b> · ${fmtD(r.ultimoContacto)} · ${esc(r.consignador||"")}${Number(r.nContactos)>1?` · ${Number(r.nContactos)} contactos`:""}${seguirHoy(r)?` · <b style="color:var(--bad)">${rProx(r)<hoy()?"seguimiento vencido desde "+fmtD(rProx(r)):"seguimiento hoy"}</b>`:""}</p>`:"";
   const tag=cl?`<span class="pill claim${cl.mine?" mine":""}">${cl.mine?"Lo tienes tú":"Tomado por "+esc(cl.by)} · ${hace(cl.at)}</span>`:"";
   const claimBtn=!S.canWrite||!activo||rNivel(r)>=0?"":cl?(cl.mine?`<button type="button" class="btn" data-rfree="${id}">Soltar</button>`:""):`<button type="button" class="btn" data-rtake="${id}">Lo tomo</button>`;
   const copy=!activo||otro?"":r.pedidoId?`<button type="button" class="btn primary" data-rcopy="${id}" data-k="Pedido">Copiar mensaje: Cliente busca</button>`:(r.motor?`<button type="button" class="btn primary" data-rcopy="${id}" data-k="${esc(r.ruta==="Consignación por tiempo"||r.ruta==="Ajuste de precio"?r.ruta:r.motor)}">Copiar mensaje: ${esc(r.ruta==="Consignación por tiempo"||r.ruta==="Ajuste de precio"?r.ruta:r.motor)}</button><button type="button" class="btn" data-rcopy="${id}" data-k="${esc(alt)}">Alternativo: ${esc(alt)}</button>`:`<button type="button" class="btn" data-rcopy="${id}" data-k="Consignar">Copiar mensaje: Consignar</button>`);
@@ -1901,8 +1902,8 @@ function vRadar(team){
   ${S.radarErr?`<div class="banner">No se pudo cargar el radar (${esc(S.radarErr)}). Toca Actualizar.</div>`:""}
   ${virt&&!S.virtuales.length?`<div class="banner info">Marca quiénes son del equipo virtual en Equipo y reglas.</div>`:""}
   <div class="kpis">
-    <div class="kpi${cnt("hoy")?" hl":""}"><span class="l">Seguimiento hoy</span><span class="v num">${cnt("hoy")}</span><span class="s">próxima fecha vencida</span></div>
-    <div class="kpi"><span class="l">Sin contactar</span><span class="v num">${pend.length}</span><span class="s">${pend.length-tomados} libres · ${tomados} tomados</span></div>
+    <button type="button" class="kpi kpib${cnt("hoy")?" hl":""}" data-rvk="hoy" data-team="${team}" aria-pressed="${F.vista==="hoy"}" aria-label="Ver los ${cnt("hoy")} avisos con seguimiento para hoy"><span class="l">Seguimiento hoy</span><span class="v num">${cnt("hoy")}</span><span class="s">próxima fecha vencida · ver cuáles</span></button>
+    <button type="button" class="kpi kpib" data-rvk="pend" data-team="${team}" aria-pressed="${F.vista==="pend"}" aria-label="Ver los ${pend.length} avisos sin contactar"><span class="l">Sin contactar</span><span class="v num">${pend.length}</span><span class="s">${pend.length-tomados} libres · ${tomados} tomados · ver cuáles</span></button>
     <div class="kpi"><span class="l">Contactados hoy</span><span class="v num">${hoyDocs.length}</span><span class="s">${porCons||"nadie todavía"}</span></div>
     <div class="kpi"><span class="l">Tasaciones</span><span class="v num">${agen}</span><span class="s">agendadas o hechas</span></div>
     <div class="kpi hl"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">${virt?"virtuales":"desde el radar"}</span></div>
@@ -2724,6 +2725,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.rv){S.rf[t.dataset.team||"pres"].vista=t.dataset.rv;render();return}
+  if(t.dataset.rvk){const F=S.rf[t.dataset.team||"pres"];F.vista=t.dataset.rvk;F.quien="";F.motor="";F.tramo="";render();requestAnimationFrame(()=>{const l=document.querySelector(".rlist")||document.querySelector("main .empty");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   if(t.dataset.ctdim){S.ctDim=t.dataset.ctdim;lsSet("ansar_ctdim",S.ctDim);render();return}
   if(t.dataset.ctsort){const k=t.dataset.ctsort;if(S.ctSort===k)S.ctDir=-(S.ctDir||-1);else{S.ctSort=k;S.ctDir=k==="k"?1:-1}render();return}
   if(t.dataset.ctexp){ctSaveExp(t);return}

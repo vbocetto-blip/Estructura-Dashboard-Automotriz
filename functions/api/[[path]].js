@@ -5,7 +5,7 @@ import { reconocer, TIPOS } from "../../public/js/catalogo-autos.js";
 import { OPC as LW_OPC, perfilConsigna, puntaje as lwScore, normHorario, diasDisponibles, citaValida, ahoraChile, franjaDe } from "../../public/js/perfil-consigna.js";
 const VIRTUAL_RW = new Set(["virtual", "virtualLlamadas"]);
 const VIRTUAL_RO = new Set(["config/virtual", "config/jornada"]);
-const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra } });
+const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...extra } });
 const now = () => new Date().toISOString();
 
 let certCache = null, certAt = 0;
@@ -15,8 +15,9 @@ async function verifyAccess(request, env) {
   if (!tok || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return null;
   const [h, p, sig] = tok.split(".");
   if (!h || !p || !sig) return null;
-  const head = JSON.parse(new TextDecoder().decode(b64u(h)));
-  const pay = JSON.parse(new TextDecoder().decode(b64u(p)));
+  let head, pay;
+  try { head = JSON.parse(new TextDecoder().decode(b64u(h))); pay = JSON.parse(new TextDecoder().decode(b64u(p))); } catch { return null; }
+  if (!head || head.alg !== "RS256" || !pay || typeof pay.exp !== "number") return null;
   if (Date.now() - certAt > 3600e3 || !certCache) {
     const r = await fetch(`https://${env.ACCESS_TEAM_DOMAIN}/cdn-cgi/access/certs`);
     certCache = (await r.json()).keys; certAt = Date.now();
@@ -31,7 +32,7 @@ async function verifyAccess(request, env) {
   return String(pay.email || "").toLowerCase();
 }
 /* ---------- Login propio: correo + contraseña (PBKDF2) y sesión en cookie ---------- */
-const SES_DIAS = 14, MIN_PASS = 10;
+const SES_DIAS = 14, MIN_PASS = 10, PRIMER_ACCESO_H = 48;
 const hex = b => Array.from(new Uint8Array(b), x => x.toString(16).padStart(2, "0")).join("");
 const randHex = n => hex(crypto.getRandomValues(new Uint8Array(n)));
 async function hashPass(pass, saltHex) {
@@ -67,6 +68,8 @@ async function authRoutes(path, request, env) {
   const t = now();
   if (path === "primer-acceso") {
     if (!u || u.pass_hash) return json({ error: "no_disponible" }, 400);
+    const abierto = await env.DB.prepare("SELECT 1 FROM auditoria WHERE id=? AND (accion='reset_clave' OR (accion LIKE 'usuario_%' AND accion NOT LIKE '%_inactivo')) AND cuando>? LIMIT 1").bind(email, new Date(Date.now() - PRIMER_ACCESO_H * 3600e3).toISOString()).first();
+    if (!abierto) return json({ error: "no_disponible" }, 400);
     if (pass.length < MIN_PASS) return json({ error: "clave_corta", min: MIN_PASS }, 400);
     const salt = randHex(16), h = await hashPass(pass, salt);
     const r = await env.DB.prepare("UPDATE usuarios SET pass_hash=?, pass_salt=?, fallos=0, bloqueado_hasta=NULL WHERE email=? AND pass_hash IS NULL").bind(h, salt, email).run();
@@ -158,8 +161,10 @@ const statsDe = lista => {
     kmMediana: kms.length >= 3 ? pct(kms, .5) : null };
 };
 /* tipoCliente: el tipo que eligió el cliente cuando no reconocimos su modelo */
+let radarCache = null, radarAt = 0;
 export async function mercado(env, marca, modelo, anio, tipoCliente) {
-  const r = await env.DB.prepare("SELECT id, data FROM docs WHERE col IN ('radar','virtual') AND deleted=0").all();
+  if (!radarCache || Date.now() - radarAt > 300e3) { radarCache = await env.DB.prepare("SELECT id, data FROM docs WHERE col IN ('radar','virtual') AND deleted=0").all(); radarAt = Date.now(); }
+  const r = radarCache;
   const vistos = new Map();
   for (const row of r.results || []) { if (vistos.has(row.id)) continue; try { vistos.set(row.id, JSON.parse(row.data)); } catch {} }
   const todos = [...vistos.values()].filter(x => x && Number(x.precio) > 0).map(x => {
@@ -222,6 +227,8 @@ function canWrite(rol, col) {
   if (rol === "equipo") return col !== "config";
   return VIRTUAL_RW.has(col);
 }
+const URL_OK = /^https?:\/\//i;
+const limpiaUrls = (o, n = 0) => { if (!o || typeof o !== "object" || n > 6) return; for (const k of Object.keys(o)) { const v = o[k]; if (typeof v === "string") { if (/^(url|link|href|enlace)$/i.test(k) && v && !URL_OK.test(v.trim())) o[k] = ""; } else limpiaUrls(v, n + 1); } };
 const validName = s => typeof s === "string" && /^[A-Za-z0-9_\-.:@+~]{1,200}$/.test(s);
 
 export async function onRequest(ctx) {
@@ -317,6 +324,7 @@ export async function onRequest(ctx) {
       if (!validName(col) || !docs || typeof docs !== "object") continue;
       for (const [id, data] of Object.entries(docs)) {
         if (!validName(id) || !data || typeof data !== "object") continue;
+        limpiaUrls(data);
         stmts.push(env.DB.prepare("INSERT INTO docs (col,id,data,version,updated_at,updated_by,deleted) VALUES (?,?,?,1,?,?,0) ON CONFLICT(col,id) DO UPDATE SET data=excluded.data, version=docs.version+1, updated_at=excluded.updated_at, updated_by=excluded.updated_by, deleted=0").bind(col, id, JSON.stringify(data), t, u.email));
       }
     }
@@ -357,6 +365,7 @@ export async function onRequest(ctx) {
           data.consignador = u.nombre;
         }
       }
+      limpiaUrls(data);
       const s = JSON.stringify(data);
       if (s.length > 256 * 1024) return json({ error: "muy_grande" }, 413);
       if (body.mode === "update") {

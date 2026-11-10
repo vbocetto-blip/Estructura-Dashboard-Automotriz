@@ -2101,7 +2101,7 @@ function mezclaHtml(pend){
 const rProx=r=>{if(r.proximaFecha)return r.proximaFecha;if(!r.ultimoContacto)return "";const x=pd(r.ultimoContacto);if(!x)return "";x.setDate(x.getDate()+1);return ds(x)};
 const seguirHoy=r=>{const n=rNivel(r),p=rProx(r);return (n===2||(n===0&&(Number(r.nContactos)||0)<3))&&!r.noContactar&&r.estadoAviso!=="no publicado"&&!!p&&p<=hoy()};
 /* ---------- Filtros personales del Radar (se guardan por consignador en este navegador) ---------- */
-const RFX_DEF={q:"",trans:"",pmin:"",pmax:"",adesde:"",kmax:"",src:"",liq:"",smin:"",comuna:"",media:"",ord:""};
+const RFX_DEF={q:"",trans:"",pmin:"",pmax:"",adesde:"",kmax:"",src:"",sub:"",liq:"",smin:"",comuna:"",media:"",ord:""};
 const rfxKey=team=>"ansar_rfx_"+team+"_"+(rCons()||"");
 function rfx(team){S.rfx=S.rfx||{};const k=rfxKey(team);if(!S.rfx[k]){let v={};try{v=JSON.parse(lsGet(k)||"{}")}catch(_){}S.rfx[k]={...RFX_DEF,...v}}return S.rfx[k]}
 function rfxSave(team){lsSet(rfxKey(team),JSON.stringify(rfx(team)))}
@@ -2117,6 +2117,7 @@ function rfxApply(arr,X,virt){
   if(ad!=null)arr=arr.filter(r=>Number(r.anio)>=ad);
   if(km!=null)arr=arr.filter(r=>Number(r.km)<=km);
   if(X.src)arr=arr.filter(r=>r.src===X.src);
+  if(X.sub)arr=arr.filter(r=>r.subtema===X.sub);
   if(X.trans)arr=arr.filter(r=>X.trans==="sd"?!rTrans(r):rTrans(r)===X.trans);
   if(X.liq)arr=arr.filter(r=>r.liq===X.liq);
   if(X.comuna)arr=arr.filter(r=>rfxTxt(r.comuna).includes(rfxTxt(X.comuna)));
@@ -2202,6 +2203,7 @@ function vRadar(team){
       <label><span>Quién</span><select data-rqs="1" data-team="${team}">${[["","Todo el equipo"],["libres","Libres"],["mios","Míos"]].map(([k,l])=>`<option value="${k}" ${F.quien===k?"selected":""}>${l}</option>`).join("")}</select></label>
       <label><span>Motor</span><select data-rms="1" data-team="${team}">${[["","Todos"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<option value="${k}" ${F.motor===k?"selected":""}>${l}</option>`).join("")}</select></label>
       <button type="button" class="mkpbtn" data-rmkp="${team}" aria-pressed="${rfx(team).src==="Facebook Marketplace"}">⚑ Solo Marketplace <span class="num">${(F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista)).filter(r=>r.src==="Facebook Marketplace").length}</span></button>
+      <button type="button" class="mkpbtn" data-rsub="${team}" aria-pressed="${rfx(team).sub==="Alta Gama"}">◆ Alta Gama <span class="num">${(F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista)).filter(r=>r.subtema==="Alta Gama").length}</span></button>
       <label><span>Antigüedad</span><select data-rtrs="1" data-team="${team}">${[["","Toda"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<option value="${k}" ${(F.tramo||"")===k?"selected":""}>${l}${k?" ("+all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length+")":""}</option>`).join("")}</select></label>
     </div>
     ${mezclaHtml(pend)}
@@ -3020,6 +3022,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();if(S.view==="reloj")relojCargar(true);render();window.scrollTo(0,0);return}
   if(t.dataset.rv){S.rf[t.dataset.team||"pres"].vista=t.dataset.rv;render();return}
   if(t.dataset.rmkp){const tm=t.dataset.rmkp,X=rfx(tm);X.src=X.src==="Facebook Marketplace"?"":"Facebook Marketplace";rfxSave(tm);render();return}
+  if(t.dataset.rsub){const tm=t.dataset.rsub,X=rfx(tm);X.sub=X.sub==="Alta Gama"?"":"Alta Gama";rfxSave(tm);render();return}
   if(t.dataset.rfxclr){const tm=t.dataset.rfxclr;S.rfx[rfxKey(tm)]={...RFX_DEF};rfxSave(tm);render();return}
   if(t.dataset.rvk){const F=S.rf[t.dataset.team||"pres"];F.vista=t.dataset.rvk;F.quien="";F.motor="";F.tramo="";render();requestAnimationFrame(()=>{const l=document.getElementById("rvkb")||document.querySelector(".rlist")||document.querySelector("main .empty");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   if(t.dataset.ctdim){S.ctDim=t.dataset.ctdim;lsSet("ansar_ctdim",S.ctDim);render();return}

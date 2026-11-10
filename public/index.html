@@ -215,6 +215,7 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .mbar{display:flex;align-items:center;gap:8px;min-width:120px}
 .mbar i{display:block;height:8px;border-radius:4px;background:var(--accent);min-width:2px}
 .mbar span{font-size:12.5px;color:var(--muted)}
+.tbl tr.htot td{background:var(--sunk);font-weight:600}
 .insights{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
 .crow{display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px}
 .crow .cmain{flex:1;min-width:0;display:grid;gap:3px;background:none;border:0;text-align:left;padding:0}
@@ -1585,6 +1586,36 @@ function callAviso(c){
   </dl>`:`<p class="rdet">Este aviso ya no está en el radar; solo queda el enlace.</p>`;
   return `<div class="cav">${url?`<a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}<details class="cavd" data-gopen="cav_${esc(c._id)}" ${open?"open":""}><summary>Detalles del auto</summary>${det}</details></div>`;
 }
+/* ---------- Historial de llamadas por consignador: día, semana, mes e histórico ---------- */
+const HIST_PER=[["dia","Día","días"],["semana","Semana","semanas"],["mes","Mes","meses"],["historico","Histórico",""]];
+const lunesDe=f=>{const d=pd(f);if(!d||isNaN(d))return "";d.setDate(d.getDate()-((d.getDay()+6)%7));return ds(d)};
+function histLlamadas(F){
+  if(!S.segLoaded)return `<p class="none">Cargando historial…</p>`;
+  const P=HIST_PER.find(p=>p[0]===S.histPer)||HIST_PER[0],per=P[0];
+  let calls=(S.segCalls||[]).filter(c=>c.fecha);
+  if(F.equipo)calls=calls.filter(c=>equipoDe(c)===F.equipo);
+  if(F.cons)calls=calls.filter(c=>c.consignador===F.cons);
+  const keyOf={dia:c=>c.fecha.slice(0,10),semana:c=>lunesDe(c.fecha.slice(0,10)),mes:c=>c.fecha.slice(0,7),historico:()=>"todo"}[per];
+  const lab={dia:k=>{const d=pd(k);return (d&&!isNaN(d)?DIAS[d.getDay()].slice(0,3)+" ":"")+fmtD(k)},
+    semana:k=>{const d=pd(k);if(!d||isNaN(d))return k;const e=new Date(d);e.setDate(e.getDate()+6);return fmtD(k)+" – "+fmtD(ds(e))},
+    mes:k=>{const[y,mm]=k.split("-").map(Number);return (MESES[mm-1]||k)+" "+y},historico:()=>"Desde el inicio"}[per];
+  const m=new Map();calls.forEach(c=>{const k=keyOf(c);if(!k)return;if(!m.has(k))m.set(k,[]);m.get(k).push(c)});
+  const keys=[...m.keys()].sort().reverse();
+  const LIM={dia:10,semana:8,mes:12,historico:1}[per];
+  const vis=S.histAll?keys:keys.slice(0,LIM);
+  const chips=`<div class="chips" role="group" aria-label="Agrupar por">${HIST_PER.map(([k,l])=>`<button type="button" data-hper="${k}" aria-pressed="${per===k}">${l}</button>`).join("")}</div>`;
+  if(!keys.length)return chips+`<p class="none">Sin llamadas registradas${F.cons?" para "+esc(F.cons):""}.</p>`;
+  const grupos=vis.map(k=>({k,rows:groupBy(m.get(k),c=>c.consignador),tot:callStats(m.get(k))}));
+  const maxN=Math.max(1,...grupos.flatMap(g=>g.rows.map(r=>r.n)));
+  const celdas=r=>`<td class="num">${pct(r.cont,r.n)}%</td><td class="num">${r.int}</td><td class="num">${r.agen}</td><td class="num"><b>${r.mand}</b></td>`;
+  const body=grupos.map(g=>g.rows.map((r,i)=>`<tr><td>${i?"":esc(lab(g.k))}</td><td>${esc(r.k)}</td><td><div class="mbar"><i style="width:${r.n/maxN*100}%"></i><span class="num">${r.n}</span></div></td>${celdas(r)}</tr>`).join("")+
+    (g.rows.length>1?`<tr class="htot"><td></td><td>Equipo</td><td class="num"><b>${g.tot.n}</b></td>${celdas(g.tot)}</tr>`:"")).join("");
+  const desde=calls.reduce((a,c)=>!a||c.fecha<a?c.fecha:a,"");
+  return `${chips}
+   <div class="tbl"><table><thead><tr><th>${P[1]}</th><th>Consignador</th><th>Llamadas</th><th>Contestan</th><th>Interesados</th><th>Agendan tasación</th><th>Mandatos</th></tr></thead><tbody>${body}</tbody></table></div>
+   ${keys.length>LIM?`<p style="margin:10px 0 0"><button type="button" class="btn sm" data-hall="1">${S.histAll?"Ver solo los últimos "+LIM:"Ver los "+keys.length+" "+P[2]}</button></p>`:""}
+   <p class="zfoot">${calls.length} llamada${calls.length===1?"":"s"} registrada${calls.length===1?"":"s"} desde el ${fmtD(desde.slice(0,10))}. Usa los filtros de equipo y consignador de arriba; el mes y la semana seleccionados no cambian este historial. Cada paso incluye a los que llegaron más lejos, igual que el embudo.</p>`;
+}
 function vLlamadas(){
   if(!S.cf)S.cf=cfDefault();
   const mo=MONTHS[S.mes],ws=weeksOf(mo),F=S.callFiltro,cf=S.cf,ro=S.canWrite?"":"disabled";
@@ -1662,6 +1693,11 @@ function vLlamadas(){
 
   <section class="zone z-acc"><header class="zh"><span class="zn">3</span><div class="zt"><h2>Dónde poner la energía</h2><p>Lectura automática de las tablas del mes.</p></div></header>
     <div class="zb"><ul class="insights">${ins.join("")}</ul></div></section>
+
+  <details class="zone z-det" id="z-hist" data-gopen="call_hist" ${S.gopen.call_hist===false?"":"open"}>
+    <summary class="zh"><span class="zn">◷</span><div class="zt"><h2>Historial de llamadas</h2><p>Por consignador · día, semana, mes e histórico</p></div><span class="chev" aria-hidden="true">▾</span></summary>
+    <div class="zb">${(()=>{try{return histLlamadas(F)}catch(e){console.error("historial",e);return `<p class="none">No se pudo armar el historial. Toca Actualizar.</p>`}})()}</div>
+  </details>
 
   <details class="zone z-det" data-gopen="call_tablas" ${S.gopen.call_tablas===false?"":"open"}>
     <summary class="zh"><span class="zn">≡</span><div class="zt"><h2>Comparador por grupo</h2><p>Quién y qué convierte mejor · ordena por cualquier columna · cada lectura propone el experimento de la semana</p></div><span class="chev" aria-hidden="true">▾</span></summary>
@@ -3034,6 +3070,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.pfbe&&t.dataset.pfbid){if(S.db)S.db.collection("pilotoFeedback").doc(t.dataset.pfbid).update({estado:t.dataset.pfbe,updatedAt:new Date().toISOString(),updatedBy:S.uid||null}).then(()=>toast("Estado: "+t.dataset.pfbe)).catch(handleWriteErr);return}
   if(t.hasAttribute("data-callall")){S.gopen.call_all=!S.gopen.call_all;render();return}
   if(t.dataset.cdim){S.callDim=t.dataset.cdim;render();return}
+  if(t.dataset.hper){S.histPer=t.dataset.hper;S.histAll=false;render();return}
+  if(t.dataset.hall){S.histAll=!S.histAll;render();return}
   if(t.dataset.zjump){const z=document.getElementById(t.dataset.zjump);if(z&&z.tagName==="DETAILS")z.open=true;if(z)z.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});return}
   if(t.hasAttribute("data-resall")){S.gopen.res_alltodo=!S.gopen.res_alltodo;render();return}
   if(t.dataset.gofil){S.filtro.estado=t.dataset.gofil;S.view="autos";render();window.scrollTo(0,0);return}

@@ -147,7 +147,7 @@
       if (vis && now - ult < 600000) return "presente";
       return ""; };
     const tick = () => { const e = estado(); window.__ansarEstado = e || "pausa"; if (!e) return;
-      fetch("/api/latido", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ pagina: pag, estado: e }), keepalive: true }).catch(() => {}); };
+      fetch("/api/latido", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ pagina: (window.__ansarVista ? pag + ":" + window.__ansarVista : pag).slice(0, 20), estado: e }), keepalive: true }).catch(() => {}); };
     setInterval(tick, 60000); setTimeout(tick, 5000);
   }
   function logoutButton() {

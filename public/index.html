@@ -52,6 +52,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;backgroun
 nav.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
 nav.tabs button{border:0;background:none;padding:10px 12px;font-family:var(--f-display);font-size:18px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
 nav.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+nav.tabs .tabsep{flex:0 0 1px;align-self:stretch;margin:6px 6px;background:var(--line)}
 .status{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .dot.ok{background:var(--good)} .dot.err{background:var(--bad)}
@@ -693,18 +694,20 @@ main h2{transition:letter-spacing .6s var(--ease)}
       <button class="btn primary" id="btnNew" type="button">+ Ingresar auto</button>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
-      <button role="tab" data-v="resumen" aria-selected="true">Resumen</button>
-      <button role="tab" data-v="semanas" aria-selected="false">Semanas</button>
-      <button role="tab" data-v="autos" aria-selected="false">Autos</button>
+      <!-- Día a día primero; después del separador, gestión y revisión semanal. -->
+      <button role="tab" data-v="seguimiento" aria-selected="true">Seguimiento<span class="tabn" id="sgN" hidden></span></button>
       <button role="tab" data-v="radar" aria-selected="false">Radar</button>
+      <button role="tab" data-v="llamadas" aria-selected="false">Llamadas</button>
       <button role="tab" data-v="formulario" aria-selected="false">Formulario de Consignación<span class="tabn" id="lwN" hidden></span></button>
       <button role="tab" data-v="agenda" aria-selected="false">Agenda<span class="tabn" id="agN" hidden></span></button>
+      <span class="tabsep" aria-hidden="true"></span>
+      <button role="tab" data-v="resumen" aria-selected="false">Resumen</button>
+      <button role="tab" data-v="semanas" aria-selected="false">Semanas</button>
+      <button role="tab" data-v="autos" aria-selected="false">Autos</button>
       <button role="tab" data-v="virtual" aria-selected="false">Virtual</button>
       <button role="tab" data-v="express" aria-selected="false">Express</button>
-      <button role="tab" data-v="llamadas" aria-selected="false">Llamadas</button>
-      <button role="tab" data-v="seguimiento" aria-selected="false">Seguimiento<span class="tabn" id="sgN" hidden></span></button>
-      <button role="tab" data-v="equipo" aria-selected="false">Equipo y reglas</button>
       <button role="tab" data-v="piloto" aria-selected="false">Piloto</button>
+      <button role="tab" data-v="equipo" aria-selected="false">Equipo y reglas</button>
     </nav>
   </div>
 </header>
@@ -748,7 +751,7 @@ const LISTS={
 const optsHtml=arr=>arr.map(v=>`<option value="${esc(v)}"></option>`).join("");
 const MONTHS=[];for(let i=0;i<13;i++){const d=new Date(2026,10+i,1);MONTHS.push({y:d.getFullYear(),m:d.getMonth(),key:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")})}
 
-const S={autos:[],semanas:{},equipo:[],view:"resumen",mes:0,filtro:{q:"",estado:"Activos",resp:"",gaps:false,mod:""},canWrite:true,db:null,ready:false,llamadas:[],callFiltro:{sem:"",cons:"",equipo:""},cf:null,cfEdit:null,callMes:null,radar:[],radarMap:null,radarLoaded:false,radarErr:null,radarAt:null,rf:{pres:{vista:"pend",motor:"",quien:"",tramo:""},virt:{vista:"pend",motor:"",quien:"",tramo:""}},virtuales:[],crit:null,pedidos:[],xf:{texto:"",anioDesde:"",precioMax:"",combustible:"",carroceria:"",zona:"IV Región",notas:""},xCerr:false,remFired:new Set(),rform:{},flash:{},pm:{},popen:{},gopen:{},segCalls:[],segLoaded:false,segErr:null,segRut:{},sgf:{vista:"cola",orig:"radar",cons:""},sgform:{},sgMap:null,soloVirtual:false,isAdmin:false,presMap:null,virtMap:null,colLoaded:{},segPres:[],segVirt:[],callPres:[],callVirt:[]};
+const S={autos:[],semanas:{},equipo:[],view:"seguimiento",mes:0,filtro:{q:"",estado:"Activos",resp:"",gaps:false,mod:""},canWrite:true,db:null,ready:false,llamadas:[],callFiltro:{sem:"",cons:"",equipo:""},cf:null,cfEdit:null,callMes:null,radar:[],radarMap:null,radarLoaded:false,radarErr:null,radarAt:null,rf:{pres:{vista:"pend",motor:"",quien:"",tramo:""},virt:{vista:"pend",motor:"",quien:"",tramo:""}},virtuales:[],crit:null,pedidos:[],xf:{texto:"",anioDesde:"",precioMax:"",combustible:"",carroceria:"",zona:"IV Región",notas:""},xCerr:false,remFired:new Set(),rform:{},flash:{},pm:{},popen:{},gopen:{},segCalls:[],segLoaded:false,segErr:null,segRut:{},sgf:{vista:"cola",orig:"radar",cons:""},sgform:{},sgMap:null,soloVirtual:false,isAdmin:false,presMap:null,virtMap:null,colLoaded:{},segPres:[],segVirt:[],callPres:[],callVirt:[]};
 
 const pad=n=>String(n).padStart(2,"0");
 const ds=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
@@ -942,6 +945,7 @@ function render(){
   $(".brand small").textContent=S.soloVirtual?"Ansar Automotriz · La Serena · avisos de particulares IV Región":"Ansar Automotriz · La Serena · 2 nov 2026 – nov 2027";
   if(S.soloVirtual)S.view="virtual";
   document.querySelectorAll("#tabs button").forEach(b=>{b.setAttribute("aria-selected",String(b.dataset.v===S.view));b.hidden=S.soloVirtual&&b.dataset.v!=="virtual"});
+  window.__ansarVista=S.view;
   renderRail();
   const m=$("#main");
   const banners=[];

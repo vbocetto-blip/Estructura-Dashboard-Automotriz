@@ -1,6 +1,6 @@
-# Micelio Motor
+# Nexo Motor
 
-Micelio Motor: la red que mueve las consignaciones de una automotora. Primer cliente y piloto: Ansar Automotriz (La Serena). Autor y propietario: Luis Francisco (vbocetto).
+Nexo Motor: la red que mueve las consignaciones de una automotora. Primer cliente y piloto: Ansar Automotriz (La Serena). Autor y propietario: Luis Francisco (vbocetto).
 
 - `public/` · la página del tablero
   - Pestaña **Compradores**: registro de interesados en comprar (colección `compradores`), cruce automático con el stock en venta y canal de llegada.

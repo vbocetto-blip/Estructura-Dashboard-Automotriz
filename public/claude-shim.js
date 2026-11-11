@@ -104,7 +104,7 @@
     const box = document.createElement("div"); box.className = "lg";
     let modo = "login";
     const draw = () => {
-      box.innerHTML = `<form novalidate><h1>Micelio Motor</h1>
+      box.innerHTML = `<form novalidate><h1>Nexo Motor</h1>
         <p>${modo === "login" ? "Ingresa con tu correo y contraseña." : "Primer acceso: crea tu contraseña. Solo funciona para correos autorizados que aún no tienen una."}</p>
         <label for="lg_email">Correo<input id="lg_email" type="email" autocomplete="username" required></label>
         <label for="lg_pass">${modo === "login" ? "Contraseña" : "Contraseña nueva (mínimo 10 caracteres)"}<input id="lg_pass" type="password" autocomplete="${modo === "login" ? "current-password" : "new-password"}" required></label>

@@ -1112,7 +1112,8 @@ function monCargar(){
   Promise.all([q("llamadas"),q("virtualLlamadas")]).then(([a,b])=>{S.mon={at:Date.now(),min:R.min,calls:[...a,...b]};S.monBusy=false;safeRender()}).catch(()=>{S.monBusy=false});
 }
 function cadenaHtml(){
-  if(S.soloVirtual||!(SEC_DE[S.view]||S.view==="autos"))return "";
+  /* El monitoreo vive solo en Seguimiento: las demás pestañas quedan limpias para trabajar. */
+  if(S.soloVirtual||S.view!=="seguimiento")return "";
   if(!S.per)S.per=PER_TXT[lsGet("ansar_per")]?lsGet("ansar_per"):"dia";
   monCargar();
   const st=secStats(),R=perRango(),en=f=>!!f&&String(f).slice(0,10)>=R.desde&&String(f).slice(0,10)<=R.t;

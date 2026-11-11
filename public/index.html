@@ -1,4 +1,4 @@
-<!doctype html><html lang="es" data-theme="dark"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="es" data-theme="dark"><head><meta charset=utf8><script>try{if(localStorage.getItem("ansar_tema")==="light")document.documentElement.setAttribute("data-theme","light")}catch(_){}</script><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Micelio Motor</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
@@ -721,6 +721,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
       </div>
       <span class="status" id="status"><span class="dot"></span><span>Conectando…</span></span>
       <a class="btn" id="lnkPatio" href="/patio.html" hidden title="Mapa en vivo de autos entrando y saliendo">Patio en vivo</a><button class="btn" id="btnSync" type="button" title="Traer los datos más recientes">↻ Actualizar</button>
+      <button class="btn" id="btnTema" type="button" title="Cambiar entre modo oscuro y modo claro. Se guarda en este navegador.">☀ Modo claro</button>
       <button class="btn reloj" id="btnReloj" type="button" data-v="reloj" title="Tu reloj de gestión de hoy"><span class="rdot" id="relojDot"></span><span id="relojTxt">Mi reloj</span></button>
       <button class="btn primary" id="btnNew" type="button">+ Ingresar auto</button>
     </div>
@@ -1504,6 +1505,12 @@ const diaSem=c=>{const d=pd(c.fecha);return d?DIAS[d.getDay()]:""};
 const ORD_DIA=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo","Sin dato"];
 const lsGet=k=>{try{return localStorage.getItem(k)||""}catch(_){return ""}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}};
+/* ---------- Modo oscuro / claro: cada persona elige y se guarda en su navegador (oscuro por defecto) ---------- */
+const temaActual=()=>document.documentElement.getAttribute("data-theme")==="light"?"light":"dark";
+function temaPinta(){const b=document.getElementById("btnTema");if(!b)return;const osc=temaActual()==="dark";b.textContent=osc?"☀ Modo claro":"☾ Modo oscuro";b.setAttribute("aria-label",osc?"Cambiar a modo claro":"Cambiar a modo oscuro")}
+function temaCambia(){const n=temaActual()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);lsSet("ansar_tema",n);temaPinta()}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("#btnTema");if(b){e.preventDefault();temaCambia()}});
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",temaPinta);else temaPinta();
 function cfDefault(){return {consignador:rCons(),ruta:lsGet("ansar_ruta"),fuente:"",fecha:hoy(),telefono:"",contacto:"",perfil:"",marca:"",modelo:"",anio:"",precioPide:"",resultado:"",proximaFecha:"",notas:"",veh:""}}
 const CF_RG=[["Sin contacto",["No contesta","Número equivocado"],"rg0"],["Se cierra",["Contestó · no le interesa","Contestó · ya vendió","Pidió no ser contactado","Descartado"],"rg1"],["Avanza",["Interesado · seguimiento","Tiene prenda","Agendó tasación","Tasación hecha","Mandato firmado"],"rg2"]];
 const cfCierra=r=>!!r&&((NIVEL[r]??0)===1||(NIVEL[r]??0)>=5||r==="Número equivocado");

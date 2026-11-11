@@ -732,6 +732,11 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .cadena .cad-a{color:var(--bad);font-weight:600}
 .stockh{font-family:var(--f-display);font-size:18px;font-weight:700;margin:18px 0 8px}
 .secsel button{min-width:0}
+.manp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:0 0 6px}
+.manr{display:grid;gap:5px;padding:10px 0;border-top:1px solid var(--line)}
+.manl{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0 14px}.manl .manr:first-child{border-top:0}
+.man1{grid-template-columns:64px 1fr;column-gap:10px}.man1>*{grid-column:2}.man1 .mann{grid-column:1;grid-row:1/span 3;font-family:var(--f-display);font-weight:700;font-size:17px;color:var(--muted);align-self:start}
+.btn.manbtn{border:1px solid var(--good);color:var(--good)}.btn.armed{background:var(--warn);color:#000;border-color:var(--warn)}
 .rbus{display:flex;gap:8px;margin:12px 0}.rbus input{flex:1 1 auto;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:11px 14px;font:inherit;font-size:16px}.rbus input:focus{outline:2px solid var(--accent);outline-offset:1px}
 .rcita[hidden]{display:none}.rreg .rcita{flex:1 1 100%;flex-wrap:wrap}.rreg .rcita input{flex:0 0 auto}
 .tasp{background:var(--surface);border:1px solid var(--warn);border-radius:var(--r);padding:14px;margin:0 0 16px}
@@ -769,6 +774,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
       <button role="tab" data-v="llamadas" data-sec="consig" aria-selected="false">Llamadas</button>
       <button role="tab" data-v="formulario" data-sec="consig" aria-selected="false">Formulario de Consignación<span class="tabn" id="lwN" hidden></span></button>
       <button role="tab" data-v="agenda" data-sec="consig" aria-selected="false">Agenda<span class="tabn" id="agN" hidden></span></button>
+      <button role="tab" data-v="mandatos" data-sec="consig" aria-selected="false">Mandatos<span class="tabn" id="manN" hidden></span></button>
       <button role="tab" data-v="stock" data-sec="venta" aria-selected="false">Stock en venta</button>
       <button role="tab" data-v="compradores" data-sec="venta" aria-selected="false">Compradores<span class="tabn" id="bN" hidden></span></button>
       <span class="tabsep" aria-hidden="true"></span>
@@ -1013,7 +1019,7 @@ const SUBVISTAS={radar:[["radar","Radar piso"],["virtual","Radar virtual"],["exp
 /* ---------- Dos secciones: Consignación (captar autos) y Venta (venderlos) ----------
    Cada pestaña de trabajo pertenece a una sección; Autos, Resumen, Piloto y Equipo son compartidas.
    La "cadena" muestra los números reales de punta a punta y permite saltar de una sección a la otra. */
-const SEC_DE={seguimiento:"consig",radar:"consig",virtual:"consig",express:"consig",llamadas:"consig",formulario:"consig",agenda:"consig",stock:"venta",compradores:"venta"};
+const SEC_DE={seguimiento:"consig",radar:"consig",virtual:"consig",express:"consig",llamadas:"consig",formulario:"consig",agenda:"consig",mandatos:"consig",stock:"venta",compradores:"venta"};
 const SEC_INI={consig:"seguimiento",venta:"stock"};
 const SEC_TXT={consig:["Consignación","captar autos: avisos, llamadas, tasaciones y mandatos"],venta:["Venta","vender autos: stock, compradores y cierres"]};
 const secMem={};
@@ -1024,7 +1030,7 @@ function secStats(){
   const pend=R.filter(r=>rGrupo(r)==="pend").length,gest=R.filter(r=>rGrupo(r)==="gest").length;
   const tas=R.filter(r=>rNivel(r)>=3).length,manR=R.filter(r=>rNivel(r)>=5);
   /* Mandato del Radar que todavía no existe en Autos: el auto guarda el enlace del aviso en sus notas al crearse desde el Radar. */
-  const manSin=manR.filter(r=>!(r.url&&A.some(a=>String(a.notas||"").includes(r.url))));
+  const manSin=manR.filter(r=>!autoDeRadar(r));
   const porEntrar=A.filter(a=>["Tasación","Mandato pendiente"].includes(a.estado||"Tasación"));
   const stock=A.filter(a=>enVenta(a)||a.estado==="Reservado");
   const act=B.filter(bActivo),avanz=act.filter(b=>["Visita agendada","Probó el auto","Hizo oferta"].includes(b.estado));
@@ -1140,9 +1146,10 @@ function render(){
   if(S.offline)banners.push(`<div class="banner">${esc(S.offline)}</div>`);
   const rb=remBanners();if(rb)banners.push(rb);
   if(hoy()<INICIO&&(S.view==="resumen"||S.view==="semanas"))banners.push(`<div class="banner info">El registro oficial parte el <b>lunes 2 de noviembre de 2026</b>.</div>`);
-  m.innerHTML=banners.join("")+cadenaHtml()+subNav()+({stock:vStock,resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:()=>tasSinFechaHtml()+vAgenda(),virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto,reloj:vReloj,compradores:vCompradores}[S.view])();
+  m.innerHTML=banners.join("")+cadenaHtml()+subNav()+({stock:vStock,resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:()=>tasSinFechaHtml()+vAgenda(),mandatos:vMandatos,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto,reloj:vReloj,compradores:vCompradores}[S.view])();
   {const bn=$("#bN");if(bn){const n=(S.compradores||[]).filter(bDue).length;bn.textContent=n||"";bn.hidden=!n}}
   {const ln=$("#lwN");if(ln){const n=(S.leadsWeb||[]).filter(l=>!l.contactadoEn&&lwActivo(l)).length;ln.textContent=n||"";ln.hidden=!n}}
+  {const mn=$("#manN");if(mn){const n=S.radarLoaded?manLista().filter(x=>!x.a).length:0;mn.textContent=n||"";mn.hidden=!n}}
   {const an=$("#agN");if(an){const n=(S.agenda||[]).filter(c=>c.estado==="Por confirmar"&&c.fecha>=hoy()).length;an.textContent=n||"";an.hidden=!n}}
   const sgn=$("#sgN");if(sgn){const n=S.segLoaded?sgDue():0;sgn.textContent=n||"";sgn.hidden=!n}
   $("#rail").parentElement.hidden=S.soloVirtual||!(S.view==="resumen"||S.view==="semanas"||S.view==="llamadas");
@@ -2338,7 +2345,7 @@ function rCard(r){
      ${r.ver?`<p class="rver">${esc(r.ver)}</p>`:""}
      ${r.pros||r.contras?`<div class="rpc">${r.pros?`<div class="pro"><b>Pros</b>${esc(r.pros)}</div>`:""}${r.contras?`<div class="con"><b>Contras</b>${esc(r.contras)}</div>`:""}</div>`:""}
      ${r.ultimoResultado==="Tiene prenda"&&!r.noContactar?`<p class="rbusy">Con prenda: pide el certificado de anotaciones y el saldo de la deuda antes de tasar. Se puede consignar solo si el pago de la prenda queda resuelto en la venta; confírmalo en Ansar.</p>`:""}${last}${busy}
-     <div class="racts">${copy}${quick}${claimBtn}<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>${remCtl}${rNivel(r)>=3&&S.canWrite&&!S.soloVirtual?`<button type="button" class="btn" data-rauto="${id}">Pasar a Autos</button>`:""}${S.canWrite&&!S.soloVirtual&&activo&&!otro&&rNivel(r)<0&&!r.pedidoId?`<button type="button" class="btn ghost" data-rteam="${id}">${esVirt(r)?"Mover a Piso":"Mover a Virtual"}</button>`:""}</div>
+     <div class="racts">${copy}${quick}${claimBtn}<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>${remCtl}${rNivel(r)>=0&&rNivel(r)<5&&S.canWrite&&!S.soloVirtual&&!r.noContactar&&!r.pedidoId?`<button type="button" class="btn manbtn" data-rman="${id}">✓ Mandato firmado</button>`:""}${rNivel(r)>=3&&S.canWrite&&!S.soloVirtual?`<button type="button" class="btn" data-rauto="${id}">${rNivel(r)>=5&&!autoDeRadar(r)?"Ingresar a Autos":"Pasar a Autos"}</button>`:""}${S.canWrite&&!S.soloVirtual&&activo&&!otro&&rNivel(r)<0&&!r.pedidoId?`<button type="button" class="btn ghost" data-rteam="${id}">${esVirt(r)?"Mover a Piso":"Mover a Virtual"}</button>`:""}</div>
      ${reg}
      <details class="rmore" data-gopen="rm_${id}" ${S.gopen["rm_"+r._id]?"open":""}><summary>Más detalles</summary>${detalle}${guias}</details>
     </div>
@@ -2684,14 +2691,88 @@ function bVenta(bid,aid){
   openSheet(aid,{_bId:bid,estado:"Vendido",fechaVenta:a.fechaVenta||hoy(),comprador:a.comprador||b.nombre||"",canalVenta:a.canalVenta||(B_CANALES.includes(b.canal)?b.canal:"")});
   setTimeout(()=>{const el=$("#f_precioVenta");if(el){el.scrollIntoView({block:"center"});el.focus()}},60);
 }
-function rAuto(id){
+/* El auto que nació de un aviso del Radar: por el id guardado o, en los antiguos, por el enlace del aviso en sus notas. */
+const autoDeRadar=r=>(S.autos||[]).find(a=>a.radarId===r._id||(r.url&&String(a.notas||"").includes(r.url)));
+function rAuto(id,conMandato){
   const r=S.radar.find(x=>x._id===id);if(!r)return;
-  const v=lc(r.ver);
-  openSheet(null,{marca:r.marca||"",modelo:r.modelo||"",version:r.ver||"",anio:r.anio||"",km:r.km||"",precioPropietario:r.precio||"",propComuna:r.comuna||"",origen:"Portal de autos",responsable:r.consignador||rCons()||"",modalidad:esVirt(r)?MODALIDADES[2]:MODALIDADES[1],proximaAccion:esVirt(r)?"Confirmar día y hora de la visita y avisar al equipo en piso":"Confirmar visita y tasación",fechaProxima:(()=>{const x=pd(hoy());x.setDate(x.getDate()+1);return ds(x)})(),
+  const ya=autoDeRadar(r);if(ya){openSheet(ya._id);return}
+  const v=lc(r.ver),man=conMandato||rNivel(r)>=5;
+  openSheet(null,{_radarId:id,propNombre:r.contacto||"",propTelefono:r.telefono||"",...(man?{mandatoFirmado:true,fechaMandato:r.fechaMandato||(rNivel(r)>=5&&r.ultimoContacto)||hoy(),estado:"En preparación"}:{}),marca:r.marca||"",modelo:r.modelo||"",version:r.ver||"",anio:r.anio||"",km:r.km||"",precioPropietario:r.precio||"",propComuna:r.comuna||"",origen:"Portal de autos",responsable:r.consignador||rCons()||"",modalidad:esVirt(r)?MODALIDADES[2]:MODALIDADES[1],proximaAccion:man?"Preparar y publicar":esVirt(r)?"Confirmar día y hora de la visita y avisar al equipo en piso":"Confirmar visita y tasación",fechaProxima:(()=>{const x=pd(hoy());x.setDate(x.getDate()+1);return ds(x)})(),
     transmision:/manual/.test(v)?"Manual":/autom|cvt|dct/.test(v)?"Automática":"",combustible:/di[eé]sel|hdi|dci|tdi/.test(v)?"Diésel":"",
     notas:"Desde Radar ("+(r.src||"portal")+")"+(r.ultimoContacto?", contacto del "+fmtD(r.ultimoContacto):"")+": "+(r.url||"")});
 }
 
+/* ---------- Mandatos: marcar el mandato con un clic y llevar la lista en orden ----------
+   Marcar "Mandato firmado" registra la llamada, cierra el aviso en el Radar y abre la ficha para ingresarlo a Autos. */
+function manArma(btn,txt){
+  if(btn.classList.contains("armed"))return true;
+  btn.classList.add("armed");btn.dataset.txt=btn.textContent;btn.textContent=txt;
+  setTimeout(()=>{if(btn.isConnected&&btn.classList.contains("armed")){btn.classList.remove("armed");btn.textContent=btn.dataset.txt}},4500);return false;
+}
+async function mandatoFirmar(id,btn){
+  if(!S.db){toast("Sin conexión a la base del equipo");return}
+  const r=S.radar.find(x=>x._id===id);if(!r)return;
+  if(rNivel(r)>=5){rAuto(id,true);return}
+  const yo=rCons(),quien=r.consignador||yo;
+  if(!quien){toast("Elige quién contacta");return}
+  if(!manArma(btn,"Toca otra vez para confirmar el mandato"))return;
+  const fecha=hoy(),now=new Date().toISOString(),tel=String(r.telefono||"").trim();
+  const data={fecha,consignador:quien,ruta:"Propio",fuente:r.src||"Radar",telefono:tel,telefonoN:normTel(tel),contacto:r.contacto||"",perfil:r.perfil||"",marca:r.marca||"",modelo:r.modelo||"",anio:r.anio===""||r.anio==null?"":Number(r.anio),precioPide:Number(r.precio)||"",resultado:"Mandato firmado",nivel:5,proximaFecha:"",
+    notas:["Mandato firmado"+(yo&&yo!==quien?", lo marcó "+String(yo).split(" ")[0]:""),"Radar: "+(r.url||"")].join(" · "),noContactar:false,radarId:id,equipo:esVirt(r)?"Virtual":"Presencial",creadoPor:S.uid||null,creadoEn:now,updatedAt:now,updatedBy:S.uid||null};
+  btn.disabled=true;btn.textContent="Guardando…";
+  try{
+    const ref=S.db.collection(callCol(r)).doc();await ref.set(data);S.writeProbe=true;
+    await rRef(id).update({ultimoResultado:"Mandato firmado",nivel:5,ultimoContacto:fecha,fechaMandato:fecha,consignador:quien,ultimaLlamadaId:ref.id,proximaFecha:"",nContactos:(Number(r.nContactos)||0)+1,updatedAt:now,updatedBy:S.uid||null});
+    S.tas=null;S.mon=null;window.__ansarGestion=Date.now()+60000;
+    toast("Mandato registrado · completa la ficha para ingresarlo a Autos");rAuto(id,true);
+  }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
+}
+async function sgMandato(k,btn){
+  const g=S.sgMap&&S.sgMap.get(k);if(!g)return;
+  if(g.r){mandatoFirmar(g.r._id,btn);return}
+  if(!rCons()){toast("Elige quién contacta");const el=$("#sg_cons");if(el)el.focus();return}
+  if(!manArma(btn,"Toca otra vez para confirmar el mandato"))return;
+  const c=g.last,pre={marca:c.marca||"",modelo:c.modelo||"",anio:c.anio||"",propNombre:g.nom||"",propTelefono:g.tel||"",precioPropietario:c.precioPide||"",responsable:c.consignador||"",mandatoFirmado:true,fechaMandato:hoy(),estado:"En preparación",proximaAccion:"Preparar y publicar",notas:"Desde Seguimiento, mandato del "+fmtD(hoy())+(c.fuente?" ("+c.fuente+")":"")};
+  S.sgform[k]={...(S.sgform[k]||{}),res:"Mandato firmado",prox:""};
+  await regSeg(k,btn);S.mon=null;openSheet(null,pre);
+}
+/* Lista de mandatos en orden de firma: los del Radar (nivel 5) más los autos con mandato que no vienen del Radar. */
+function manLista(){
+  const out=[],usados=new Set();
+  (S.radar||[]).filter(r=>!r.pedidoId&&rNivel(r)>=5).forEach(r=>{const a=autoDeRadar(r);if(a)usados.add(a._id);
+    out.push({k:"r_"+r._id,f:String(r.fechaMandato||r.ultimoContacto||"").slice(0,10),auto:[r.marca,r.modelo,r.anio].filter(Boolean).join(" "),det:[r.ver,r.km?Number(r.km).toLocaleString("es-CL")+" km":"",r.comuna].filter(Boolean).join(" · "),quien:r.consignador||"",origen:"Radar · "+(r.src||""),r,a})});
+  (S.autos||[]).filter(a=>a.mandatoFirmado&&!usados.has(a._id)).forEach(a=>out.push({k:"a_"+a._id,f:String(a.fechaMandato||a.fechaIngreso||"").slice(0,10),auto:[a.marca,a.modelo,a.anio].filter(Boolean).join(" "),det:[a.patente?fmtPat(a.patente):"",a.version].filter(Boolean).join(" · "),quien:a.responsable||"",origen:a.origen||"Ingreso directo",a}));
+  out.sort((x,y)=>x.f.localeCompare(y.f)||x.k.localeCompare(y.k));out.forEach((x,i)=>x.n=i+1);
+  return out;
+}
+function vMandatos(){
+  const L=manLista(),falta=L.filter(x=>!x.a),mes=hoy().slice(0,7),delMes=L.filter(x=>x.f.slice(0,7)===mes).length;
+  const Q=String(S.manQ||"").trim(),GN={pend:"sin contactar",gest:"en gestión",prenda:"con prenda",cerr:"cerrado",nopub:"ya no publicado"};
+  const base=(S.radar||[]).filter(r=>!r.pedidoId&&rNivel(r)<5&&!r.noContactar);
+  let cand;
+  if(Q.length>=2){const ws=rfxTxt(Q).split(/\s+/).filter(Boolean);
+    cand=base.filter(r=>{const h=rfxTxt([r.marca,r.modelo,r.ver,r.anio,r.comuna,r.contacto,r.consignador,r._id,r.url].join(" "))+" "+String(r.telefonoN||r.telefono||"").replace(/\D/g,"");return ws.every(w=>h.includes(w))})}
+  else cand=base.filter(r=>rNivel(r)>=2&&rGrupo(r)!=="cerr");
+  cand=cand.sort((a,b)=>rNivel(b)-rNivel(a)||String(b.ultimoContacto||"").localeCompare(String(a.ultimoContacto||""))).slice(0,15);
+  const k=(l,v,s2,hl)=>`<div class="kpi${hl?" hl":""}"><span class="l">${l}</span><span class="v num">${v}</span><span class="s">${s2}</span></div>`;
+  const fila=r=>{const id=esc(r._id);return `<div class="manr"><span><b>${esc([r.marca,r.modelo,r.anio].filter(Boolean).join(" "))}</b> · ${esc([r.ver,r.km?Number(r.km).toLocaleString("es-CL")+" km":"",r.precio?clp(r.precio):"",r.comuna].filter(Boolean).join(" · "))}</span>
+      <span class="rdet">${esc([GN[rGrupo(r)]||"",r.ultimoResultado||"",r.consignador?"lo lleva "+String(r.consignador).split(" ")[0]:"",r.ultimoContacto?"último contacto "+fmtD(r.ultimoContacto):"",r.contacto||""].filter(Boolean).join(" · "))}</span>
+      <div class="racts">${S.canWrite?`<button type="button" class="btn primary" data-rman="${id}">✓ Mandato firmado</button>`:""}${r.url?`<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}</div></div>`};
+  return `<section class="sec-head"><h2>Mandatos firmados</h2><p>La lista ordenada de los autos que firmaron. Marca el mandato con un clic y se suma solo; después se ingresa a Autos para que Venta lo vea.</p></section>
+  <div class="kpis" style="margin-bottom:14px">${k("Mandatos firmados",L.length,delMes+" este mes",true)}${k("Ya en Autos",L.length-falta.length,"listos para Venta")}${k("Falta ingresar a Autos",falta.length,falta.length?"Venta todavía no los ve":"todo al día",!!falta.length)}</div>
+  <section class="panel manp"><h2 class="stockh" style="margin-top:0">Registrar un mandato nuevo</h2>
+    <div class="rbus" style="margin:8px 0"><input type="search" id="manq" data-manq="1" value="${esc(Q)}" placeholder="Busca el vehículo que firmó: marca, modelo, año, dueño o teléfono" aria-label="Buscar el vehículo que firmó mandato" autocomplete="off"></div>
+    <p class="rdet" style="margin:0 0 6px">${Q.length>=2?`${cand.length} ${cand.length===1?"aviso calza":"avisos calzan"} con “${esc(Q)}”${cand.length===15?" (se muestran 15; afina la búsqueda)":""}.`:(cand.length?"Los más avanzados: interesados y tasaciones. Si el que firmó no está aquí, búscalo arriba.":"No hay interesados ni tasaciones abiertas. Busca el vehículo arriba.")}</p>
+    ${cand.map(fila).join("")}
+    ${Q.length>=2&&!cand.length?`<p class="rdet">Si el auto no vino del Radar, ingrésalo con <b>+ Ingresar auto</b> y marca “Mandato firmado” en su ficha: aparece en esta lista igual.</p>`:""}
+  </section>
+  <h2 class="stockh">En orden de firma · ${L.length}</h2>
+  ${L.length?`<div class="manl">${L.slice().reverse().map(x=>`<div class="manr man1"><span class="mann num">N° ${x.n}</span>
+      <span><b>${esc(x.auto||"Auto sin datos")}</b>${x.det?" · "+esc(x.det):""}</span>
+      <span class="rdet">${esc([x.f?"firmó el "+fmtD(x.f):"sin fecha de firma",x.quien?String(x.quien).split(" ")[0]:"",x.origen].filter(Boolean).join(" · "))}</span>
+      <div class="racts">${x.a?`<span class="pill st-Vendido">En Autos · ${esc(x.a.estado||"Tasación")}</span><button type="button" class="btn" data-open="${esc(x.a._id)}">Ver auto</button>`:`<span class="pill gap h">Falta ingresar a Autos</span>${S.canWrite?`<button type="button" class="btn primary" data-rauto="${esc(x.r._id)}">Ingresar a Autos</button>`:""}`}${x.r&&x.r.url?`<a class="btn" href="${esc(x.r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}</div></div>`).join("")}</div>`
+    :`<div class="empty"><h3>Todavía no hay mandatos firmados</h3><p>Cuando un dueño firme, búscalo arriba y toca “Mandato firmado”.</p></div>`}`;
+}
 /* ---------- Seguimiento de interesados (se alimenta de Llamadas) ---------- */
 const SG_PRIOR={2:.15,3:.35,4:.55},SG_K=10;
 const SG_ET={2:"Interesado",3:"Tasación agendada",4:"Tasación hecha"};
@@ -2793,7 +2874,7 @@ function sgCard(x){
     ${x.why.length?`<p class="rbusy">${x.why.map(esc).join(" · ")}</p>`:""}
     ${nota?`<p class="rdet">Última nota: ${esc(nota)}</p>`:""}
     <p class="rdet">Puntaje: ${esc(x.sc.det)}</p>
-    <div class="racts">${r&&r.url?`<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}${g.etapa>=3&&S.canWrite?`<button type="button" class="btn" data-sgauto="${esc(g.k)}">Pasar a Autos</button>`:""}</div>
+    <div class="racts">${r&&r.url?`<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}${g.etapa<5&&S.canWrite&&!S.soloVirtual?`<button type="button" class="btn manbtn" data-sgman="${esc(g.k)}">✓ Mandato firmado</button>`:""}${g.etapa>=3&&S.canWrite?`<button type="button" class="btn" data-sgauto="${esc(g.k)}">Pasar a Autos</button>`:""}</div>
     ${reg}${r?pmHtml(r):""}${hist}
    </div></article>`;
 }
@@ -3438,7 +3519,7 @@ function fbToggle(open){const b=$("#fbBox"),k=$("#btnFb");if(!b)return;b.hidden=
 async function fbSend(btn){
   const ta=$("#fbTxt"),txt=ta?ta.value.trim():"";if(!txt){toast("Escribe la sugerencia");return}
   if(!S.db){toast("Sin conexión a la base del equipo");return}
-  const VN={seguimiento:"Seguimiento",radar:"Radar",virtual:"Radar virtual",express:"Búsqueda express",llamadas:"Llamadas",formulario:"Formulario",agenda:"Agenda",compradores:"Compradores",stock:"Stock en venta",resumen:"Resumen",semanas:"Semanas",autos:"Autos",piloto:"Piloto",equipo:"Equipo y reglas",reloj:"Mi reloj"};
+  const VN={seguimiento:"Seguimiento",radar:"Radar",virtual:"Radar virtual",express:"Búsqueda express",llamadas:"Llamadas",formulario:"Formulario",agenda:"Agenda",compradores:"Compradores",stock:"Stock en venta",mandatos:"Mandatos",resumen:"Resumen",semanas:"Semanas",autos:"Autos",piloto:"Piloto",equipo:"Equipo y reglas",reloj:"Mi reloj"};
   btn.disabled=true;
   try{await S.db.collection("pilotoFeedback").doc().set({fecha:hoy(),quien:rCons()||"",etapa:"Otro",texto:"[Panel · "+(VN[S.view]||S.view)+"] "+txt,propuesta:"",estado:"Nuevo",origen:"panel",vista:S.view,creadoEn:new Date().toISOString(),creadoPor:S.uid||null});
     S.writeProbe=true;ta.value="";fbToggle(false);toast("Gracias. Quedó anotado para la revisión del lunes.")}
@@ -3518,7 +3599,8 @@ async function saveAuto(){
   if(o.estado==="Retirado"&&!o.fechaRetiro)o.fechaRetiro=hoy();
   if(o.mandatoFirmado&&!o.fechaMandato)o.fechaMandato=hoy();
   if(o.rentaDiaria&&!o.inicioBono)o.inicioBono=o.fechaPublicacion||o.fechaIngreso||hoy();
-  const keep=editing.id?{creadoPor:editing.orig.creadoPor||S.uid||null,creadoEn:editing.orig.creadoEn||new Date().toISOString()}:{creadoPor:S.uid||null,creadoEn:new Date().toISOString()};
+  const rid=editing.orig&&(editing.orig.radarId||editing.orig._radarId);
+  const keep={...(editing.id?{creadoPor:editing.orig.creadoPor||S.uid||null,creadoEn:editing.orig.creadoEn||new Date().toISOString()}:{creadoPor:S.uid||null,creadoEn:new Date().toISOString()}),...(rid?{radarId:rid}:{})};
   const data={...keep,...o,updatedAt:new Date().toISOString(),updatedBy:S.uid||null};
   const btn=$("#btnSave");btn.disabled=true;btn.textContent="Guardando…";
   try{
@@ -3526,6 +3608,7 @@ async function saveAuto(){
     await ref.set(data);
     const o2=editing.orig||{},eraNuevo=!editing.id;
     if(o2._agId)S.db.collection("agenda").doc(o2._agId).update({autoId:ref.id}).catch(()=>{});
+    if(o2._radarId&&eraNuevo&&S.radarMap&&S.radarMap[o2._radarId])rRef(o2._radarId).update({autoId:ref.id,updatedAt:new Date().toISOString()}).catch(()=>{});
     if(o2._bId)S.db.collection("compradores").doc(o2._bId).update({ventaAutoId:ref.id,updatedAt:new Date().toISOString()}).catch(()=>{});
     closeSheet();toast(o2._bId?"Venta cerrada y enlazada al comprador":eraNuevo?"Auto guardado":"Cambios guardados");
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
@@ -3556,6 +3639,8 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
   if(t.dataset.per&&PER_TXT[t.dataset.per]){S.per=t.dataset.per;lsSet("ansar_per",S.per);render();return}
+  if(t.dataset.rman){mandatoFirmar(t.dataset.rman,t);return}
+  if(t.dataset.sgman){sgMandato(t.dataset.sgman,t);return}
   if(t.dataset.rbusclr){(S.rbus=S.rbus||{})[t.dataset.rbusclr]="";render();const el=document.getElementById("rbus_"+t.dataset.rbusclr);if(el)el.focus();return}
   if(t.dataset.tasfix){tasFix(t.dataset.tasfix,false,t);return}
   if(t.dataset.tasno){tasFix(t.dataset.tasno,true,t);return}
@@ -3650,6 +3735,7 @@ document.addEventListener("click",e=>{if(e.target.id==="sheet")closeSheet()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&editing)closeSheet();if(e.key==="Enter"&&!e.isComposing&&e.target&&e.target.tagName==="INPUT"&&e.target.id!=="c_veh"&&e.target.closest&&e.target.closest("#callForm")){e.preventDefault();saveCall()}});
 document.addEventListener("input",e=>{
   if(e.target.dataset&&e.target.dataset.sgnota){(S.sgform[e.target.dataset.sgnota]=S.sgform[e.target.dataset.sgnota]||{}).nota=e.target.value;return}
+  if(e.target.dataset&&e.target.dataset.manq){S.manQ=e.target.value;clearTimeout(S.rbusT);S.rbusT=setTimeout(()=>{render();const el=document.getElementById("manq");if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(_){}}},280);return}
   if(e.target.dataset&&e.target.dataset.rbus){const tm=e.target.dataset.rbus;(S.rbus=S.rbus||{})[tm]=e.target.value;clearTimeout(S.rbusT);S.rbusT=setTimeout(()=>{render();const el=document.getElementById("rbus_"+tm);if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(_){}}},280);return}
   if(e.target.dataset&&e.target.dataset.rtel){const id=e.target.dataset.rtel;(S.rform[id]=S.rform[id]||{}).tel=e.target.value;const r=S.radarMap&&S.radarMap[id];if(r){pmState(r).tel=e.target.value;waSync(id);const pi=document.getElementById("p_tel_"+id);if(pi&&pi!==e.target)pi.value=e.target.value}return}
   if(e.target.dataset&&e.target.dataset.rnom){const id=e.target.dataset.rnom;(S.rform[id]=S.rform[id]||{}).nom=e.target.value;return}
@@ -3706,7 +3792,7 @@ document.addEventListener("submit",e=>{if(e.target.id==="usrForm"){e.preventDefa
 
 /* Don't re-render under someone typing in a week form or the sheet */
 document.addEventListener("toggle",e=>{const d=e.target;if(!d||!d.dataset)return;if(d.dataset.popen)S.popen[d.dataset.popen]=d.open;if(d.dataset.gopen)S.gopen[d.dataset.gopen]=d.open},true);
-function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota||a.dataset.rcf||a.dataset.rch||a.dataset.sghora||a.dataset.rbus)){S.pendingRender=true;return}if(a&&a.id&&(a.id.startsWith("c_")||a.id.startsWith("b_")||a.id.startsWith("tf_")||a.id.startsWith("th_")||a.id==="pmeta")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
+function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota||a.dataset.rcf||a.dataset.rch||a.dataset.sghora||a.dataset.rbus||a.dataset.manq)){S.pendingRender=true;return}if(a&&a.id&&(a.id.startsWith("c_")||a.id.startsWith("b_")||a.id.startsWith("tf_")||a.id.startsWith("th_")||a.id==="pmeta")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
 /* When someone else updated the list while you typed, refresh once you leave the field (never mid-click) */
 let ptrDown=false,lateT=null;
 document.addEventListener("pointerdown",()=>{ptrDown=true},true);

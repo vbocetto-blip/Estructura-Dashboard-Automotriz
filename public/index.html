@@ -704,6 +704,12 @@ main h2{transition:letter-spacing .6s var(--ease)}
 @keyframes micResp{0%,100%{opacity:1}50%{opacity:.8}}
 @media (prefers-reduced-motion:reduce){#micelio{transition:none}#micelio.on{animation:none}}
 @media print{#micelio{display:none}}
+/* ===== Sugerir mejora: botón flotante, visible en todas las pestañas ===== */
+#fbHost{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:15;display:grid;justify-items:end;gap:8px}
+#fbHost .fbbtn{box-shadow:0 2px 10px rgba(0,0,0,.35);font-size:13px;padding:7px 14px;opacity:.82}
+#fbHost .fbbtn:hover{opacity:1}
+#fbBox{width:min(340px,calc(100vw - 28px));box-shadow:0 8px 30px rgba(0,0,0,.45)!important}
+#fbBox textarea{width:100%;min-height:84px;resize:vertical;border:1px solid var(--line);background:var(--sunk);color:inherit;border-radius:10px;padding:8px 10px;font:inherit}
 </style>
 
 <header class="top">
@@ -1124,7 +1130,7 @@ function vResumen(){
   const zhead=(z,n,tit,obj,meta)=>`<header class="zh"><span class="zn">${n}</span><div class="zt"><h2>${tit}</h2><p>${obj}</p></div>${meta?`<span class="zmeta">${meta}</span>`:""}</header>`;
   const fix=(n,l)=>`<span class="fix${n?" on":""}"><b class="num">${n}</b>${l}</span>`;
 
-  return `<section class="sec-head res-head"><h2>${mesNom} ${mo.y}</h2><p>Cifras del mes seleccionado · stock, alertas y embudo, a hoy ${fmtD(t)}</p></section>
+  return `<section class="sec-head res-head"><h2>${mesNom} ${mo.y}</h2><p>Cifras del mes seleccionado · stock, alertas y embudo, a hoy ${fmtD(t)}</p><button type="button" class="btn sm" data-cierre title="Copia el resumen de hoy para pegarlo en el grupo del equipo">Copiar cierre del día</button></section>
   <nav class="pulse" aria-label="Pulso de consignación">
     ${tile("hoy","z-hoy","Actuar hoy",nAlert,nAlert?`auto${nAlert===1?"":"s"} con pendientes`:"todo al día",nAlert>0)}
     ${tile("cap","z-cap","Mandatos del mes",st.man.length,`de ${st.ing.length} tasado${st.ing.length===1?"":"s"} · conversión ${conv===null?"—":Math.round(conv*100)+"%"}`)}
@@ -3083,7 +3089,7 @@ async function saveBuyer(){
   const data={...(prev?Object.fromEntries(Object.entries(prev).filter(([k])=>k!=="_id")):{estado:"Nuevo",vendedor:rCons()||"",creadoEn:now,creadoPor:S.uid||null}),
     nombre:nombreB,telefono:tn?telFmt(f.telefono):"",canal:f.canal||"",busca:String(f.busca||"").trim(),autoId:f.autoId||"",presupuesto:parsePrecio(f.presupuesto),pago:f.pago||"",proximaFecha:f.proximaFecha||"",notas:String(f.notas||"").trim(),consentimiento:!!f.consentimiento,updatedAt:now,updatedBy:S.uid||null};
   const btn=$("#btnBSave");if(btn){btn.disabled=true;btn.textContent="Guardando…"}
-  try{const ref=S.bfEdit?S.db.collection("compradores").doc(S.bfEdit):S.db.collection("compradores").doc();await ref.set(data);S.writeProbe=true;toast(S.bfEdit?"Cambios guardados":"Comprador registrado");S.bfEdit=null;S.bf=bfDefault();S.gopen.b_form=false;render()}
+  try{const ref=S.bfEdit?S.db.collection("compradores").doc(S.bfEdit):S.db.collection("compradores").doc();await ref.set(data);S.writeProbe=true;const ms=bMatch(data);toast(S.bfEdit?"Cambios guardados":ms.length?`Registrado. Calza con ${ms.length} auto${ms.length===1?"":"s"} en venta: ${nombre(ms[0])}${ms.length>1?" y más":""}.`:"Comprador registrado. Hoy nada en stock calza; queda en lista.");S.bfEdit=null;S.bf=bfDefault();S.gopen.b_form=false;render()}
   catch(e){if(btn){btn.disabled=false;btn.textContent="Reintentar"}handleWriteErr(e)}
 }
 async function buyerSet(id,patch,msg){
@@ -3159,6 +3165,53 @@ function proHtml(mo,st){
 async function saveMeta(key,btn){
   if(!S.db)return;const el=$("#pmeta"),v=el&&el.value!==""?Math.max(0,Math.round(Number(el.value)||0)):"";
   btn.disabled=true;try{await S.db.doc("semanas/meta-"+key).set({metaVentas:v,updatedAt:new Date().toISOString(),updatedBy:S.uid||null});S.writeProbe=true;toast("Meta guardada")}catch(e){handleWriteErr(e)}finally{btn.disabled=false}
+}
+
+/* ---------- Mejora diaria: cierre del día, calces nuevos y sugerencias del equipo ---------- */
+/* Texto listo para pegar en el grupo de WhatsApp al terminar la jornada. Solo lee lo ya registrado. */
+function cierreDia(){
+  const t=hoy(),loc=iso=>iso?ds(new Date(iso)):"",calls=(S.segCalls||[]).filter(c=>c.fecha===t),st=callStats(calls);
+  const ing=S.autos.filter(a=>a.fechaIngreso===t).length,man=S.autos.filter(a=>a.mandatoFirmado&&a.fechaMandato===t).length,ven=S.autos.filter(a=>a.estado==="Vendido"&&a.fechaVenta===t).length;
+  const B=S.compradores||[],bNue=B.filter(b=>loc(b.creadoEn)===t).length;
+  const per=new Map();calls.forEach(c=>{const k=c.consignador||"Sin nombre";per.set(k,(per.get(k)||0)+1)});
+  const man1=sgHabil(sgPlus(t,1)),citas=(S.agenda||[]).filter(c=>c.fecha===man1&&c.estado!=="Cancelada"&&c.estado!=="Reagendada").length;
+  const lw=(S.leadsWeb||[]).filter(l=>!l.contactadoEn&&lwActivo(l)).length,seg=S.segLoaded?sgDue():0,bd=B.filter(bDue).length;
+  const venc=S.autos.filter(a=>ACTIVOS.includes(a.estado||"Tasación")&&(!a.fechaProxima||a.fechaProxima<t)).length;
+  const d=pd(t);
+  return [`Cierre del día · ${DSEM2[d.getDay()]} ${fmtD(t)} · Micelio Motor`,
+    `Contactos: ${st.n} (contestaron ${st.cont}, con interés ${st.int})`,
+    `Tasaciones agendadas: ${st.agen} · Autos ingresados: ${ing} · Mandatos: ${man} · Ventas: ${ven}`,
+    `Compradores nuevos: ${bNue}`,
+    per.size?"Por persona: "+[...per.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>k.split(" ")[0]+" "+n).join(" · "):"Por persona: sin contactos registrados hoy",
+    `Para ${DSEM2[pd(man1).getDay()].toLowerCase()} ${fmtD(man1)}: ${seg} seguimiento${seg===1?"":"s"} · ${bd} comprador${bd===1?"":"es"} por contactar · ${citas} cita${citas===1?"":"s"} · ${lw} lead${lw===1?"":"s"} web sin contactar · ${venc} auto${venc===1?"":"s"} sin próxima acción o vencida`].join("\n");
+}
+/* Avisa cuando aparece un calce nuevo entre un comprador activo y un auto en venta (entra el auto o se registra el comprador). */
+function matchAviso(){
+  if(!S.compradores||!S.autosListos)return;
+  const now=new Map();S.compradores.filter(bActivo).forEach(b=>bMatch(b).forEach(a=>now.set(b._id+"|"+a._id,[b,a])));
+  if(!S.matchSeen){S.matchSeen=new Set(now.keys());return}
+  const nuevos=[...now.entries()].filter(([k])=>!S.matchSeen.has(k)).map(x=>x[1]);
+  S.matchSeen=new Set(now.keys());
+  if(!nuevos.length||S.soloVirtual)return;
+  const [b,a]=nuevos[0];
+  toast(nuevos.length===1?`Calce nuevo: ${nombre(a)} le sirve a ${b.nombre||"un comprador"}. Míralo en Compradores.`:`${nuevos.length} calces nuevos entre stock y compradores. Míralos en Compradores.`);
+}
+/* Sugerir mejora: lo que el equipo nota mientras trabaja llega al feedback del Piloto, con la pestaña donde ocurrió. */
+function fbInit(){
+  if(document.getElementById("fbHost")||S.soloVirtual||!S.canWrite)return;
+  const h=document.createElement("div");h.id="fbHost";
+  h.innerHTML=`<div id="fbBox" class="panel" hidden><b>¿Qué mejorarías o qué te trabó?</b><textarea id="fbTxt" maxlength="600" placeholder="Una frase basta: qué estabas haciendo y qué faltó o molestó." aria-label="Sugerencia de mejora"></textarea><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn sm" id="btnFbClose">Cerrar</button><button type="button" class="btn primary sm" id="btnFbSend">Enviar</button></div></div><button type="button" class="btn fbbtn" id="btnFb" aria-expanded="false">Sugerir mejora</button>`;
+  document.body.appendChild(h);
+}
+function fbToggle(open){const b=$("#fbBox"),k=$("#btnFb");if(!b)return;b.hidden=!open;k.setAttribute("aria-expanded",String(open));k.hidden=open;if(open)setTimeout(()=>{const t=$("#fbTxt");t&&t.focus()},30)}
+async function fbSend(btn){
+  const ta=$("#fbTxt"),txt=ta?ta.value.trim():"";if(!txt){toast("Escribe la sugerencia");return}
+  if(!S.db){toast("Sin conexión a la base del equipo");return}
+  const VN={seguimiento:"Seguimiento",radar:"Radar",virtual:"Radar virtual",express:"Búsqueda express",llamadas:"Llamadas",formulario:"Formulario",agenda:"Agenda",compradores:"Compradores",resumen:"Resumen",semanas:"Semanas",autos:"Autos",piloto:"Piloto",equipo:"Equipo y reglas",reloj:"Mi reloj"};
+  btn.disabled=true;
+  try{await S.db.collection("pilotoFeedback").doc().set({fecha:hoy(),quien:rCons()||"",etapa:"Otro",texto:"[Panel · "+(VN[S.view]||S.view)+"] "+txt,propuesta:"",estado:"Nuevo",origen:"panel",vista:S.view,creadoEn:new Date().toISOString(),creadoPor:S.uid||null});
+    S.writeProbe=true;ta.value="";fbToggle(false);toast("Gracias. Quedó anotado para la revisión del lunes.")}
+  catch(e){handleWriteErr(e)}finally{btn.disabled=false}
 }
 
 /* ---------- Sheet (form) ---------- */
@@ -3344,6 +3397,10 @@ document.addEventListener("click",e=>{
   if(t.dataset.savewk){saveWeek(t.dataset.savewk,t);return}
   if(t.dataset.savemeta){saveMeta(t.dataset.savemeta,t);return}
   if(t.dataset.agauto){agAuto(t.dataset.agauto);return}
+  if(t.hasAttribute("data-cierre")){copyText(cierreDia(),"Cierre del día copiado. Pégalo en el grupo del equipo.");return}
+  if(t.id==="btnFb"){fbToggle(true);return}
+  if(t.id==="btnFbClose"){fbToggle(false);return}
+  if(t.id==="btnFbSend"){fbSend(t);return}
   if(t.dataset.bv){(S.bfil=S.bfil||{vista:"hoy",quien:""}).vista=t.dataset.bv;render();if(t.classList.contains("kpib"))requestAnimationFrame(()=>{const l=document.getElementById("blist");if(l)l.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"})});return}
   if(t.dataset.bq!==undefined){(S.bfil=S.bfil||{vista:"hoy",quien:""}).quien=t.dataset.bq;render();return}
   if(t.dataset.bedit){const b=(S.compradores||[]).find(x=>x._id===t.dataset.bedit);if(b){S.bfEdit=b._id;S.bf={...bfDefault(),...Object.fromEntries(Object.keys(bfDefault()).map(k=>[k,b[k]??(k==="consentimiento"?false:"")]))};render();const f=$("#z-bform");if(f)f.scrollIntoView({block:"start"})}return}
@@ -3457,7 +3514,7 @@ render();
   if(user){try{S.uid=await user.id();S.isAdmin=(await user.canEdit())===true;{const lp=document.getElementById("lnkPatio");if(lp&&window.__ANSAR_SITE)lp.hidden=false}S.soloVirtual=window.__ANSAR_SITE?window.__ANSAR_ROL==="virtual":!S.isAdmin;
     const cw=await user.can("data.write");if(cw===false){S.canWrite=false;if(S.soloVirtual)S.sinAccesoVirtual=true}}catch(_){S.soloVirtual=true}}
   else S.soloVirtual=true;
-  S.accesoListo=true;setTimeout(()=>{relojCargar(true);relojTick()},1500);
+  S.accesoListo=true;setTimeout(()=>{relojCargar(true);relojTick();fbInit()},1500);
   if(S.soloVirtual){
     S.view="virtual";render();
     const t2=setTimeout(()=>{if(!S.radarLoaded){S.offline="No se pudo cargar la sección Virtual todavía. Revisa tu conexión; se actualizará sola.";setStatus("err","Sin conexión");render()}},10000);
@@ -3472,6 +3529,7 @@ render();
   db.collection("autos").onSnapshot(snap=>{
     S.autos=snap.docs.map(d=>({...d.data(),_id:d.id}));
     if(!snap.metadata.fromCache&&!a1){a1=true;done()}else if(a1){S.lastSync=new Date();setStatus("ok",liveTxt())}
+    if(!snap.metadata.fromCache)S.autosListos=true;matchAviso();
     safeRender();
   },err=>{clearTimeout(timer);setStatus("err","Error al cargar");S.offline="La tabla no se pudo cargar ("+err.code+"). Recarga la página más tarde.";render()});
   db.collection("semanas").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data());S.semanas=o;if(!snap.metadata.fromCache&&!a2){a2=true;done()}safeRender()},()=>{});
@@ -3486,7 +3544,7 @@ render();
     if(prev){const nuevas=S.agenda.filter(c=>!prev.some(p=>p._id===c._id));nuevas.forEach(c=>{toast(`Nueva cita: ${c.nombre||""} · ${agFecha(c.fecha)} ${c.hora} · ${c.auto||""}`);agNotificar(c)})}
     safeRender()},()=>{});
   db.doc("config/agenda").onSnapshot(d=>{S.agCfg=d.exists?d.data():null;safeRender()},()=>{});
-  db.collection("compradores").onSnapshot(snap=>{S.compradores=snap.docs.map(d=>({...d.data(),_id:d.id}));safeRender()},()=>{});
+  db.collection("compradores").onSnapshot(snap=>{S.compradores=snap.docs.map(d=>({...d.data(),_id:d.id}));matchAviso();safeRender()},()=>{});
   db.collection("pilotoFeedback").onSnapshot(snap=>{S.pfbList=snap.docs.map(d=>({...d.data(),_id:d.id}));safeRender()},()=>{});
   db.collection("radar").onSnapshot(s=>onRadarSnap(s,"radar"),err=>{S.radarErr=err.code;S.radarLoaded=true;safeRender()});
   db.collection("virtual").onSnapshot(s=>onRadarSnap(s,"virtual"),()=>{});

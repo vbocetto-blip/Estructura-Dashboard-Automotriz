@@ -1,0 +1,18 @@
+# Cabeceras de seguridad (Cloudflare Pages). No aplican a /api, que las pone el servidor.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+# El tablero y el patio no se pueden incrustar en otra página (evita clickjacking).
+# El formulario público /consigna.html queda libre por si se incrusta en la web de la automotora.
+/
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+/index.html
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+/patio.html
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'

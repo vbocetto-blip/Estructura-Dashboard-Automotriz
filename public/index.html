@@ -754,6 +754,43 @@ main h2{transition:letter-spacing .6s var(--ease)}
 }
 /* Marca Nexo Motor: la N "Carril" (punto de partida, líneas de carril y anillo de objetivo), dibujada como máscara para que tome el color del texto */
 .brand h1::before{content:"";display:inline-block;width:1em;height:1em;margin-right:.34em;vertical-align:-.12em;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-3 -18 136 136'%3E%3Crect width='22' height='70' fill='black'/%3E%3Ccircle cx='11' cy='88' r='12' fill='black'/%3E%3Crect x='108' y='34' width='22' height='66' fill='black'/%3E%3Ccircle cx='119' cy='16' r='11' fill='none' stroke='black' stroke-width='9'/%3E%3Cpolygon points='0.0,0 26.0,0 46.8,20 20.8,20' fill='black'/%3E%3Cpolygon points='28.1,27 54.1,27 74.9,47 48.9,47' fill='black'/%3E%3Cpolygon points='55.1,53 81.1,53 101.9,73 75.9,73' fill='black'/%3E%3Cpolygon points='83.2,80 109.2,80 130.0,100 104.0,100' fill='black'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-3 -18 136 136'%3E%3Crect width='22' height='70' fill='black'/%3E%3Ccircle cx='11' cy='88' r='12' fill='black'/%3E%3Crect x='108' y='34' width='22' height='66' fill='black'/%3E%3Ccircle cx='119' cy='16' r='11' fill='none' stroke='black' stroke-width='9'/%3E%3Cpolygon points='0.0,0 26.0,0 46.8,20 20.8,20' fill='black'/%3E%3Cpolygon points='28.1,27 54.1,27 74.9,47 48.9,47' fill='black'/%3E%3Cpolygon points='55.1,53 81.1,53 101.9,73 75.9,73' fill='black'/%3E%3Cpolygon points='83.2,80 109.2,80 130.0,100 104.0,100' fill='black'/%3E%3C/svg%3E") center/contain no-repeat}
+/* ===== Menú Más ===== */
+.mas{position:relative}.mas>summary{list-style:none;cursor:pointer;user-select:none}.mas>summary::-webkit-details-marker{display:none}
+.mas>summary.on{border-color:var(--accent);color:var(--accent)}
+.mas-m{position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:210px;display:grid;gap:2px;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28)}
+.mas-m>button,.mas-m>a{display:block;width:100%;box-sizing:border-box;text-align:left;border:0;background:none;color:var(--ink);font:inherit;font-size:14.5px;padding:10px 12px;border-radius:8px;cursor:pointer;text-decoration:none;min-height:44px}
+.mas-m>button:hover,.mas-m>a:hover,.mas-m>button:focus-visible,.mas-m>a:focus-visible{background:var(--accent-soft)}
+.mas-m>[aria-current="true"]{color:var(--accent);font-weight:700}
+.mas-m>[hidden]{display:none}.mas-m>button:disabled{opacity:.6;cursor:default}
+.mas-sep{height:1px;background:var(--line);margin:4px 6px}
+/* ===== Embudo de 8 etapas ===== */
+.emb{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+.emb-s{display:grid;gap:1px;text-align:left;border:0;border-top:2px solid var(--line);background:none;color:var(--ink);padding:7px 4px 2px;font:inherit;cursor:pointer;min-width:0;border-radius:0 0 6px 6px}
+.emb-s:hover,.emb-s:focus-visible{background:var(--accent-soft)}
+.emb-s.on{border-top-color:var(--accent)}
+.emb-s.corte{margin-left:8px}
+.emb-s .l{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.emb-s .v{font-family:var(--f-display);font-size:22px;font-weight:700;line-height:1.1}
+.emb-s .c{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cad-d>summary{cursor:pointer;font-size:12.5px;color:var(--muted);width:max-content;padding:4px 0}
+.cad-d[open]>summary{margin-bottom:4px}.cad-d{display:grid;gap:6px}.cad-d .cad-n{margin:0 0 4px}
+@media (max-width:640px){.emb{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}.emb-s.corte{margin-left:0}.emb-s .v{font-size:19px}.emb-s .l{font-size:10px;letter-spacing:0}}
+/* ===== Recorrido del caso ===== */
+.reco{display:inline-flex;gap:2px;align-items:center;vertical-align:middle}
+.reco i{width:9px;height:4px;border-radius:2px;background:var(--line)}
+.reco i.ok{background:var(--muted)}.reco i.act{background:var(--accent)}.reco i.salto{background:none;box-shadow:inset 0 0 0 1px var(--muted)}
+.recof{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px;display:grid;gap:10px}
+.recof-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.recof-h span{font-size:12.5px;color:var(--muted)}
+.recof-l{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+.recof-l li{display:grid;gap:2px;align-content:start;min-width:0;font-size:12px;color:var(--muted)}
+.recof-l .p{height:4px;border-radius:2px;background:var(--line);margin-bottom:4px}
+.recof-l .ok .p{background:var(--muted)}.recof-l .act .p{background:var(--accent)}.recof-l .salto .p{background:none;box-shadow:inset 0 0 0 1px var(--muted)}
+.recof-l .t{font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recof-l li:not(.ok):not(.act) .t{color:var(--muted);font-weight:500}
+.recof-l .act .t{color:var(--accent)}
+.recof-l .d,.recof-l .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recof-n{margin:0;font-size:12.5px;color:var(--muted)}
+@media (max-width:640px){.recof-l{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}}
 </style>
 
 <header class="top">
@@ -764,27 +801,33 @@ main h2{transition:letter-spacing .6s var(--ease)}
         <small>Ansar Automotriz · La Serena · 2 nov 2026 – nov 2027</small>
       </div>
       <span class="status" id="status"><span class="dot"></span><span>Conectando…</span></span>
-      <a class="btn" id="lnkPatio" href="/patio.html" hidden title="Mapa en vivo de autos entrando y saliendo">Patio en vivo</a><button class="btn" id="btnSync" type="button" title="Traer los datos más recientes">↻ Actualizar</button>
-      <button class="btn" id="btnTema" type="button" title="Cambiar entre modo oscuro y modo claro. Se guarda en este navegador.">☀ Modo claro</button>
       <button class="btn reloj" id="btnReloj" type="button" data-v="reloj" title="Tu reloj de gestión de hoy"><span class="rdot" id="relojDot"></span><span id="relojTxt">Mi reloj</span></button>
       <button class="btn primary" id="btnNew" type="button">+ Ingresar auto</button>
+      <!-- Menú Más: lo que no es del trabajo de cada día (números del mes, piloto, equipo y opciones) -->
+      <details class="mas" id="mas"><summary class="btn" id="masBtn" title="Resumen, Piloto, Equipo y opciones">Más</summary>
+        <div class="mas-m" id="masMenu">
+          <button type="button" data-v="resumen" hidden>Resumen</button>
+          <button type="button" data-v="piloto" hidden>Piloto</button>
+          <button type="button" data-v="equipo" hidden>Equipo y reglas</button>
+          <span class="mas-sep" aria-hidden="true"></span>
+          <a id="lnkPatio" href="/patio.html" hidden title="Mapa en vivo de autos entrando y saliendo">Patio en vivo</a>
+          <button id="btnSync" type="button" title="Traer los datos más recientes">↻ Actualizar</button>
+          <button id="btnTema" type="button" title="Cambiar entre modo oscuro y modo claro. Se guarda en este navegador.">☀ Modo claro</button>
+        </div>
+      </details>
     </div>
     <div class="secsel" id="secsel" role="group" aria-label="Sección del panel" hidden></div>
     <nav class="tabs" role="tablist" id="tabs">
-      <!-- Dos secciones: Consignación (captar autos) y Venta (venderlos). Autos es el puente y queda siempre a la vista junto a lo compartido. -->
+      <!-- Dos secciones: Consignación (captar autos) y Venta (venderlos). Autos es el puente y queda a la vista en las dos. Resumen, Piloto y Equipo viven en el menú Más. -->
       <button role="tab" data-v="seguimiento" data-sec="consig" aria-selected="true">Seguimiento<span class="tabn" id="sgN" hidden></span></button>
       <button role="tab" data-v="radar" data-sec="consig" aria-selected="false">Radar</button>
       <button role="tab" data-v="llamadas" data-sec="consig" aria-selected="false">Llamadas</button>
-      <button role="tab" data-v="formulario" data-sec="consig" aria-selected="false">Formulario de Consignación<span class="tabn" id="lwN" hidden></span></button>
+      <button role="tab" data-v="formulario" data-sec="consig" aria-selected="false" title="Formulario de Consignación">Formulario<span class="tabn" id="lwN" hidden></span></button>
       <button role="tab" data-v="agenda" data-sec="consig" aria-selected="false">Agenda<span class="tabn" id="agN" hidden></span></button>
       <button role="tab" data-v="mandatos" data-sec="consig" aria-selected="false">Mandatos<span class="tabn" id="manN" hidden></span></button>
       <button role="tab" data-v="stock" data-sec="venta" aria-selected="false">Stock en venta</button>
       <button role="tab" data-v="compradores" data-sec="venta" aria-selected="false">Compradores<span class="tabn" id="bN" hidden></span></button>
-      <span class="tabsep" aria-hidden="true"></span>
-      <button role="tab" data-v="autos" aria-selected="false">Autos</button>
-      <button role="tab" data-v="resumen" aria-selected="false">Resumen</button>
-      <button role="tab" data-v="piloto" aria-selected="false">Piloto</button>
-      <button role="tab" data-v="equipo" aria-selected="false">Equipo y reglas</button>
+      <button role="tab" data-v="autos" aria-selected="false" title="Todos los autos, de la tasación a la venta">Autos</button>
     </nav>
   </div>
 </header>
@@ -1078,7 +1121,6 @@ function cadenaHtml(){
   const ing=A.filter(a=>en(a.fechaIngreso)).length,vend=A.filter(a=>a.estado==="Vendido"&&en(a.fechaVenta));
   const com=vend.reduce((x,a)=>x+(Number(a.precioVenta)||0)*(Number(a.comision)||0)/100,0);
   const bNew=B.filter(b=>en(b.creadoEn)).length;
-  const paso=(v,l,go,tit)=>`<button type="button" class="cad-s" data-cgo="${go}" title="${tit}"><span class="v num">${v}</span><span class="l">${l}</span></button>`;
   const enAutos=S.view==="autos",pl=(n,a,b)=>n===1?a:b;
   const rango=S.per==="dia"?fmtD(R.t):S.per==="sem"?(R.lun===R.t?"lunes "+fmtD(R.t):"lunes "+fmtD(R.lun)+" a hoy"):MESES[pd(R.t).getMonth()]+", del 1 a hoy";
   /* Quién registró contactos en el período: al dueño le importa tanto el que hizo 20 como el que no tiene ninguno. */
@@ -1092,18 +1134,85 @@ function cadenaHtml(){
   const ahora=`Pendiente ahora: <b>${st.pend}</b> ${pl(st.pend,"aviso","avisos")} sin contactar · <b>${st.stock.length}</b> ${pl(st.stock.length,"auto","autos")} en stock · <b>${st.act.length}</b> ${pl(st.act.length,"comprador activo","compradores activos")}.${st.sinCalce.length?` <b>${st.sinCalce.length}</b> ${pl(st.sinCalce.length,"comprador busca","compradores buscan")} algo que no hay en stock${(()=>{const t=st.sinCalce.map(b=>String(b.busca||"").trim()).filter(Boolean).slice(0,3);return t.length?" ("+t.map(esc).join(" · ")+")":""})()}: eso conviene consignar.`:""}`;
   const rl=S.radarLoaded||(S.radar||[]).length;
   const alerta=rl&&st.manSin.length?`<p class="cad-n cad-a">${st.manSin.length} ${pl(st.manSin.length,"mandato firmado","mandatos firmados")} en el Radar sin ingresar a Autos: mientras no ${pl(st.manSin.length,"se ingrese","se ingresen")}, Venta no ${pl(st.manSin.length,"lo","los")} ve. <button type="button" class="btn sm" data-cgo="consig|radar|man">Ver</button></p>`:"";
+  /* Embudo de punta a punta: las 8 etapas con lo registrado en el período. Cada número abre su pestaña.
+     El porcentaje compara con la etapa anterior y solo aparece desde Seguimiento, con 10 o más en la etapa anterior: son hechos del período, no necesariamente los mismos casos.
+     Aviso y Contacto no se comparan entre sí: un aviso puede recibir varios contactos. */
+  const nAv=rl?(S.radar||[]).filter(r=>!r.pedidoId&&en(r.primerRadar||r.fechaRadar)).length:"…";
+  const nVit=A.filter(a=>["En preparación","Publicado","Con oferta","Reservado","Vendido"].includes(a.estado)&&en(a.fechaPublicacion||a.fechaIngreso)).length;
+  const E=[["Aviso",nAv,"consig|radar|","Avisos que entraron al Radar en el período"],
+    ["Contacto",C?nC:"…","consig|llamadas|","Llamadas y mensajes registrados en el período, de piso y virtual"],
+    ["Seguimiento",nv([2]),"consig|seguimiento|","Contactos que quedaron como interesado o con prenda"],
+    ["Agenda",nv([3]),"consig|agenda|","Tasaciones agendadas en el período, según lo registrado en Llamadas"],
+    ["Tasación",nv([4]),"consig|radar|tas","Tasaciones hechas en el período, según lo registrado en Llamadas"],
+    ["Mandato",C?nM:"…","consig|mandatos|","Mandatos firmados registrados en Llamadas"],
+    ["Vitrina",nVit,"venta|stock|","Autos que entraron a stock en el período: fecha de publicación o, si falta, la de ingreso"],
+    ["Venta",vend.length,"venta|stock|","Autos marcados Vendido con fecha de venta en el período"]];
+  const emb=E.map(([l,v,go,tit],i)=>{const ant=i?E[i-1][1]:null,pc=i>=2&&typeof v==="number"&&typeof ant==="number"&&ant>=10&&v<=ant?Math.round(v/ant*100)+"%":"";
+    const on=!enAutos&&((i<6&&S.sec==="consig")||(i>=6&&S.sec==="venta"));
+    return `<button type="button" class="emb-s${on?" on":""}${i===6?" corte":""}" data-cgo="${go}" title="${tit}${pc?". "+pc+" de la etapa anterior":""}"><span class="l">${l}</span><span class="v num">${v}</span><span class="c">${i===7&&vend.length?clp(Math.round(com)):pc?"↳ "+pc:"&nbsp;"}</span></button>`}).join("");
+  const peri=`En el período: <b>${ing}</b> ${pl(ing,"auto ingresado","autos ingresados")} · <b>${bNew}</b> ${pl(bNew,"comprador nuevo","compradores nuevos")} · comisión <b>${vend.length?clp(Math.round(com)):"$0"}</b>.`;
   return `<section class="cadena" aria-label="Monitoreo por período">
     <div class="cad-top"><b>Monitoreo</b><div class="chips cad-per" role="group" aria-label="Período">${Object.keys(PER_TXT).map(k=>`<button type="button" data-per="${k}" aria-pressed="${S.per===k}">${PER_TXT[k]}</button>`).join("")}</div><span class="cad-rg">${esc(rango)}</span></div>
-    <div class="cad-row">
-      <div class="cad-g${S.sec==="consig"&&!enAutos?" on":""}"><span class="cad-t">Consignación</span>
-        ${paso(C?nC:"…",pl(nC,"contacto registrado","contactos registrados"),"consig|llamadas|","Llamadas y mensajes registrados en el período, de piso y virtual")}${paso(nv([2]),pl(nv([2]),"interesado","interesados"),"consig|seguimiento|","Contactos que quedaron como interesado o con prenda")}${paso(nv([3,4]),pl(nv([3,4]),"tasación","tasaciones"),"consig|radar|tas","Tasaciones agendadas o hechas, según lo registrado en Llamadas")}${paso(C?nM:"…",pl(nM,"mandato","mandatos"),"consig|radar|man","Mandatos firmados registrados en Llamadas")}</div>
-      <button type="button" class="cad-s cad-b" data-cgo="|autos|" title="Autos con fecha de ingreso en el período"><span class="v num">${ing}</span><span class="l">${pl(ing,"auto ingresado","autos ingresados")}</span></button>
-      <div class="cad-g${S.sec==="venta"&&!enAutos?" on":""}"><span class="cad-t">Venta</span>
-        ${paso(bNew,pl(bNew,"comprador nuevo","compradores nuevos"),"venta|compradores|","Compradores registrados en el período")}${paso(vend.length,pl(vend.length,"venta","ventas"),"venta|stock|","Autos marcados Vendido con fecha de venta en el período")}${paso(vend.length?clp(Math.round(com)):"$0","comisión","|resumen|","Precio de venta por el porcentaje de comisión de cada auto vendido en el período")}</div>
-    </div>
-    <p class="cad-n">${quien}${conv}</p>
-    <p class="cad-n">${ahora}</p>${alerta}
+    <div class="emb" role="group" aria-label="Embudo del aviso a la venta">${emb}</div>${alerta}
+    <details class="cad-d"${lsGet("ansar_cadd")==="1"?" open":""}><summary>Detalle del período</summary>
+      <p class="cad-n">${peri}</p>
+      <p class="cad-n">${quien}${conv}</p>
+      <p class="cad-n">${ahora}</p>
+    </details>
   </section>`;
+}
+/* ---------- Recorrido: un mismo caso seguido de punta a punta ----------
+   Une lo que ya está registrado (aviso del Radar, llamadas, cita en Agenda, ficha del auto) sin guardar nada nuevo.
+   El enlace es el aviso (radarId) y, si no hay, el teléfono del propietario. */
+const ETAPAS8=["Aviso","Contacto","Seguimiento","Agenda","Tasación","Mandato","Vitrina","Venta"];
+function todasCargar(){
+  if(!S.db||S.soloVirtual||!window.__ANSAR_SITE||S.todasBusy)return;
+  if(S.todasAt&&Date.now()-S.todasAt<60000)return;
+  S.todasBusy=true;
+  const q=c=>S.db.collection(c).get().then(x=>x.docs.map(d=>({...d.data(),_id:d.id,_col:c}))).catch(()=>[]);
+  Promise.all([q("llamadas"),q("virtualLlamadas")]).then(([a,b])=>{
+    const t=[...a,...b].sort((x,y)=>String(x.fecha||"").localeCompare(String(y.fecha||"")));
+    const cambio=!S.todas||S.todas.length!==t.length;
+    const porR=new Map(),porT=new Map(),add=(m,k,c)=>{if(!k)return;if(!m.has(k))m.set(k,[]);m.get(k).push(c)};
+    t.forEach(c=>{add(porR,c.radarId,c);add(porT,c.telefonoN,c)});
+    S.todas=t;S.todasIdx={porR,porT};S.todasAt=Date.now();S.todasBusy=false;if(cambio)safeRender();
+  }).catch(()=>{S.todasBusy=false});
+}
+function casoDe(a,r){
+  if(a&&!r)r=(a.radarId&&S.radarMap&&S.radarMap[a.radarId])||(S.radar||[]).find(x=>x.url&&String(a.notas||"").includes(x.url))||null;
+  if(r&&!a)a=autoDeRadar(r)||null;
+  const f10=x=>x?String(x).slice(0,10):"",tel=normTel((a&&a.propTelefono)||(r&&r.telefono)||"");
+  const I=S.todasIdx,vis=new Set(),calls=[];
+  if(I)[...(r&&I.porR.get(r._id)||[]),...(tel&&I.porT.get(tel)||[])].forEach(c=>{if(!vis.has(c._id)){vis.add(c._id);calls.push(c)}});
+  calls.sort((x,y)=>String(x.fecha||"").localeCompare(String(y.fecha||"")));
+  const citas=(S.agenda||[]).filter(g=>(r&&g.radarId===r._id)||(g.llamadaId&&vis.has(g.llamadaId))||(tel&&normTel(g.tel)===tel)).sort((x,y)=>String(x.fecha||"").localeCompare(String(y.fecha||"")));
+  const rn=r?rNivel(r):-1,pri=n=>calls.find(c=>sgNiv(c)>=n),ex=n=>calls.find(c=>sgNiv(c)===n);
+  const c2=pri(2),c3=ex(3),c4=ex(4),c5=ex(5),cita=citas[0];
+  const e=[
+    {ok:!!r,f:f10(r&&(r.primerRadar||r.fechaRadar)),n:r?(r.src||"Radar"):""},
+    {ok:calls.length>0||rn>=0,f:f10(calls[0]&&calls[0].fecha),n:calls.length?calls.length+(calls.length===1?" contacto":" contactos"):""},
+    {ok:!!c2||rn>=2,f:f10(c2&&c2.fecha),n:""},
+    {ok:!!cita||!!c3||rn>=3,f:f10(cita?cita.fecha:c3&&c3.fecha),n:cita?[cita.hora,cita.estado].filter(Boolean).join(" · "):""},
+    {ok:!!c4||rn>=4||!!a,f:f10(c4?c4.fecha:a&&a.fechaIngreso),n:a&&a.tasacion?clp(a.tasacion):""},
+    {ok:!!(a&&(a.mandatoFirmado||a.fechaMandato))||!!c5||rn>=5,f:f10((a&&a.fechaMandato)||(r&&r.fechaMandato)||(c5&&c5.fecha)),n:""},
+    {ok:!!(a&&(a.fechaPublicacion||["Publicado","Con oferta","Reservado","Vendido"].includes(a.estado))),f:f10(a&&a.fechaPublicacion),n:a&&a.precioPublicado?clp(a.precioPublicado):""},
+    {ok:!!(a&&a.estado==="Vendido"),f:f10(a&&a.fechaVenta),n:a&&a.estado==="Vendido"&&a.precioVenta?clp(a.precioVenta):""}];
+  let ult=-1;e.forEach((x,i)=>{if(x.ok)ult=i});
+  /* Una etapa posterior cumplida da por pasadas las anteriores; las que no tienen registro quedan marcadas como salto. */
+  e.forEach((x,i)=>{x.l=ETAPAS8[i];x.s=x.ok?(i===ult?"act":"ok"):(i<ult?"salto":"")});
+  const fs=e.filter(x=>x.ok&&x.f).map(x=>x.f).sort();
+  const directo=!r&&!calls.length&&!citas.length;
+  return {e,ult,directo,saltos:directo?0:e.filter(x=>x.s==="salto").length,dias:fs.length>1?dias(fs[0],fs[fs.length-1]):null,cerrado:!!(a&&a.estado==="Retirado")};
+}
+function recoMini(a,r){
+  const c=casoDe(a,r);if(c.ult<0)return "";
+  return `<span class="reco" role="img" aria-label="Recorrido: ${esc(ETAPAS8[c.ult])}, etapa ${c.ult+1} de 8" title="Recorrido: ${esc(ETAPAS8[c.ult])} (${c.ult+1} de 8)${c.directo?" · ingreso directo":c.saltos?" · "+c.saltos+" sin registro":""}">${c.e.map(x=>`<i class="${x.s}"></i>`).join("")}</span>`;
+}
+function recoHtml(a,r){
+  const c=casoDe(a,r);if(c.ult<0)return "";
+  return `<section class="recof" aria-label="Recorrido del aviso a la venta"><div class="recof-h"><b>Recorrido</b><span>${esc(ETAPAS8[c.ult])} · etapa ${c.ult+1} de 8${c.dias!==null?" · "+c.dias+(c.dias===1?" día":" días")+" desde el primer registro":""}${c.directo?" · ingreso directo":""}${c.cerrado?" · retirado":""}</span></div>
+    <ol class="recof-l">${c.e.map(x=>`<li class="${x.s}"><span class="p"></span><span class="t">${x.l}</span><span class="d">${x.f?fmtD(x.f):x.s==="salto"?(c.directo?"—":"sin registro"):x.ok?"sin fecha":"—"}</span>${x.n?`<span class="n">${esc(x.n)}</span>`:""}</li>`).join("")}</ol>
+    ${c.saltos?`<p class="recof-n">${c.saltos===1?"Una etapa pasó":c.saltos+" etapas pasaron"} sin quedar registrada. Sin ese registro, el embudo no la cuenta.</p>`:c.directo?`<p class="recof-n">Ingreso directo: este auto no viene de un aviso del Radar ni de una llamada registrada.</p>`:""}</section>`;
 }
 /* Venta → Stock en venta: los autos que hoy se pueden vender, con la demanda real que tiene cada uno. */
 function vStock(){
@@ -1139,8 +1248,9 @@ function render(){
   if(SEC_DE[S.view])secMem[S.sec]=S.view;
   {const ss=$("#secsel");if(ss){ss.hidden=S.soloVirtual;if(!S.soloVirtual)ss.innerHTML=secSelHtml()}}
   document.querySelectorAll("#tabs button").forEach(b=>{b.setAttribute("aria-selected",String(b.dataset.v===(VISTA_PADRE[S.view]||S.view)));b.hidden=(S.soloVirtual&&b.dataset.v!=="virtual")||(!S.soloVirtual&&!!b.dataset.sec&&b.dataset.sec!==S.sec)});
+  {const vp=VISTA_PADRE[S.view]||S.view,en=["resumen","piloto","equipo"].includes(vp);document.querySelectorAll("#masMenu [data-v]").forEach(b=>{b.hidden=S.soloVirtual;b.setAttribute("aria-current",String(b.dataset.v===vp))});const mb=$("#masBtn");if(mb){mb.classList.toggle("on",en);mb.textContent=en?"Más · "+({resumen:"Resumen",piloto:"Piloto",equipo:"Equipo"}[vp]):"Más"}}
   window.__ansarVista=S.view;
-  tasCargar();
+  tasCargar();todasCargar();
   renderRail();
   const m=$("#main");
   const banners=[];
@@ -1176,7 +1286,7 @@ function carRow(a,extra){
     <span class="num" style="color:${a.precioToma?"var(--accent)":"var(--bad)"};font-weight:600">Toma ${a.precioToma?clp(a.precioToma):"sin definir"}${(()=>{const tm=Number(a.precioToma)||0,p=a.estado==="Vendido"?Number(a.precioVenta)||0:Number(a.precioPublicado)||0;return tm&&p?" · margen "+clp(p-tm):""})()}</span>
     ${a.km?`<span class="num">${Number(a.km).toLocaleString("es-CL")} km</span>`:""}
     ${a.responsable?`<span>${esc(a.responsable)}</span>`:""}
-    ${d!==null?`<span class="num">${d} día${d===1?"":"s"}</span>`:""}${prox}${extra||""}</span></button>`;
+    ${d!==null?`<span class="num">${d} día${d===1?"":"s"}</span>`:""}${prox}${extra||""}${recoMini(a)}</span></button>`;
 }
 
 /* Per-vehicle precio de toma card with the unit's own details */
@@ -3592,6 +3702,7 @@ function openSheet(id,pre){
   $("#sheetHost").innerHTML=`<div class="sheet" id="sheet"><div class="box" role="dialog" aria-modal="true" aria-label="Ficha del auto">
    <div class="bh">${plate(a.patente)}<h2>${id?esc(nombre(a)):"Nuevo auto en consignación"}</h2><button class="btn" type="button" data-close>Cerrar</button></div>
    <div class="bb">
+    ${id?recoHtml(a):""}
     ${id?(g.length?`<div class="gapbox"><b>${g.length} pendiente${g.length>1?"s":""} en este auto</b><ul>${g.map(x=>`<li style="color:${x[1]==="alta"?"var(--bad)":"var(--warn)"}">${esc(x[0])}</li>`).join("")}</ul></div>`:`<div class="gapbox ok"><b>Ficha completa.</b> Mantén la próxima acción al día.</div>`)
       :`<div class="banner info">Basta con patente, marca, modelo y propietario para guardar. Lo demás se completa después; lo que falte queda marcado en naranjo.</div>`}
     ${FS.map(([t,fs])=>`<section class="fs"><h3>${t}${t==="Documentos"?`<span class="pill ${docsOk===DOCS.length?"gap ok":"gap m"}">${docsOk}/${DOCS.length}</span>`:""}</h3><div class="grid">${fs.map(input).join("")}</div>${t==="Precio de toma y margen"?`<div class="mgp" id="mgPanel">${mgHtml(a)}</div>`:""}</section>`).join("")}
@@ -3660,9 +3771,14 @@ let tt;function toast(m){$("#toastHost").innerHTML=`<div class="toast" role="sta
 function setStatus(kind,txt){$("#status").innerHTML=`<span class="dot ${kind}"></span><span>${esc(txt)}</span>`}
 
 /* ---------- Events ---------- */
+/* Menú Más: se cierra al tocar fuera o con Escape. El detalle del monitoreo recuerda si quedó abierto. */
+document.addEventListener("click",e=>{const mm=$("#mas");if(mm&&mm.open&&!mm.contains(e.target))mm.open=false});
+document.addEventListener("keydown",e=>{const mm=$("#mas");if(e.key==="Escape"&&mm&&mm.open){mm.open=false;const b=$("#masBtn");if(b)b.focus()}});
+document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.classList&&d.classList.contains("cad-d"))lsSet("ansar_cadd",d.open?"1":"0")},true);
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
+  {const mm=$("#mas");if(mm&&mm.open&&t.closest("#masMenu"))mm.open=false}
   if(t.dataset.per&&PER_TXT[t.dataset.per]){S.per=t.dataset.per;lsSet("ansar_per",S.per);render();return}
   if(t.dataset.rman){mandatoFirmar(t.dataset.rman,t);return}
   if(t.dataset.sgman){sgMandato(t.dataset.sgman,t);return}

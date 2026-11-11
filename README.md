@@ -4,6 +4,9 @@ Nexo Motor: la red que mueve las consignaciones de una automotora. Primer client
 
 - `public/` · la página del tablero
   - Pestaña **Compradores**: registro de interesados en comprar (colección `compradores`), cruce automático con el stock en venta y canal de llegada.
+  - **Monitoreo (embudo)**: las 8 etapas de punta a punta (Aviso, Contacto, Seguimiento, Agenda, Tasación, Mandato, Vitrina, Venta) con lo registrado en el período.
+  - **Recorrido**: cada auto muestra en su fila y en su ficha por qué etapas pasó. Se arma al leer (aviso por `radarId`, llamadas y citas por aviso o teléfono); no guarda datos nuevos.
+  - **Menú Más**: Resumen, Piloto, Equipo y reglas, Patio en vivo, Actualizar, modo claro u oscuro y Salir.
   - **Resumen → Proyección**: cierre proyectado del mes, meta de ventas (`semanas/meta-AAAA-MM`) y ritmo de contactos que exige, calculado solo con datos propios.
 - `functions/api/` · servidor que conecta con la base de datos (Cloudflare D1)
 - `sql/schema.sql` · estructura de la base de datos

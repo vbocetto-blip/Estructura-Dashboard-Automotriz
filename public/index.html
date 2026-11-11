@@ -1,5 +1,5 @@
 <!doctype html><html lang="es" data-theme="dark"><head><meta charset=utf8><script>try{if(localStorage.getItem("ansar_tema")==="light")document.documentElement.setAttribute("data-theme","light")}catch(_){}</script><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Micelio Motor</title>
+<title>Nexo Motor</title><link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d1d1f'/%3E%3Cg transform='translate(11 11) scale(.66)'%3E%3Cpath d='M14 50V13L50 50V18' fill='none' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='14' cy='51' r='7.5' fill='white'/%3E%3Ccircle cx='50' cy='11' r='5.5' fill='none' stroke='white' stroke-width='5'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: sticky header + tabs, month rail, single-column work area that widens to two columns on desktop. Patente chilena as the recurring identity mark. */
@@ -752,13 +752,15 @@ main h2{transition:letter-spacing .6s var(--ease)}
   .cadena{padding:8px}.cadena .cad-g{flex:1 1 100%;padding:5px;gap:4px}.cadena .cad-s{flex:1 1 62px;padding:4px 6px}.cadena .cad-s .v{font-size:17px}.cadena .cad-s .l{font-size:11px;line-height:1.2}
   .cadena .cad-row>.cad-s{flex:1 1 100%;display:flex;align-items:baseline;gap:8px}
 }
+/* Marca Nexo Motor: la N con sus dos nodos, dibujada como máscara para que tome el color del texto en claro y oscuro */
+.brand h1::before{content:"";display:inline-block;width:.92em;height:.92em;margin-right:.34em;vertical-align:-.1em;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M14 50V13L50 50V18' fill='none' stroke='black' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='14' cy='51' r='7.5'/%3E%3Ccircle cx='50' cy='11' r='5.5' fill='none' stroke='black' stroke-width='5'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M14 50V13L50 50V18' fill='none' stroke='black' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='14' cy='51' r='7.5'/%3E%3Ccircle cx='50' cy='11' r='5.5' fill='none' stroke='black' stroke-width='5'/%3E%3C/svg%3E") center/contain no-repeat}
 </style>
 
 <header class="top">
   <div class="wrap">
     <div class="toprow">
       <div class="brand">
-        <h1>Micelio Motor</h1>
+        <h1>Nexo Motor</h1>
         <small>Ansar Automotriz · La Serena · 2 nov 2026 – nov 2027</small>
       </div>
       <span class="status" id="status"><span class="dot"></span><span>Conectando…</span></span>
@@ -1129,7 +1131,7 @@ function subNav(){
 function render(){
   if(!S.accesoListo){$("#tabs").hidden=true;{const ss=$("#secsel");if(ss)ss.hidden=true}$("#rail").parentElement.hidden=true;$("#btnNew").hidden=true;$("#main").innerHTML=`<p class="none">Cargando…</p>`;return}
   $("#tabs").hidden=S.soloVirtual;
-  $(".brand h1").textContent=S.soloVirtual?"Consignación virtual":"Micelio Motor";
+  $(".brand h1").textContent=S.soloVirtual?"Consignación virtual":"Nexo Motor";
   $(".brand small").textContent=S.soloVirtual?"Ansar Automotriz · La Serena · avisos de particulares IV Región":"Ansar Automotriz · La Serena · 2 nov 2026 – nov 2027";
   if(S.soloVirtual)S.view="virtual";
   if(!S.sec){S.sec=lsGet("ansar_sec")==="venta"?"venta":"consig";if(!S.soloVirtual&&S.sec==="venta"&&S.view==="seguimiento")S.view=SEC_INI.venta}
@@ -3513,7 +3515,7 @@ function cierreDia(){
   const lw=(S.leadsWeb||[]).filter(l=>!l.contactadoEn&&lwActivo(l)).length,seg=S.segLoaded?sgDue():0,bd=B.filter(bDue).length;
   const venc=S.autos.filter(a=>ACTIVOS.includes(a.estado||"Tasación")&&(!a.fechaProxima||a.fechaProxima<t)).length;
   const d=pd(t);
-  return [`Cierre del día · ${DSEM2[d.getDay()]} ${fmtD(t)} · Micelio Motor`,
+  return [`Cierre del día · ${DSEM2[d.getDay()]} ${fmtD(t)} · Nexo Motor`,
     `Contactos: ${st.n} (contestaron ${st.cont}, con interés ${st.int})`,
     `Tasaciones agendadas: ${st.agen} · Autos ingresados: ${ing} · Mandatos: ${man} · Ventas: ${ven}`,
     `Compradores nuevos: ${bNue}`,

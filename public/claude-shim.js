@@ -153,8 +153,8 @@
     setInterval(tick, 60000); setTimeout(tick, 5000);
   }
   function logoutButton() {
-    const row = document.querySelector(".toprow"); if (!row || document.getElementById("btnSalir")) return;
-    const b = document.createElement("button"); b.className = "btn"; b.id = "btnSalir"; b.type = "button"; b.textContent = "Salir";
+    const menu = document.getElementById("masMenu"), row = menu || document.querySelector(".toprow"); if (!row || document.getElementById("btnSalir")) return;
+    const b = document.createElement("button"); if (!menu) b.className = "btn"; b.id = "btnSalir"; b.type = "button"; b.textContent = "Salir";
     b.title = me ? me.email : ""; b.onclick = async () => { try { await fetch("/api/logout", { method: "POST", credentials: "same-origin" }); } catch {} location.reload(); };
     row.appendChild(b);
   }

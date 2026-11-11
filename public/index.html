@@ -710,6 +710,33 @@ main h2{transition:letter-spacing .6s var(--ease)}
 #fbHost .fbbtn:hover{opacity:1}
 #fbBox{width:min(340px,calc(100vw - 28px));box-shadow:0 8px 30px rgba(0,0,0,.45)!important}
 #fbBox textarea{width:100%;min-height:84px;resize:vertical;border:1px solid var(--line);background:var(--sunk);color:inherit;border-radius:10px;padding:8px 10px;font:inherit}
+
+/* ---------- Secciones: Consignación y Venta ---------- */
+.secsel{display:flex;gap:8px;margin:0 0 8px;flex-wrap:wrap}.secsel[hidden]{display:none}
+.secsel button{flex:1 1 220px;display:flex;align-items:baseline;gap:10px;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 14px;font:inherit;cursor:pointer;opacity:.72}
+.secsel button b{font-family:var(--f-display);font-size:17px;font-weight:700}
+.secsel button small{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.secsel button[aria-pressed="true"]{opacity:1;border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.secsel button .secn{margin-left:auto;font-weight:700;font-size:12.5px;color:var(--bad);white-space:nowrap}
+.cadena{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin:0 0 14px;display:grid;gap:8px}
+.cadena .cad-row{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap}
+.cadena .cad-g{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap;padding:6px;border-radius:10px;border:1px dashed var(--line);flex:1 1 300px}
+.cadena .cad-g.on{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
+.cadena .cad-t{flex:1 0 100%;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cadena .cad-s{flex:1 1 84px;display:grid;gap:1px;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 9px;font:inherit;cursor:pointer}
+.cadena .cad-s .v{font-family:var(--f-display);font-size:21px;font-weight:700;line-height:1.1}
+.cadena .cad-s .l{font-size:12px;color:var(--muted)}
+.cadena .cad-p{align-self:center;color:var(--muted);font-size:12.5px;font-weight:600;white-space:nowrap}
+.cadena .cad-n{margin:0;font-size:13px;color:var(--muted)}
+.cadena .cad-n b{color:var(--ink)}
+.cadena .cad-a{color:var(--bad);font-weight:600}
+.stockh{font-family:var(--f-display);font-size:18px;font-weight:700;margin:18px 0 8px}
+.secsel button{min-width:0}
+@media (max-width:640px){
+  .secsel{flex-wrap:nowrap;gap:6px}.secsel button{flex:1 1 0;padding:8px 10px;flex-wrap:wrap;gap:2px 8px}.secsel button small{display:none}.secsel button b{font-size:15.5px}.secsel button .secn{margin-left:0;font-size:11.5px;white-space:normal}
+  .cadena{padding:8px}.cadena .cad-g{flex:1 1 100%;padding:5px;gap:4px}.cadena .cad-s{flex:1 1 62px;padding:4px 6px}.cadena .cad-s .v{font-size:17px}.cadena .cad-s .l{font-size:11px;line-height:1.2}
+  .cadena .cad-row>.cad-s{flex:1 1 100%!important;display:flex;align-items:baseline;gap:8px}
+}
 </style>
 
 <header class="top">
@@ -725,17 +752,19 @@ main h2{transition:letter-spacing .6s var(--ease)}
       <button class="btn reloj" id="btnReloj" type="button" data-v="reloj" title="Tu reloj de gestión de hoy"><span class="rdot" id="relojDot"></span><span id="relojTxt">Mi reloj</span></button>
       <button class="btn primary" id="btnNew" type="button">+ Ingresar auto</button>
     </div>
+    <div class="secsel" id="secsel" role="group" aria-label="Sección del panel" hidden></div>
     <nav class="tabs" role="tablist" id="tabs">
-      <!-- Día a día primero; después del separador, gestión y revisión semanal. -->
-      <button role="tab" data-v="seguimiento" aria-selected="true">Seguimiento<span class="tabn" id="sgN" hidden></span></button>
-      <button role="tab" data-v="radar" aria-selected="false">Radar</button>
-      <button role="tab" data-v="llamadas" aria-selected="false">Llamadas</button>
-      <button role="tab" data-v="formulario" aria-selected="false">Formulario de Consignación<span class="tabn" id="lwN" hidden></span></button>
-      <button role="tab" data-v="agenda" aria-selected="false">Agenda<span class="tabn" id="agN" hidden></span></button>
-      <button role="tab" data-v="compradores" aria-selected="false">Compradores<span class="tabn" id="bN" hidden></span></button>
+      <!-- Dos secciones: Consignación (captar autos) y Venta (venderlos). Autos es el puente y queda siempre a la vista junto a lo compartido. -->
+      <button role="tab" data-v="seguimiento" data-sec="consig" aria-selected="true">Seguimiento<span class="tabn" id="sgN" hidden></span></button>
+      <button role="tab" data-v="radar" data-sec="consig" aria-selected="false">Radar</button>
+      <button role="tab" data-v="llamadas" data-sec="consig" aria-selected="false">Llamadas</button>
+      <button role="tab" data-v="formulario" data-sec="consig" aria-selected="false">Formulario de Consignación<span class="tabn" id="lwN" hidden></span></button>
+      <button role="tab" data-v="agenda" data-sec="consig" aria-selected="false">Agenda<span class="tabn" id="agN" hidden></span></button>
+      <button role="tab" data-v="stock" data-sec="venta" aria-selected="false">Stock en venta</button>
+      <button role="tab" data-v="compradores" data-sec="venta" aria-selected="false">Compradores<span class="tabn" id="bN" hidden></span></button>
       <span class="tabsep" aria-hidden="true"></span>
-      <button role="tab" data-v="resumen" aria-selected="false">Resumen</button>
       <button role="tab" data-v="autos" aria-selected="false">Autos</button>
+      <button role="tab" data-v="resumen" aria-selected="false">Resumen</button>
       <button role="tab" data-v="piloto" aria-selected="false">Piloto</button>
       <button role="tab" data-v="equipo" aria-selected="false">Equipo y reglas</button>
     </nav>
@@ -972,18 +1001,95 @@ const $=s=>document.querySelector(s);
    Las vistas siguen siendo las mismas; solo cambia desde dónde se abren. */
 const VISTA_PADRE={virtual:"radar",express:"radar",semanas:"resumen"};
 const SUBVISTAS={radar:[["radar","Radar piso"],["virtual","Radar virtual"],["express","Búsqueda express"]],resumen:[["resumen","Resumen del mes"],["semanas","Semanas"]]};
+/* ---------- Dos secciones: Consignación (captar autos) y Venta (venderlos) ----------
+   Cada pestaña de trabajo pertenece a una sección; Autos, Resumen, Piloto y Equipo son compartidas.
+   La "cadena" muestra los números reales de punta a punta y permite saltar de una sección a la otra. */
+const SEC_DE={seguimiento:"consig",radar:"consig",virtual:"consig",express:"consig",llamadas:"consig",formulario:"consig",agenda:"consig",stock:"venta",compradores:"venta"};
+const SEC_INI={consig:"seguimiento",venta:"stock"};
+const SEC_TXT={consig:["Consignación","captar autos: avisos, llamadas, tasaciones y mandatos"],venta:["Venta","vender autos: stock, compradores y cierres"]};
+const secMem={};
+function secIr(sec){if(!SEC_INI[sec])return;if(SEC_DE[S.view]===S.sec)secMem[S.sec]=S.view;S.sec=sec;lsSet("ansar_sec",sec);S.view=secMem[sec]||SEC_INI[sec]}
+/* Números reales, calculados de lo que ya está cargado (Radar, Autos y Compradores). Sin datos registrados, muestran cero. */
+function secStats(){
+  const R=(S.radar||[]).filter(r=>!r.pedidoId),A=S.autos||[],B=S.compradores||[],mes=hoy().slice(0,7);
+  const pend=R.filter(r=>rGrupo(r)==="pend").length,gest=R.filter(r=>rGrupo(r)==="gest").length;
+  const tas=R.filter(r=>rNivel(r)>=3).length,manR=R.filter(r=>rNivel(r)>=5);
+  /* Mandato del Radar que todavía no existe en Autos: el auto guarda el enlace del aviso en sus notas al crearse desde el Radar. */
+  const manSin=manR.filter(r=>!(r.url&&A.some(a=>String(a.notas||"").includes(r.url))));
+  const porEntrar=A.filter(a=>["Tasación","Mandato pendiente"].includes(a.estado||"Tasación"));
+  const stock=A.filter(a=>enVenta(a)||a.estado==="Reservado");
+  const act=B.filter(bActivo),avanz=act.filter(b=>["Visita agendada","Probó el auto","Hizo oferta"].includes(b.estado));
+  const dem=new Map();const sinCalce=[];act.forEach(b=>{const m=bMatch(b);if(!m.length)sinCalce.push(b);m.forEach(a=>dem.set(a._id,(dem.get(a._id)||0)+1))});
+  const vend=A.filter(a=>a.estado==="Vendido"&&String(a.fechaVenta||"").slice(0,7)===mes);
+  const com=vend.reduce((t,a)=>t+(Number(a.precioVenta)||0)*(Number(a.comision)||0)/100,0);
+  const dv=vend.filter(a=>a.fechaIngreso&&a.fechaVenta).map(a=>dias(a.fechaIngreso,a.fechaVenta));
+  const ds2=stock.map(diasStock).filter(d=>d!==null);
+  const cerr=B.filter(b=>b.estado==="Compró"||b.estado==="Perdido");
+  return {pend,gest,tas,man:manR.length,manSin,porEntrar,stock,act,avanz,dem,sinCalce,vend,com,
+    diasVenta:dv.length?Math.round(dv.reduce((x,y)=>x+y,0)/dv.length):null,diasStock:ds2.length?Math.round(ds2.reduce((x,y)=>x+y,0)/ds2.length):null,
+    tasa:cerr.length>=5?Math.round(cerr.filter(b=>b.estado==="Compró").length/cerr.length*100)+"%":"—",nCerr:cerr.length};
+}
+function secSelHtml(){
+  const sg=S.segLoaded?sgDue():0,bd=(S.compradores||[]).filter(bDue).length;
+  const n={consig:sg?sg+" seguimiento"+(sg===1?"":"s")+" hoy":"",venta:bd?bd+" comprador"+(bd===1?"":"es")+" por atender":""};
+  return ["consig","venta"].map(k=>`<button type="button" data-secgo="${k}" aria-pressed="${S.sec===k}"><b>${SEC_TXT[k][0]}</b><small>${SEC_TXT[k][1]}</small>${n[k]?`<span class="secn">${n[k]}</span>`:""}</button>`).join("");
+}
+function cadenaHtml(){
+  if(S.soloVirtual||!(SEC_DE[S.view]||S.view==="autos"))return "";
+  const st=secStats(),paso=(v,l,go,tit)=>`<button type="button" class="cad-s" data-cgo="${go}" title="${tit}"><span class="v num">${v}</span><span class="l">${l}</span></button>`;
+  const rl=S.radarLoaded||(S.radar||[]).length,q=x=>rl?x:"…";
+  const enAutos=S.view==="autos";
+  const nota=enAutos
+    ?`Autos es el puente: aquí entra cada mandato de Consignación y de aquí sale a Venta. <b>${st.porEntrar.length}</b> en tasación o mandato pendiente · <b>${st.stock.length}</b> en stock · <b>${st.vend.length}</b> vendido${st.vend.length===1?"":"s"} este mes.`
+    :S.sec==="consig"
+    ?`En Venta ahora: <b>${st.stock.length}</b> auto${st.stock.length===1?"":"s"} en stock y <b>${st.act.length}</b> comprador${st.act.length===1?"":"es"} activo${st.act.length===1?"":"s"}.${st.sinCalce.length?` <b>${st.sinCalce.length}</b> busca${st.sinCalce.length===1?"":"n"} algo que no hay en stock${(()=>{const t=st.sinCalce.map(b=>String(b.busca||"").trim()).filter(Boolean).slice(0,3);return t.length?": "+t.map(esc).join(" · "):""})()}. Eso es lo que conviene consignar.`:""}`
+    :`Desde Consignación: <b>${q(st.tas)}</b> ${st.tas===1?"tasación":"tasaciones"} y <b>${q(st.man)}</b> mandato${st.man===1?"":"s"} en el Radar · <b>${st.porEntrar.length}</b> auto${st.porEntrar.length===1?"":"s"} por entrar a stock.${st.vend.length?` Comisión del mes: <b>${clp(Math.round(st.com))}</b>${st.diasVenta!==null?" · "+st.diasVenta+" días promedio para vender":""}.`:""}`;
+  const alerta=rl&&st.manSin.length?`<p class="cad-n cad-a">${st.manSin.length} mandato${st.manSin.length===1?"":"s"} firmado${st.manSin.length===1?"":"s"} en el Radar sin ingresar a Autos: mientras no se ingrese${st.manSin.length===1?"":"n"}, Venta no lo${st.manSin.length===1?"":"s"} ve. <button type="button" class="btn sm" data-cgo="consig|radar|man">Ver mandatos</button></p>`:"";
+  return `<section class="cadena" aria-label="Cadena completa, de aviso a venta">
+    <div class="cad-row">
+      <div class="cad-g${S.sec==="consig"&&!enAutos?" on":""}"><span class="cad-t">Consignación · estado actual del Radar</span>
+        ${paso(q(st.pend),"sin contactar","consig|radar|pend","Avisos del Radar que nadie ha contactado")}${paso(q(st.gest),"en gestión","consig|radar|gest","Avisos contactados que siguen abiertos")}${paso(q(st.tas),"tasaciones","consig|radar|tas","Tasaciones agendadas o hechas")}${paso(q(st.man),"mandatos","consig|radar|man","Mandatos firmados desde el Radar")}</div>
+      <button type="button" class="cad-s" style="flex:0 1 110px" data-cgo="|autos|" title="Autos registrados que no están retirados ni vendidos"><span class="v num">${st.porEntrar.length+st.stock.length}</span><span class="l">→ en Autos →</span></button>
+      <div class="cad-g${S.sec==="venta"&&!enAutos?" on":""}"><span class="cad-t">Venta · stock y compradores</span>
+        ${paso(st.stock.length,"en stock","venta|stock|","Autos en preparación, publicados, con oferta o reservados")}${paso(st.act.length,"compradores activos","venta|compradores|","Compradores abiertos")}${paso(st.avanz.length,"con visita u oferta","venta|compradores|","Compradores con visita agendada, que probaron el auto o hicieron oferta")}${paso(st.vend.length,"ventas este mes","venta|stock|","Autos marcados Vendido con fecha de venta en el mes en curso")}</div>
+    </div>
+    <p class="cad-n">${nota}</p>${alerta}
+  </section>`;
+}
+/* Venta → Stock en venta: los autos que hoy se pueden vender, con la demanda real que tiene cada uno. */
+function vStock(){
+  const st=secStats(),conDem=st.stock.filter(a=>st.dem.has(a._id)).length,pub=st.stock.filter(a=>a.estado==="Publicado"),sinDem=pub.filter(a=>!st.dem.has(a._id)).length;
+  const k=(l,v,s2)=>`<div class="kpi"><span class="l">${l}</span><span class="v num">${v}</span><span class="s">${s2}</span></div>`;
+  const orden=st.stock.slice().sort((a,b)=>(diasStock(b)||0)-(diasStock(a)||0));
+  const fila=a=>carRow(a,st.dem.has(a._id)?`<span class="pill st-Vendido">${st.dem.get(a._id)} comprador${st.dem.get(a._id)===1?"":"es"} esperando</span>`:(a.estado==="Publicado"?`<span class="pill gap m">Sin comprador que calce</span>`:""));
+  const vacio=`<div class="empty"><h3>Todavía no hay autos en stock</h3><p>Un auto entra a Venta cuando está registrado en Autos y pasa a En preparación o Publicado. ${st.man?`En el Radar hay ${st.man} mandato${st.man===1?"":"s"} firmado${st.man===1?"":"s"}${st.manSin.length?` y ${st.manSin.length} sin ingresar a Autos`:""}.`:"Aún no hay mandatos firmados en el Radar."}</p><div class="racts" style="justify-content:center">${S.canWrite?`<button class="btn primary" type="button" data-new>+ Ingresar auto</button>`:""}<button class="btn" type="button" data-cgo="consig|radar|man">Ver mandatos en Consignación</button></div></div>`;
+  return `<div class="kpis" style="margin-bottom:14px">
+    ${k("En stock",st.stock.length,st.diasStock!==null?st.diasStock+" días promedio en stock":"sin autos con fecha de ingreso")}
+    ${k("Con comprador esperando",conDem,sinDem?sinDem+" publicado"+(sinDem===1?"":"s")+" sin comprador que calce":"según compradores activos")}
+    ${k("Compradores activos",st.act.length,st.avanz.length+" con visita u oferta")}
+    ${k("Vendidos este mes",st.vend.length,st.vend.length?"comisión "+clp(Math.round(st.com))+(st.diasVenta!==null?" · "+st.diasVenta+" días para vender":""):"sin ventas registradas este mes")}
+    ${k("Cierre de compradores",st.tasa,st.nCerr>=5?"de "+st.nCerr+" cerrados (compró o perdido)":"se calcula con 5 o más cerrados; van "+st.nCerr)}
+  </div>
+  ${st.stock.length?`<h2 class="stockh">En stock · ${st.stock.length}</h2><div class="list">${orden.map(fila).join("")}</div>`:vacio}
+  ${st.porEntrar.length?`<h2 class="stockh">Por entrar a stock · ${st.porEntrar.length}</h2><p class="rdet" style="margin:0 0 8px">Vienen de Consignación: en tasación o con mandato pendiente.</p><div class="list">${st.porEntrar.map(a=>carRow(a)).join("")}</div>`:""}
+  ${st.vend.length?`<h2 class="stockh">Vendidos este mes · ${st.vend.length}</h2><div class="list">${st.vend.map(a=>carRow(a)).join("")}</div>`:""}`;
+}
 function subNav(){
   if(S.soloVirtual)return "";
   const g=SUBVISTAS[VISTA_PADRE[S.view]||S.view];if(!g)return "";
   return `<div class="chips subnav" role="group" aria-label="Secciones de esta pestaña">${g.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${S.view===v}">${l}</button>`).join("")}</div>`;
 }
 function render(){
-  if(!S.accesoListo){$("#tabs").hidden=true;$("#rail").parentElement.hidden=true;$("#btnNew").hidden=true;$("#main").innerHTML=`<p class="none">Cargando…</p>`;return}
+  if(!S.accesoListo){$("#tabs").hidden=true;{const ss=$("#secsel");if(ss)ss.hidden=true}$("#rail").parentElement.hidden=true;$("#btnNew").hidden=true;$("#main").innerHTML=`<p class="none">Cargando…</p>`;return}
   $("#tabs").hidden=S.soloVirtual;
   $(".brand h1").textContent=S.soloVirtual?"Consignación virtual":"Micelio Motor";
   $(".brand small").textContent=S.soloVirtual?"Ansar Automotriz · La Serena · avisos de particulares IV Región":"Ansar Automotriz · La Serena · 2 nov 2026 – nov 2027";
   if(S.soloVirtual)S.view="virtual";
-  document.querySelectorAll("#tabs button").forEach(b=>{b.setAttribute("aria-selected",String(b.dataset.v===(VISTA_PADRE[S.view]||S.view)));b.hidden=S.soloVirtual&&b.dataset.v!=="virtual"});
+  if(!S.sec){S.sec=lsGet("ansar_sec")==="venta"?"venta":"consig";if(!S.soloVirtual&&S.sec==="venta"&&S.view==="seguimiento")S.view=SEC_INI.venta}
+  if(SEC_DE[S.view]&&SEC_DE[S.view]!==S.sec){S.sec=SEC_DE[S.view];lsSet("ansar_sec",S.sec)}
+  if(SEC_DE[S.view])secMem[S.sec]=S.view;
+  {const ss=$("#secsel");if(ss){ss.hidden=S.soloVirtual;if(!S.soloVirtual)ss.innerHTML=secSelHtml()}}
+  document.querySelectorAll("#tabs button").forEach(b=>{b.setAttribute("aria-selected",String(b.dataset.v===(VISTA_PADRE[S.view]||S.view)));b.hidden=(S.soloVirtual&&b.dataset.v!=="virtual")||(!S.soloVirtual&&!!b.dataset.sec&&b.dataset.sec!==S.sec)});
   window.__ansarVista=S.view;
   renderRail();
   const m=$("#main");
@@ -993,7 +1099,7 @@ function render(){
   if(S.offline)banners.push(`<div class="banner">${esc(S.offline)}</div>`);
   const rb=remBanners();if(rb)banners.push(rb);
   if(hoy()<INICIO&&(S.view==="resumen"||S.view==="semanas"))banners.push(`<div class="banner info">El registro oficial parte el <b>lunes 2 de noviembre de 2026</b>.</div>`);
-  m.innerHTML=banners.join("")+subNav()+({resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:vAgenda,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto,reloj:vReloj,compradores:vCompradores}[S.view])();
+  m.innerHTML=banners.join("")+cadenaHtml()+subNav()+({stock:vStock,resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:vAgenda,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto,reloj:vReloj,compradores:vCompradores}[S.view])();
   {const bn=$("#bN");if(bn){const n=(S.compradores||[]).filter(bDue).length;bn.textContent=n||"";bn.hidden=!n}}
   {const ln=$("#lwN");if(ln){const n=(S.leadsWeb||[]).filter(l=>!l.contactadoEn&&lwActivo(l)).length;ln.textContent=n||"";ln.hidden=!n}}
   {const an=$("#agN");if(an){const n=(S.agenda||[]).filter(c=>c.estado==="Por confirmar"&&c.fecha>=hoy()).length;an.textContent=n||"";an.hidden=!n}}
@@ -3214,7 +3320,7 @@ function fbToggle(open){const b=$("#fbBox"),k=$("#btnFb");if(!b)return;b.hidden=
 async function fbSend(btn){
   const ta=$("#fbTxt"),txt=ta?ta.value.trim():"";if(!txt){toast("Escribe la sugerencia");return}
   if(!S.db){toast("Sin conexión a la base del equipo");return}
-  const VN={seguimiento:"Seguimiento",radar:"Radar",virtual:"Radar virtual",express:"Búsqueda express",llamadas:"Llamadas",formulario:"Formulario",agenda:"Agenda",compradores:"Compradores",resumen:"Resumen",semanas:"Semanas",autos:"Autos",piloto:"Piloto",equipo:"Equipo y reglas",reloj:"Mi reloj"};
+  const VN={seguimiento:"Seguimiento",radar:"Radar",virtual:"Radar virtual",express:"Búsqueda express",llamadas:"Llamadas",formulario:"Formulario",agenda:"Agenda",compradores:"Compradores",stock:"Stock en venta",resumen:"Resumen",semanas:"Semanas",autos:"Autos",piloto:"Piloto",equipo:"Equipo y reglas",reloj:"Mi reloj"};
   btn.disabled=true;
   try{await S.db.collection("pilotoFeedback").doc().set({fecha:hoy(),quien:rCons()||"",etapa:"Otro",texto:"[Panel · "+(VN[S.view]||S.view)+"] "+txt,propuesta:"",estado:"Nuevo",origen:"panel",vista:S.view,creadoEn:new Date().toISOString(),creadoPor:S.uid||null});
     S.writeProbe=true;ta.value="";fbToggle(false);toast("Gracias. Quedó anotado para la revisión del lunes.")}
@@ -3331,6 +3437,8 @@ function setStatus(kind,txt){$("#status").innerHTML=`<span class="dot ${kind}"><
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
+  if(t.dataset.secgo){secIr(t.dataset.secgo);ensureCalls();render();window.scrollTo(0,0);return}
+  if(t.dataset.cgo){const [sec,v,vista]=t.dataset.cgo.split("|");if(v==="radar"&&vista&&S.rf&&S.rf.pres)S.rf.pres.vista=vista;if(sec&&SEC_INI[sec]){S.sec=sec;lsSet("ansar_sec",sec)}S.view=v;ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();if(S.view==="reloj")relojCargar(true);render();window.scrollTo(0,0);return}
   if(t.dataset.rv){S.rf[t.dataset.team||"pres"].vista=t.dataset.rv;render();return}
   if(t.dataset.rmkp){const tm=t.dataset.rmkp,X=rfx(tm);X.src=X.src==="Facebook Marketplace"?"":"Facebook Marketplace";rfxSave(tm);render();return}

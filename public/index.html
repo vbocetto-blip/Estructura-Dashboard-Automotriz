@@ -3106,9 +3106,10 @@ function proyeccion(mo,st){
   const comProm=vend.length?vend.reduce((s,a)=>s+Number(a.precioVenta)*Number(a.comision)/100,0)/vend.length:null;
   const rr=x=>cur&&hPas>=3?x/hPas*hTot:null;
   const meta=Number((S.semanas["meta-"+mo.key]||{}).metaVentas)||0;
-  const todo=r1.v&&r2.v&&r3.v?r1.v*r2.v*r3.v:null;
+  const todo=r1.v!=null&&r2.v!=null&&r3.v!=null?r1.v*r2.v*r3.v:null;
   return {cur,pas,hTot,hPas,cMes,ritmo:hPas?cMes/hPas:null,r1,r2,r3,comProm,meta,todo,
     pMan:rr(st.man.length),pVen:rr(st.ven.length),pCom:rr(st.com),
+    cero:todo===0?(r1.v===0?"de contacto a auto tasado":r2.v===0?"de auto tasado a mandato":"de mandato a venta"):"",
     contMeta:meta&&todo&&hTot?meta/todo/hTot:null,manMeta:meta&&r3.v?meta/r3.v:null,tasMeta:meta&&r3.v&&r2.v?meta/r3.v/r2.v:null};
 }
 /* Ritmo de registro por persona en los últimos 10 días hábiles: el panel vale lo que se registra. */
@@ -3128,6 +3129,7 @@ function proHtml(mo,st){
     :P.pas?stat("Mes cerrado",st.ven.length+" ventas",`${st.man.length} mandatos · ${clp(Math.round(st.com))} de comisión`):`<p class="none">${mesNom[0].toUpperCase()+mesNom.slice(1)} todavía no empieza.</p>`;
   const falta=[!P.r1.ok&&`${PRO_MIN.r1} contactos registrados`,!P.r3.ok&&`${PRO_MIN.r3} mandatos ya resueltos (vendidos o retirados)`].filter(Boolean);
   const inv=!P.meta?`<p class="none">Escribe la meta de ventas del mes para ver cuánto trabajo diario exige.</p>`
+    :P.cero?`<p class="rdet" style="margin:0;font-size:14.5px;color:var(--bad)">Con los datos propios de hoy, la meta de <b>${P.meta} ventas</b> no se alcanza con más contactos: el paso <b>${P.cero}</b> está en 0%. Ese paso es el que hay que destrabar primero.</p>`
     :P.contMeta==null?`<p class="rdet" style="margin:0">Para traducir la meta de <b>${P.meta} ventas</b> a contactos diarios faltan datos propios: ${falta.join(" y ")}. Hasta entonces, cualquier número sería inventado.</p>`
     :`<p class="rdet" style="margin:0;font-size:14.5px">Sostener <b>${P.meta} venta${P.meta===1?"":"s"} al mes</b> pide cerca de <b class="num">${f1(P.manMeta)} mandatos</b>, <b class="num">${f1(P.tasMeta)} tasaciones</b> y <b class="num">${f1(P.contMeta)} contactos por día hábil</b>.${P.ritmo!=null?` El equipo va en <b class="num" style="color:${P.ritmo>=P.contMeta?"var(--good)":"var(--bad)"}">${f1(P.ritmo)}</b> por día este mes.`:""}${P.comProm?` A la comisión promedio real (${clp(Math.round(P.comProm))}), esa meta deja <b class="num">${clp(Math.round(P.comProm*P.meta))}</b> al mes.`:""}</p>`;
   return `<section class="zone z-pro" id="z-pro">

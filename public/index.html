@@ -698,10 +698,11 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .ptab th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:4px 8px 6px 0;border-bottom:1px solid var(--line)}
 .ptab td{padding:7px 8px 7px 0;border-bottom:1px solid var(--line);vertical-align:middle}
 .ptab tr:last-child td{border-bottom:0}
-/* ===== Fondo Micelio: red tenue detrás de la interfaz, quieta, sin interacción ===== */
+/* ===== Fondo Micelio: red tenue detrás de la interfaz; respira muy lento, sin interacción ===== */
 #micelio{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.6s ease}
-#micelio.on{opacity:1}
-@media (prefers-reduced-motion:reduce){#micelio{transition:none}}
+#micelio.on{opacity:1;animation:micResp 16s ease-in-out 2s infinite}
+@keyframes micResp{0%,100%{opacity:1}50%{opacity:.8}}
+@media (prefers-reduced-motion:reduce){#micelio{transition:none}#micelio.on{animation:none}}
 @media print{#micelio{display:none}}
 </style>
 
@@ -3541,8 +3542,9 @@ render();
 })();
 </script>
 <script>
-/* Fondo Micelio: hifas que crecen desde los bordes hacia adentro, con luz propia en modo oscuro.
-   Se dibuja una sola vez por tamaño de pantalla (semilla fija: siempre la misma red), no se anima y no recibe clics. */
+/* Fondo Micelio, segunda versión. Tres planos, como una fotografía con poca profundidad de campo:
+   1) luz ambiente que nace en dos esquinas, 2) una red lejana desenfocada, 3) pocas hifas nítidas que se afinan hacia la punta.
+   El color viaja de menta a azul a lo largo de cada hifa. Semilla fija, una sola pasada de dibujo, sin interacción. */
 (function(){
   "use strict";
   var c=document.createElement("canvas");c.id="micelio";c.setAttribute("aria-hidden","true");document.body.prepend(c);
@@ -3550,41 +3552,54 @@ render();
   var mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
   function oscuro(){var t=document.documentElement.getAttribute("data-theme");return t?t==="dark":!!(mq&&mq.matches)}
   function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-  function draw(){
-    var W=innerWidth,H=innerHeight,d=Math.min(2,devicePixelRatio||1),dark=oscuro(),R=rng(99);
-    c.width=Math.round(W*d);c.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,W,H);
-    var rgb=dark?"150,255,222":"24,96,80",aL=dark?.2:.075,aN=dark?.55:.14;
-    /* Orígenes en bordes y esquinas: el centro de la pantalla queda en calma */
-    var O=[[-.02,.78,-.5],[1.02,.3,Math.PI+.35],[.82,1.03,-Math.PI/2-.4],[.12,-.03,Math.PI/2-.3],[1.02,.92,Math.PI+.9],[-.02,.2,.4]];
-    if(W<700)O=O.slice(0,3);
-    var tips=[],nodes=[];
-    O.forEach(function(o){var n=2+Math.floor(R()*2);for(var i=0;i<n;i++)tips.push({x:o[0]*W,y:o[1]*H,a:o[2]+(R()-.5)*1.3,life:70+R()*90,g:0})});
-    ctx.lineCap="round";ctx.lineJoin="round";
-    var guard=0;
-    while(tips.length&&guard++<900){
-      var t=tips.shift(),steps=0;
-      ctx.beginPath();ctx.moveTo(t.x,t.y);
-      while(t.life-->0&&steps++<400){
-        t.a+=(R()-.5)*.34;t.x+=Math.cos(t.a)*5;t.y+=Math.sin(t.a)*5;ctx.lineTo(t.x,t.y);
-        if(t.x<-40||t.x>W+40||t.y<-40||t.y>H+40)break;
-        if(t.g<3&&R()<.024){nodes.push([t.x,t.y,t.g]);tips.push({x:t.x,y:t.y,a:t.a+(R()<.5?-1:1)*(.45+R()*.6),life:t.life*(.5+R()*.3),g:t.g+1})}
+  var mix=function(a,b,t){return Math.round(a+(b-a)*t)};
+  /* Crece una colonia: cada hifa avanza con inercia de giro (arcos largos y limpios) y se ramifica poco. */
+  function colonia(R,W,H,O,paso,vida,ramas){
+    var tips=[],out=[],guard=0;
+    O.forEach(function(o){var n=2+Math.floor(R()*2);for(var i=0;i<n;i++)tips.push({x:o[0]*W,y:o[1]*H,a:o[2]+(R()-.5)*1.1,av:0,life:vida*(.7+R()*.6),g:0,d0:0})});
+    while(tips.length&&guard++<260){
+      var t=tips.shift(),pts=[[t.x,t.y]],n0=t.life;
+      while(t.life-->0){
+        t.av=(t.av+(R()-.5)*.028)*.94;t.a+=t.av;t.x+=Math.cos(t.a)*paso;t.y+=Math.sin(t.a)*paso;pts.push([t.x,t.y]);
+        if(t.x<-60||t.x>W+60||t.y<-60||t.y>H+60)break;
+        if(t.g<ramas&&R()<.011)tips.push({x:t.x,y:t.y,a:t.a+(R()<.5?-1:1)*(.38+R()*.42),av:0,life:t.life*(.45+R()*.3),g:t.g+1,d0:t.d0+(n0-t.life)/n0*.5});
       }
-      var k=1-t.g*.18;
-      ctx.strokeStyle="rgba("+rgb+","+(aL*k).toFixed(3)+")";ctx.lineWidth=Math.max(.5,1.15-t.g*.17);
-      if(dark){ctx.shadowColor="rgba("+rgb+",.55)";ctx.shadowBlur=7}
-      ctx.stroke();
-      if(t.g<3)nodes.push([t.x,t.y,t.g+1]);
+      if(pts.length>6)out.push({pts:pts,g:t.g,d0:t.d0});
     }
+    return out;
+  }
+  function draw(){
+    var W=innerWidth,H=innerHeight,d=Math.min(2,devicePixelRatio||1),dark=oscuro(),chico=W<700;
+    c.width=Math.round(W*d);c.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,W,H);
+    ctx.lineCap="round";ctx.lineJoin="round";
+    var A=dark?[132,255,214]:[40,120,110],B=dark?[96,168,255]:[70,110,170];
+    var col=function(t,al){t=Math.max(0,Math.min(1,t));return "rgba("+mix(A[0],B[0],t)+","+mix(A[1],B[1],t)+","+mix(A[2],B[2],t)+","+al.toFixed(3)+")"};
+    /* 1 · Luz ambiente */
+    var M=Math.max(W,H);
+    [[0,.86,A,dark?.085:.03],[1,.16,B,dark?.075:.028]].forEach(function(q){var g=ctx.createRadialGradient(q[0]*W,q[1]*H,0,q[0]*W,q[1]*H,M*.55);
+      g.addColorStop(0,"rgba("+q[2].join(",")+","+q[3]+")");g.addColorStop(1,"rgba("+q[2].join(",")+",0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H)});
+    /* 2 · Red lejana, desenfocada */
+    var lejos=colonia(rng(7),W,H,chico?[[-.05,.9,-.6],[1.05,.1,Math.PI-.5]]:[[-.05,.9,-.55],[1.05,.1,Math.PI-.45],[.55,1.08,-Math.PI/2]],7,chico?70:120,1);
+    lejos.forEach(function(h){ctx.beginPath();ctx.moveTo(h.pts[0][0],h.pts[0][1]);for(var i=1;i<h.pts.length;i++)ctx.lineTo(h.pts[i][0],h.pts[i][1]);
+      ctx.strokeStyle=col(.5,dark?.035:.02);ctx.lineWidth=2.4;ctx.shadowColor=col(.5,dark?.3:.1);ctx.shadowBlur=18;ctx.stroke()});
     ctx.shadowBlur=0;
-    /* Nodos: puntos de luz en las ramificaciones y en las puntas */
-    nodes.forEach(function(n){if(n[0]<0||n[0]>W||n[1]<0||n[1]>H)return;var r=dark?8-n[2]:1.6,g=ctx.createRadialGradient(n[0],n[1],0,n[0],n[1],r);
-      g.addColorStop(0,"rgba("+rgb+","+(aN*(1-n[2]*.15)).toFixed(3)+")");g.addColorStop(dark?.25:.7,"rgba("+rgb+","+(dark?.12:aN*.6)+")");g.addColorStop(1,"rgba("+rgb+",0)");
-      ctx.fillStyle=g;ctx.beginPath();ctx.arc(n[0],n[1],r,0,6.2832);ctx.fill()});
+    /* 3 · Hifas nítidas: se afinan y cambian de color hacia la punta */
+    var cerca=colonia(rng(41),W,H,chico?[[-.02,.8,-.45],[1.02,.24,Math.PI+.3]]:[[-.02,.8,-.45],[1.02,.24,Math.PI+.3],[.9,1.03,-Math.PI/2-.5],[.08,-.03,Math.PI/2-.2]],4,chico?90:150,2);
+    cerca.forEach(function(h){var n=h.pts.length,w0=Math.max(.6,1.5-h.g*.42),K=5;
+      for(var i=0;i<n-1;i+=K){var e=Math.min(n-1,i+K),t=i/n;ctx.beginPath();ctx.moveTo(h.pts[i][0],h.pts[i][1]);for(var j=i+1;j<=e;j++)ctx.lineTo(h.pts[j][0],h.pts[j][1]);
+        ctx.strokeStyle=col(h.d0+t*(1-h.d0),(dark?.3:.1)*(1-t*.3)*(1-h.g*.1));ctx.lineWidth=w0+(.5-w0)*t;
+        if(dark){ctx.shadowColor=col(h.d0+t,.5);ctx.shadowBlur=6}
+        ctx.stroke()}
+    });
+    ctx.shadowBlur=0;
+    /* Puntas: un núcleo pequeño y un halo amplio y muy suave */
+    cerca.forEach(function(h){var p=h.pts[h.pts.length-1];if(p[0]<8||p[0]>W-8||p[1]<8||p[1]>H-8)return;
+      if(dark){var g=ctx.createRadialGradient(p[0],p[1],0,p[0],p[1],16);g.addColorStop(0,col(.85,.34));g.addColorStop(.18,col(.85,.1));g.addColorStop(1,col(.85,0));ctx.fillStyle=g;ctx.beginPath();ctx.arc(p[0],p[1],16,0,6.2832);ctx.fill()}
+      ctx.fillStyle=col(.7,dark?.9:.22);ctx.beginPath();ctx.arc(p[0],p[1],dark?1.15:1.3,0,6.2832);ctx.fill()});
     c.classList.add("on");
   }
-  var tm=null,lw=0,lh=0;
+  var tm=null,lw=innerWidth,lh=innerHeight;
   function again(){clearTimeout(tm);tm=setTimeout(function(){if(Math.abs(innerWidth-lw)<2&&Math.abs(innerHeight-lh)<120)return;lw=innerWidth;lh=innerHeight;draw()},250)}
-  lw=innerWidth;lh=innerHeight;
   (window.requestIdleCallback||function(f){setTimeout(f,60)})(draw);
   addEventListener("resize",again);
   if(mq){if(mq.addEventListener)mq.addEventListener("change",draw);else if(mq.addListener)mq.addListener(draw)}

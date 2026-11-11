@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Consignaciones Ansar</title>
+<title>Micelio Motor</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: sticky header + tabs, month rail, single-column work area that widens to two columns on desktop. Patente chilena as the recurring identity mark. */
@@ -703,7 +703,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
   <div class="wrap">
     <div class="toprow">
       <div class="brand">
-        <h1>Consignaciones Ansar</h1>
+        <h1>Micelio Motor</h1>
         <small>Ansar Automotriz · La Serena · 2 nov 2026 – nov 2027</small>
       </div>
       <span class="status" id="status"><span class="dot"></span><span>Conectando…</span></span>
@@ -966,7 +966,7 @@ function subNav(){
 function render(){
   if(!S.accesoListo){$("#tabs").hidden=true;$("#rail").parentElement.hidden=true;$("#btnNew").hidden=true;$("#main").innerHTML=`<p class="none">Cargando…</p>`;return}
   $("#tabs").hidden=S.soloVirtual;
-  $(".brand h1").textContent=S.soloVirtual?"Consignación virtual":"Consignaciones Ansar";
+  $(".brand h1").textContent=S.soloVirtual?"Consignación virtual":"Micelio Motor";
   $(".brand small").textContent=S.soloVirtual?"Ansar Automotriz · La Serena · avisos de particulares IV Región":"Ansar Automotriz · La Serena · 2 nov 2026 – nov 2027";
   if(S.soloVirtual)S.view="virtual";
   document.querySelectorAll("#tabs button").forEach(b=>{b.setAttribute("aria-selected",String(b.dataset.v===(VISTA_PADRE[S.view]||S.view)));b.hidden=S.soloVirtual&&b.dataset.v!=="virtual"});

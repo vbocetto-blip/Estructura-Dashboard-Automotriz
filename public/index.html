@@ -1352,7 +1352,8 @@ function vEquipo(){
     <li><b>Tasación y precio son referenciales</b> hasta el cierre; dilo así al propietario.</li>
     <li><b>Datos del propietario solo con su consentimiento</b> y para gestionar la venta de su auto. Si pide no ser contactado, se respeta.</li>
     <li><b>Más de 21 días publicado sin oferta</b>: revisar precio, fotos o canal con el propietario.</li>
-    <li><b>Toda persona que pregunta por un auto se anota en Compradores</b> el mismo día, con el canal por el que llegó y una próxima fecha. Su contacto se guarda solo si lo autoriza. Al vender, se marca en la ficha del auto el canal que trajo al comprador.</li>
+    <li><b>Toda persona que pregunta por un auto se anota en Compradores</b> el mismo día, con el canal por el que llegó y una próxima fecha. Su contacto se guarda solo si lo autoriza. Al marcar que compró, el panel abre la ficha del auto para cerrar la venta con su precio final y su canal.</li>
+    <li><b>Cita que llegó, auto que se ingresa.</b> En Agenda, al marcar “Llegó”, usa “Ingresar auto”: la ficha se abre con los datos que el cliente ya dio.</li>
     <li><b>Cada llamado a un posible consignante se registra</b> en Llamadas, con ruta, perfil y resultado. Si alguien pide no ser contactado, se marca y no se vuelve a llamar.</li>
     <li><b>Los avisos del Radar se contactan por el chat o el WhatsApp del propio aviso</b> y el resultado se registra desde la pestaña Radar: queda en Llamadas con ruta Propio y la fuente del portal. Sin razón nueva, no se vuelve a escribir a quien no respondió.</li>
     <li><b>Consignación virtual = consignadoras en teletrabajo.</b> Trabajan la pestaña Virtual con avisos propios, distintos de los del Radar: particulares de la IV Región con motor Consignar y rate de consignación 70 o más. Llaman, escriben y agendan la visita; el equipo en piso recibe al dueño en Ansar, tasa y firma el mandato. El auto entra como cualquier consignación y en Autos queda con origen “Equipo virtual”. Las consignadoras virtuales se invitan como Colaboradoras: solo ven y registran la pestaña Virtual. Quien deba ver todo el tablero necesita acceso de Editor.</li>
@@ -1941,6 +1942,7 @@ function agCard(c){
    <span class="t">${esc([c.perfil,c.etiqueta,c.origen].filter(Boolean).join(" · "))}${c.confirmadaPor?" · confirmó "+esc(c.confirmadaPor):""}</span>
    <div class="acts">${tel?`<a class="btn primary" href="https://wa.me/${esc(tel)}?text=${encodeURIComponent(agMsg(c))}" target="_blank" rel="noopener noreferrer">Confirmar por WhatsApp</a>`:""}
     ${c.leadId?`<button type="button" class="btn" data-agver="${esc(c.leadId)}">Ver lead</button>`:""}
+    ${c.autoId&&S.autos.some(a=>a._id===c.autoId)?`<button type="button" class="btn" data-open="${esc(c.autoId)}">Ver auto</button>`:c.estado==="Llegó"&&S.canWrite?`<button type="button" class="btn" data-agauto="${id}">Ingresar auto</button>`:""}
     ${S.canWrite?`<select data-agest="${id}" aria-label="Estado de la cita">${AG_EST.map(e=>`<option ${e===(c.estado||"Por confirmar")?"selected":""}>${e}</option>`).join("")}</select>`:""}</div>
   </div>`;
 }
@@ -2425,6 +2427,20 @@ function onRadarSnap(snap,col){
   if(msgs.length)toast(msgs.length>1?`${msgs[0]} (y ${msgs.length-1} más)`:msgs[0]);
   safeRender();
   setTimeout(remTick,0);
+}
+/* De la cita que llegó a la ficha del auto, con lo que el cliente ya escribió en el formulario */
+function agAuto(id){
+  const c=(S.agenda||[]).find(x=>x._id===id);if(!c)return;
+  const l=c.leadId?(S.leadsWeb||[]).find(x=>x._id===c.leadId):null,v=l?{marca:l.marca,modelo:l.modelo,anio:l.anio}:parseVeh(c.auto);
+  openSheet(null,{_agId:c._id,marca:v.marca||"",modelo:v.modelo||"",anio:v.anio||"",km:(l&&l.km)||"",precioPropietario:(l&&l.precioEsperado)||"",propNombre:c.nombre||"",propTelefono:c.tel||"",propComuna:(l&&l.comuna)||"",
+    origen:l&&/meta|facebook|instagram|fb|ig/i.test(l.fuente||"")?"Meta Ads":"",consentimiento:!!(l&&l.consentimiento&&l.consentimiento.acepta),responsable:rCons()||"",
+    proximaAccion:"Cerrar mandato con rango de precio",fechaProxima:sgHabil(sgPlus(hoy(),1)),notas:"Desde Agenda, cita del "+fmtD(c.fecha)+" "+(c.hora||"")+(c.origen?" ("+c.origen+")":"")});
+}
+/* Del comprador que compró a la ficha del auto: estado Vendido, canal y comprador ya puestos; falta solo el precio final */
+function bVenta(bid,aid){
+  const b=(S.compradores||[]).find(x=>x._id===bid),a=S.autos.find(x=>x._id===aid);if(!b||!a)return;
+  openSheet(aid,{_bId:bid,estado:"Vendido",fechaVenta:a.fechaVenta||hoy(),comprador:a.comprador||b.nombre||"",canalVenta:a.canalVenta||(B_CANALES.includes(b.canal)?b.canal:"")});
+  setTimeout(()=>{const el=$("#f_precioVenta");if(el){el.scrollIntoView({block:"center"});el.focus()}},60);
 }
 function rAuto(id){
   const r=S.radar.find(x=>x._id===id);if(!r)return;
@@ -2993,6 +3009,7 @@ function bCard(b){
     ${est==="Perdido"?`<div class="field"><label for="bm_${id}">Por qué se perdió</label><select id="bm_${id}" data-bmot="${id}" ${ro}>${B_MOTIVO.map(e=>`<option value="${esc(e)}" ${e===(b.motivo||"")?"selected":""}>${e||"—"}</option>`).join("")}</select></div>`:""}
     ${bActivo(b)?`<div class="field"><label for="bp_${id}"${venc?' style="color:var(--bad)"':""}>Próximo contacto${venc?" · vencido":""}</label><input id="bp_${id}" type="date" data-bprox="${id}" value="${esc(b.proximaFecha||"")}" ${ro}></div>`:""}
     ${tel&&bActivo(b)?`<a class="btn sm" href="tel:+${tel}">Llamar</a><a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${encodeURIComponent(bMsg(b,ms[0]))}">WhatsApp</a>`:""}
+    ${est==="Compró"?(b.ventaAutoId&&S.autos.some(a=>a._id===b.ventaAutoId)?`<button type="button" class="btn sm" data-open="${esc(b.ventaAutoId)}">Ver auto vendido</button>`:S.canWrite?`<div class="field"><label for="bv_${id}" style="color:var(--bad)">Falta cerrar la venta: qué auto compró</label><select id="bv_${id}" data-bcar="${id}"><option value="">Elige el auto</option>${S.autos.filter(a=>(a.estado||"Tasación")!=="Retirado").map(a=>`<option value="${esc(a._id)}">${esc(nombre(a))}${a.anio?" "+esc(a.anio):""}${a.patente?" · "+esc(fmtPat(a.patente)):""}</option>`).join("")}</select></div>`:""):""}
     ${S.canWrite?`<button type="button" class="btn sm" data-bedit="${id}">Editar</button>`:""}
    </div>`}
   </article>`;
@@ -3161,8 +3178,8 @@ function mgHtml(a){
 }
 let editing=null;
 function openSheet(id,pre){
-  const a=id?S.autos.find(x=>x._id===id):{estado:"Tasación",fechaIngreso:hoy(),comision:"",...(pre||{})};
-  if(!a)return;editing={id:id||null,orig:a};
+  const base=id?S.autos.find(x=>x._id===id):{estado:"Tasación",fechaIngreso:hoy(),comision:"",...(pre||{})};
+  if(!base)return;const a=id&&pre?{...base,...pre}:base;editing={id:id||null,orig:a};
   const ro=S.canWrite?"":"disabled";
   const input=(f)=>{const[k,l,t="text",x]=f;const v=a[k];const miss=MISSK.has(k)&&(v===undefined||v===""||v===null||v===false)?" miss":"";
     if(t==="check")return `<label class="check${miss&&k!=="mandatoFirmado"||(k==="mandatoFirmado"&&a.estado&&a.estado!=="Tasación"&&!v)?" miss":""} wide"><input type="checkbox" id="f_${k}" ${v?"checked":""} ${ro}> ${l}</label>`;
@@ -3214,7 +3231,10 @@ async function saveAuto(){
   try{
     const ref=editing.id?S.db.collection("autos").doc(editing.id):S.db.collection("autos").doc();
     await ref.set(data);
-    closeSheet();toast(editing?.id?"Cambios guardados":"Auto guardado");
+    const o2=editing.orig||{},eraNuevo=!editing.id;
+    if(o2._agId)S.db.collection("agenda").doc(o2._agId).update({autoId:ref.id}).catch(()=>{});
+    if(o2._bId)S.db.collection("compradores").doc(o2._bId).update({ventaAutoId:ref.id,updatedAt:new Date().toISOString()}).catch(()=>{});
+    closeSheet();toast(o2._bId?"Venta cerrada y enlazada al comprador":eraNuevo?"Auto guardado":"Cambios guardados");
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
 }
 function handleWriteErr(e){
@@ -3314,6 +3334,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.gofil){S.filtro.estado=t.dataset.gofil;S.view="autos";render();window.scrollTo(0,0);return}
   if(t.dataset.savewk){saveWeek(t.dataset.savewk,t);return}
   if(t.dataset.savemeta){saveMeta(t.dataset.savemeta,t);return}
+  if(t.dataset.agauto){agAuto(t.dataset.agauto);return}
   if(t.dataset.bv){(S.bfil=S.bfil||{vista:"hoy",quien:""}).vista=t.dataset.bv;render();if(t.classList.contains("kpib"))requestAnimationFrame(()=>{const l=document.getElementById("blist");if(l)l.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"})});return}
   if(t.dataset.bq!==undefined){(S.bfil=S.bfil||{vista:"hoy",quien:""}).quien=t.dataset.bq;render();return}
   if(t.dataset.bedit){const b=(S.compradores||[]).find(x=>x._id===t.dataset.bedit);if(b){S.bfEdit=b._id;S.bf={...bfDefault(),...Object.fromEntries(Object.keys(bfDefault()).map(k=>[k,b[k]??(k==="consentimiento"?false:"")]))};render();const f=$("#z-bform");if(f)f.scrollIntoView({block:"start"})}return}
@@ -3358,7 +3379,11 @@ document.addEventListener("change",e=>{
   if(e.target.id==="ctsortsel"){S.ctSort=e.target.value;S.ctDir=e.target.value==="k"?1:-1;render();return}
   if(e.target.id==="b_consentimiento"){(S.bf=S.bf||bfDefault()).consentimiento=e.target.checked;return}
   if(e.target.id&&e.target.id.startsWith("b_")){(S.bf=S.bf||bfDefault())[e.target.id.slice(2)]=e.target.value;return}
-  if(e.target.dataset&&e.target.dataset.best){const v=e.target.value;buyerSet(e.target.dataset.best,{estado:v},v==="Compró"?"Venta anotada. Marca el auto como Vendido y elige el canal que trajo al comprador.":"Estado: "+v);return}
+  if(e.target.dataset&&e.target.dataset.best){const v=e.target.value,bid=e.target.dataset.best;
+    if(v!=="Compró"){buyerSet(bid,{estado:v},"Estado: "+v);return}
+    const b=(S.compradores||[]).find(x=>x._id===bid),ms=b?bMatch(b):[],aid=b&&b.autoId&&S.autos.some(a=>a._id===b.autoId)?b.autoId:ms.length===1?ms[0]._id:"";
+    buyerSet(bid,{estado:v},aid?"":"Elige qué auto compró para cerrar la venta").then(()=>{if(aid)bVenta(bid,aid);else{(S.bfil=S.bfil||{vista:"hoy",quien:""}).vista="cerrados";render()}});return}
+  if(e.target.dataset&&e.target.dataset.bcar){if(e.target.value)bVenta(e.target.dataset.bcar,e.target.value);return}
   if(e.target.dataset&&e.target.dataset.bmot){buyerSet(e.target.dataset.bmot,{motivo:e.target.value},"Motivo anotado");return}
   if(e.target.dataset&&e.target.dataset.bprox){buyerSet(e.target.dataset.bprox,{proximaFecha:e.target.value},"Próximo contacto guardado");return}
   if(e.target.id==="fresp"){S.filtro.resp=e.target.value;render()}

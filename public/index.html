@@ -732,6 +732,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .cadena .cad-a{color:var(--bad);font-weight:600}
 .stockh{font-family:var(--f-display);font-size:18px;font-weight:700;margin:18px 0 8px}
 .secsel button{min-width:0}
+.rbus{display:flex;gap:8px;margin:12px 0}.rbus input{flex:1 1 auto;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:11px 14px;font:inherit;font-size:16px}.rbus input:focus{outline:2px solid var(--accent);outline-offset:1px}
 .rcita[hidden]{display:none}.rreg .rcita{flex:1 1 100%;flex-wrap:wrap}.rreg .rcita input{flex:0 0 auto}
 .tasp{background:var(--surface);border:1px solid var(--warn);border-radius:var(--r);padding:14px;margin:0 0 16px}
 .tasr{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
@@ -2431,6 +2432,14 @@ function vRadar(team){
   const byScore=(a,b)=>sk(b)-sk(a)||(b.fechaRadar||"").localeCompare(a.fechaRadar||"");
   arr.sort(F.vista==="gest"||F.vista==="cerr"||KV[F.vista]?(a,b)=>(b.ultimoContacto||"").localeCompare(a.ultimoContacto||"")||byScore(a,b):F.vista==="hoy"?(a,b)=>rProx(a).localeCompare(rProx(b))||byScore(a,b):byScore);
   if(X.ord)arr=rfxSort(arr,X);
+  /* Buscador: encuentra un vehículo específico en todo el Radar (cualquier estado, piso y virtual), sin importar la vista ni los filtros. */
+  const Q=String((S.rbus&&S.rbus[team])||"").trim(),buscando=Q.length>=2;let busDet="";
+  if(buscando){
+    const ws=rfxTxt(Q).split(/\s+/).filter(Boolean),GN={pend:"sin contactar",gest:"en gestión",prenda:"con prenda",cerr:"cerrados",nopub:"ya no publicados"},GN1={cerr:"cerrado",nopub:"ya no publicado"},GO={pend:0,gest:1,prenda:2,cerr:3,nopub:4};
+    arr=(S.soloVirtual?all:S.radar.filter(r=>!r.pedidoId)).filter(r=>{const h=rfxTxt([r.marca,r.modelo,r.ver,r.anio,r.comuna,r.contacto,r.src,r.consignador,r.subtema,r._id,r.url].join(" "))+" "+String(r.telefonoN||r.telefono||"").replace(/\D/g,"");return ws.every(w=>h.includes(w))});
+    arr.sort((a,b)=>(GO[rGrupo(a)]??9)-(GO[rGrupo(b)]??9)||byScore(a,b));
+    busDet=Object.keys(GO).map(g=>[g,arr.filter(r=>rGrupo(r)===g).length]).filter(x=>x[1]).map(([g,n])=>`${n} ${n===1&&GN1[g]?GN1[g]:GN[g]}`).join(" · ");
+  }
   const hoyDocs=all.filter(r=>r.ultimoContacto===hoy());
   const porCons=groupBy(hoyDocs,r=>r.consignador).map(x=>`${esc(String(x.k).split(" ")[0])} ${x.n}`).join(" · ");
   const agen=all.filter(r=>rNivel(r)>=3).length,mand=all.filter(r=>rNivel(r)>=5).length;
@@ -2452,6 +2461,7 @@ function vRadar(team){
     <button type="button" class="kpi kpib hl" data-rvk="man" data-team="${team}" aria-pressed="${F.vista==="man"}" aria-label="Ver los ${mand} mandatos"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">${virt?"virtuales":"desde el radar"} · ver cuáles</span></button>
   </div>
   ${remStrip(team)}
+  <div class="rbus"><input type="search" id="rbus_${team}" data-rbus="${team}" value="${esc(Q)}" placeholder="Buscar un vehículo: marca, modelo, año, comuna, dueño o teléfono" aria-label="Buscar un vehículo en todo el Radar" autocomplete="off" enterkeyhint="search">${Q?`<button type="button" class="btn" data-rbusclr="${team}">Limpiar</button>`:""}</div>
   <section class="panel"><div class="rbarc">
     ${miNombre()?`<span class="rwho" title="Según tu correo"><span>Contacta</span><b>${esc(miNombre())}</b></span>`:`<label class="rwho" for="r_cons_${team}"><span>Contacta</span><select id="r_cons_${team}" data-rcons="1" ${ro}><option value="">— elige —</option>${uniq([...miembros,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></label>`}
     <details class="rmini" data-gopen="__rhow_${team}" ${S.gopen["__rhow_"+team]?"open":""}><summary>Cómo se trabaja</summary><p>${intro}</p></details>
@@ -2468,9 +2478,10 @@ function vRadar(team){
     ${mezclaHtml(pend)}
     ${rfxHtml(team,baseArr,virt)}
   </section>
-  ${rfxN(X)?`<p class="rdet" style="margin:4px 2px">Mis filtros: se muestran <b class="num">${arr.length}</b> de <b class="num">${nAntes}</b> en esta vista.</p>`:""}
-  ${KV[F.vista]?`<div id="rvkb" class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Mostrando: <b>${KV[F.vista][0]}</b> · ${arr.length}</span><button type="button" class="btn sm" data-rv="pend" data-team="${team}">Volver a Sin contactar</button></div>`:""}
-  ${!S.radarLoaded&&S.db?`<p class="none">Cargando radar…</p>`:arr.length?`<div class="rlist">${arr.map(rCard).join("")}</div>`:`<div class="empty"><h3>${all.length?"Nada en esta vista":(virt?"Los primeros avisos llegan con la próxima carga del radar":"El radar está vacío")}</h3><p>${all.length?"Cambia el filtro para ver otros avisos.":virt?"Cada mañana hábil a las 9:50 llegan aquí avisos propios: particulares de la IV Región con motor Consignar y rate de consignación 70 o más, distintos de los del Radar.":"Cada mañana de lunes a viernes llegan aquí los avisos nuevos de particulares, con precio contra mercado y mensaje listo."}</p></div>`}`;
+  ${buscando?`<div class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span><b class="num">${arr.length}</b> ${arr.length===1?"aviso calza":"avisos calzan"} con “${esc(Q)}” en todo el Radar${busDet?" · "+busDet:""}. La búsqueda no usa la vista ni los filtros.</span><button type="button" class="btn sm" data-rbusclr="${team}">Limpiar búsqueda</button></div>`:""}
+  ${!buscando&&rfxN(X)?`<p class="rdet" style="margin:4px 2px">Mis filtros: se muestran <b class="num">${arr.length}</b> de <b class="num">${nAntes}</b> en esta vista.</p>`:""}
+  ${!buscando&&KV[F.vista]?`<div id="rvkb" class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Mostrando: <b>${KV[F.vista][0]}</b> · ${arr.length}</span><button type="button" class="btn sm" data-rv="pend" data-team="${team}">Volver a Sin contactar</button></div>`:""}
+  ${!S.radarLoaded&&S.db?`<p class="none">Cargando radar…</p>`:arr.length?`<div class="rlist">${arr.map(rCard).join("")}</div>`:`<div class="empty"><h3>${buscando?"Ningún aviso calza con la búsqueda. Prueba con menos palabras.":all.length?"Nada en esta vista":(virt?"Los primeros avisos llegan con la próxima carga del radar":"El radar está vacío")}</h3><p>${all.length?"Cambia el filtro para ver otros avisos.":virt?"Cada mañana hábil a las 9:50 llegan aquí avisos propios: particulares de la IV Región con motor Consignar y rate de consignación 70 o más, distintos de los del Radar.":"Cada mañana de lunes a viernes llegan aquí los avisos nuevos de particulares, con precio contra mercado y mensaje listo."}</p></div>`}`;
 }
 /* ---------- Recordatorio: volver a llamar ---------- */
 const REM_OPTS=[["30","30 minutos"],["45","45 minutos"],["60","1 hora"],["90","1 hora y media"],["120","2 horas"],["180","3 horas"],["manana","Mañana a las 10:00"]];
@@ -3545,6 +3556,7 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
   if(t.dataset.per&&PER_TXT[t.dataset.per]){S.per=t.dataset.per;lsSet("ansar_per",S.per);render();return}
+  if(t.dataset.rbusclr){(S.rbus=S.rbus||{})[t.dataset.rbusclr]="";render();const el=document.getElementById("rbus_"+t.dataset.rbusclr);if(el)el.focus();return}
   if(t.dataset.tasfix){tasFix(t.dataset.tasfix,false,t);return}
   if(t.dataset.tasno){tasFix(t.dataset.tasno,true,t);return}
   if(t.dataset.secgo){secIr(t.dataset.secgo);ensureCalls();render();window.scrollTo(0,0);return}
@@ -3638,6 +3650,7 @@ document.addEventListener("click",e=>{if(e.target.id==="sheet")closeSheet()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&editing)closeSheet();if(e.key==="Enter"&&!e.isComposing&&e.target&&e.target.tagName==="INPUT"&&e.target.id!=="c_veh"&&e.target.closest&&e.target.closest("#callForm")){e.preventDefault();saveCall()}});
 document.addEventListener("input",e=>{
   if(e.target.dataset&&e.target.dataset.sgnota){(S.sgform[e.target.dataset.sgnota]=S.sgform[e.target.dataset.sgnota]||{}).nota=e.target.value;return}
+  if(e.target.dataset&&e.target.dataset.rbus){const tm=e.target.dataset.rbus;(S.rbus=S.rbus||{})[tm]=e.target.value;clearTimeout(S.rbusT);S.rbusT=setTimeout(()=>{render();const el=document.getElementById("rbus_"+tm);if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(_){}}},280);return}
   if(e.target.dataset&&e.target.dataset.rtel){const id=e.target.dataset.rtel;(S.rform[id]=S.rform[id]||{}).tel=e.target.value;const r=S.radarMap&&S.radarMap[id];if(r){pmState(r).tel=e.target.value;waSync(id);const pi=document.getElementById("p_tel_"+id);if(pi&&pi!==e.target)pi.value=e.target.value}return}
   if(e.target.dataset&&e.target.dataset.rnom){const id=e.target.dataset.rnom;(S.rform[id]=S.rform[id]||{}).nom=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.rnota){const id=e.target.dataset.rnota;(S.rform[id]=S.rform[id]||{}).nota=e.target.value;return}
@@ -3693,7 +3706,7 @@ document.addEventListener("submit",e=>{if(e.target.id==="usrForm"){e.preventDefa
 
 /* Don't re-render under someone typing in a week form or the sheet */
 document.addEventListener("toggle",e=>{const d=e.target;if(!d||!d.dataset)return;if(d.dataset.popen)S.popen[d.dataset.popen]=d.open;if(d.dataset.gopen)S.gopen[d.dataset.gopen]=d.open},true);
-function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota||a.dataset.rcf||a.dataset.rch||a.dataset.sghora)){S.pendingRender=true;return}if(a&&a.id&&(a.id.startsWith("c_")||a.id.startsWith("b_")||a.id.startsWith("tf_")||a.id.startsWith("th_")||a.id==="pmeta")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
+function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota||a.dataset.rcf||a.dataset.rch||a.dataset.sghora||a.dataset.rbus)){S.pendingRender=true;return}if(a&&a.id&&(a.id.startsWith("c_")||a.id.startsWith("b_")||a.id.startsWith("tf_")||a.id.startsWith("th_")||a.id==="pmeta")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
 /* When someone else updated the list while you typed, refresh once you leave the field (never mid-click) */
 let ptrDown=false,lateT=null;
 document.addEventListener("pointerdown",()=>{ptrDown=true},true);

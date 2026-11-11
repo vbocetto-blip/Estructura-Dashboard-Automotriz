@@ -225,6 +225,7 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .crow .ct{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .crow .meta{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12.5px;color:var(--muted)}
 @media(max-width:520px){.crow{flex-wrap:wrap}}
+.crow .btn{flex:0 0 auto;white-space:nowrap}
 .team{display:grid;gap:8px}
 .team .row{display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .team .row span{flex:1}
@@ -1926,7 +1927,7 @@ function vLlamadas(){
     ${!S.callsLoaded&&S.db?`<p class="none">Cargando llamadas…</p>`:arr.length?`<div class="list">${(S.gopen.call_all?arr:arr.slice(0,15)).map(c=>{const l=NIVEL[c.resultado]??0;
       return `<div class="crow"><button type="button" class="cmain" data-call="${esc(c._id)}"><span class="cd num">${DIAS[pd(c.fecha)?.getDay()??0]} ${fmtD(c.fecha)}</span><span class="ct"><b>${esc(c.consignador||"Sin consignador")}</b> · ${esc([c.marca,c.modelo,c.anio].filter(Boolean).join(" ")||"vehículo sin datos")}${c.perfil?" · "+esc(c.perfil):""}</span>
         <span class="meta"><span class="pill ${lvlCls(l)}">${esc(c.resultado||"Sin resultado")}</span>${c.ruta?`<span class="pill st-Tasación">${esc(c.ruta)}</span>`:""}${equipoDe(c)==="Virtual"?`<span class="pill virt">Virtual</span>`:""}${c.noContactar?`<span class="pill gap">No contactar</span>`:""}<span class="num">${esc(maskTel(c.telefono))}</span>${c.fuente?`<span>${esc(c.fuente)}</span>`:""}${c.precioPide?`<span class="num">pide ${clp(c.precioPide)}</span>`:""}${c.proximaFecha?`<span${c.proximaFecha<hoy()?' style="color:var(--bad);font-weight:600"':""}>volver a llamar ${fmtD(c.proximaFecha)}</span>`:""}</span></button>
-        ${l>=3&&S.canWrite?`<button type="button" class="btn" data-toauto="${esc(c._id)}">Pasar a Autos</button>`:""}${callAviso(c)}</div>`}).join("")}</div>${arr.length>15?`<button type="button" class="btn sm" data-callall>${S.gopen.call_all?"Ver solo las 15 más recientes":`Ver las ${arr.length}`}</button>`:""}`:`<div class="empty"><h3>Sin llamadas registradas</h3><p>Cada llamado a un posible consignante se anota en 20 segundos: consignador, ruta, perfil y resultado. Con eso el embudo y el gráfico muestran qué ruta, perfil, fuente y día traen más mandatos.</p></div>`}
+        ${l<5&&l!==1&&S.canWrite&&!S.soloVirtual&&!c.noContactar?`<button type="button" class="btn manbtn" data-cman="${esc(c._id)}">✓ Mandato firmado</button>`:""}${l>=3&&S.canWrite?`<button type="button" class="btn" data-toauto="${esc(c._id)}">${l>=5?"Ingresar a Autos":"Pasar a Autos"}</button>`:""}${callAviso(c)}</div>`}).join("")}</div>${arr.length>15?`<button type="button" class="btn sm" data-callall>${S.gopen.call_all?"Ver solo las 15 más recientes":`Ver las ${arr.length}`}</button>`:""}`:`<div class="empty"><h3>Sin llamadas registradas</h3><p>Cada llamado a un posible consignante se anota en 20 segundos: consignador, ruta, perfil y resultado. Con eso el embudo y el gráfico muestran qué ruta, perfil, fuente y día traen más mandatos.</p></div>`}
     </div>
   </details>
   <details class="zone z-acc" id="z-callform" data-gopen="call_form" ${editOpen||S.gopen.call_form!==false?"open":""}>
@@ -2727,6 +2728,25 @@ async function mandatoFirmar(id,btn){
     toast("Mandato registrado · completa la ficha para ingresarlo a Autos");rAuto(id,true);
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
 }
+/* Desde el historial de Llamadas: la misma acción de mandato. Si la llamada viene de un aviso del Radar usa ese flujo;
+   si no, registra la llamada de mandato con los datos de esa fila y abre la ficha del auto. */
+async function callMandato(id,btn){
+  if(!S.db){toast("Sin conexión a la base del equipo");return}
+  const c=S.llamadas.find(x=>x._id===id);if(!c)return;
+  if(c.radarId&&S.radarMap&&S.radarMap[c.radarId]){mandatoFirmar(c.radarId,btn);return}
+  const yo=rCons(),quien=c.consignador||yo;
+  if(!quien){toast("Elige el consignador");return}
+  if(!manArma(btn,"Toca otra vez para confirmar el mandato"))return;
+  const fecha=hoy(),now=new Date().toISOString();
+  const data={fecha,consignador:quien,ruta:c.ruta||"Propio",fuente:c.fuente||"",telefono:c.telefono||"",telefonoN:c.telefonoN||normTel(c.telefono),contacto:c.contacto||"",perfil:c.perfil||"",marca:c.marca||"",modelo:c.modelo||"",anio:c.anio??"",precioPide:c.precioPide??"",resultado:"Mandato firmado",nivel:5,proximaFecha:"",
+    notas:"Mandato firmado"+(yo&&yo!==quien?", lo marcó "+String(yo).split(" ")[0]:"")+" · desde la llamada del "+fmtD(c.fecha),noContactar:false,equipo:equipoDe(c),seguimiento:true,creadoPor:S.uid||null,creadoEn:now,updatedAt:now,updatedBy:S.uid||null};
+  btn.disabled=true;btn.textContent="Guardando…";
+  try{
+    await S.db.collection(c._col==="virtualLlamadas"?"virtualLlamadas":"llamadas").doc().set(data);S.writeProbe=true;S.tas=null;S.mon=null;
+    toast("Mandato registrado · completa la ficha para ingresarlo a Autos");
+    openSheet(null,{mandatoFirmado:true,fechaMandato:fecha,estado:"En preparación",proximaAccion:"Preparar y publicar",marca:c.marca||"",modelo:c.modelo||"",anio:c.anio||"",propNombre:c.contacto||"",propTelefono:c.telefono||"",precioPropietario:c.precioPide||"",responsable:quien,notas:"Mandato del "+fmtD(fecha)+", desde la llamada del "+fmtD(c.fecha)+(c.fuente?" ("+c.fuente+")":"")});
+  }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
+}
 async function sgMandato(k,btn){
   const g=S.sgMap&&S.sgMap.get(k);if(!g)return;
   if(g.r){mandatoFirmar(g.r._id,btn);return}
@@ -2742,6 +2762,9 @@ function manLista(){
   (S.radar||[]).filter(r=>!r.pedidoId&&rNivel(r)>=5).forEach(r=>{const a=autoDeRadar(r);if(a)usados.add(a._id);
     out.push({k:"r_"+r._id,f:String(r.fechaMandato||r.ultimoContacto||"").slice(0,10),auto:[r.marca,r.modelo,r.anio].filter(Boolean).join(" "),det:[r.ver,r.km?Number(r.km).toLocaleString("es-CL")+" km":"",r.comuna].filter(Boolean).join(" · "),quien:r.consignador||"",origen:"Radar · "+(r.src||""),r,a})});
   (S.autos||[]).filter(a=>a.mandatoFirmado&&!usados.has(a._id)).forEach(a=>out.push({k:"a_"+a._id,f:String(a.fechaMandato||a.fechaIngreso||"").slice(0,10),auto:[a.marca,a.modelo,a.anio].filter(Boolean).join(" "),det:[a.patente?fmtPat(a.patente):"",a.version].filter(Boolean).join(" · "),quien:a.responsable||"",origen:a.origen||"Ingreso directo",a}));
+  const telA=new Set((S.autos||[]).filter(a=>a.mandatoFirmado).map(a=>normTel(a.propTelefono)).filter(Boolean));
+  (S.llamadas||[]).filter(c=>c.resultado==="Mandato firmado"&&!c.radarId&&!(c.telefonoN&&telA.has(c.telefonoN))&&!(S.autos||[]).some(a=>a.mandatoFirmado&&!normTel(a.propTelefono)&&lc(a.marca)===lc(c.marca)&&lc(a.modelo)===lc(c.modelo)&&String(a.anio||"")===String(c.anio||"")))
+    .forEach(c=>out.push({k:"c_"+c._id,f:String(c.fecha||"").slice(0,10),auto:[c.marca,c.modelo,c.anio].filter(Boolean).join(" "),det:c.contacto||"",quien:c.consignador||"",origen:"Llamada"+(c.fuente?" · "+c.fuente:""),c}));
   out.sort((x,y)=>x.f.localeCompare(y.f)||x.k.localeCompare(y.k));out.forEach((x,i)=>x.n=i+1);
   return out;
 }
@@ -2770,7 +2793,7 @@ function vMandatos(){
   ${L.length?`<div class="manl">${L.slice().reverse().map(x=>`<div class="manr man1"><span class="mann num">N° ${x.n}</span>
       <span><b>${esc(x.auto||"Auto sin datos")}</b>${x.det?" · "+esc(x.det):""}</span>
       <span class="rdet">${esc([x.f?"firmó el "+fmtD(x.f):"sin fecha de firma",x.quien?String(x.quien).split(" ")[0]:"",x.origen].filter(Boolean).join(" · "))}</span>
-      <div class="racts">${x.a?`<span class="pill st-Vendido">En Autos · ${esc(x.a.estado||"Tasación")}</span><button type="button" class="btn" data-open="${esc(x.a._id)}">Ver auto</button>`:`<span class="pill gap h">Falta ingresar a Autos</span>${S.canWrite?`<button type="button" class="btn primary" data-rauto="${esc(x.r._id)}">Ingresar a Autos</button>`:""}`}${x.r&&x.r.url?`<a class="btn" href="${esc(x.r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}</div></div>`).join("")}</div>`
+      <div class="racts">${x.a?`<span class="pill st-Vendido">En Autos · ${esc(x.a.estado||"Tasación")}</span><button type="button" class="btn" data-open="${esc(x.a._id)}">Ver auto</button>`:`<span class="pill gap h">Falta ingresar a Autos</span>${S.canWrite?(x.r?`<button type="button" class="btn primary" data-rauto="${esc(x.r._id)}">Ingresar a Autos</button>`:`<button type="button" class="btn primary" data-toauto="${esc(x.c._id)}">Ingresar a Autos</button>`):""}`}${x.r&&x.r.url?`<a class="btn" href="${esc(x.r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}</div></div>`).join("")}</div>`
     :`<div class="empty"><h3>Todavía no hay mandatos firmados</h3><p>Cuando un dueño firme, búscalo arriba y toca “Mandato firmado”.</p></div>`}`;
 }
 /* ---------- Seguimiento de interesados (se alimenta de Llamadas) ---------- */
@@ -3688,7 +3711,8 @@ document.addEventListener("click",e=>{
   if(t.id==="btnCallDel"){delCall(t);return}
   if(t.id==="btnCallCancel"){S.cfEdit=null;S.cf=cfDefault();render();return}
   if(t.dataset.call){const c=S.llamadas.find(x=>x._id===t.dataset.call);if(c){S.cfEdit=c._id;S.gopen.call_form=true;S.cf={...cfDefault(),...Object.fromEntries(Object.keys(cfDefault()).map(k=>[k,c[k]??""]))};S.cf.veh=[c.marca,c.modelo,c.anio].filter(Boolean).join(" ");S.cf._proxManual=true;render();const f=$("#z-callform");if(f)f.scrollIntoView({block:"start"});checkTel()}return}
-  if(t.dataset.toauto){const c=S.llamadas.find(x=>x._id===t.dataset.toauto);if(c)openSheet(null,{marca:c.marca||"",modelo:c.modelo||"",anio:c.anio||"",propNombre:c.contacto||"",propTelefono:c.telefono||"",precioPropietario:c.precioPide||"",responsable:c.consignador||"",notas:"Desde llamada del "+fmtD(c.fecha)+" ("+(c.ruta||"")+(c.fuente?", "+c.fuente:"")+")"+(c.notas?": "+c.notas:"")});return}
+  if(t.dataset.cman){callMandato(t.dataset.cman,t);return}
+  if(t.dataset.toauto){const c=S.llamadas.find(x=>x._id===t.dataset.toauto);if(c&&c.radarId&&S.radarMap&&S.radarMap[c.radarId]){rAuto(c.radarId,(NIVEL[c.resultado]??0)>=5);return}if(c)openSheet(null,{...((NIVEL[c.resultado]??0)>=5?{mandatoFirmado:true,fechaMandato:c.fecha||hoy(),estado:"En preparación",proximaAccion:"Preparar y publicar"}:{}),marca:c.marca||"",modelo:c.modelo||"",anio:c.anio||"",propNombre:c.contacto||"",propTelefono:c.telefono||"",precioPropietario:c.precioPide||"",responsable:c.consignador||"",notas:"Desde llamada del "+fmtD(c.fecha)+" ("+(c.ruta||"")+(c.fuente?", "+c.fuente:"")+")"+(c.notas?": "+c.notas:"")});return}
   if(t.dataset.mes!==undefined&&!t.dataset.open){S.mes=Number(t.dataset.mes);ensureCalls();render();return}
   if(t.dataset.open){openSheet(t.dataset.open);return}
   if(t.id==="btnPed"){savePedido(t);return}

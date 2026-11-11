@@ -625,7 +625,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .agnav b{font-size:15px;margin:0 6px}
 .agweek{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 @media (max-width:900px){.agweek{grid-template-columns:1fr}}
-.agday{background:var(--card,#fff);border-radius:16px;padding:12px;min-height:120px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.agday{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:120px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .agday.hoy{outline:2px solid var(--accent,#0071E3)}
 .agday.cerr{opacity:.55}
 .agday h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
@@ -732,6 +732,10 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .cadena .cad-a{color:var(--bad);font-weight:600}
 .stockh{font-family:var(--f-display);font-size:18px;font-weight:700;margin:18px 0 8px}
 .secsel button{min-width:0}
+.rcita[hidden]{display:none}.rreg .rcita{flex:1 1 100%;flex-wrap:wrap}.rreg .rcita input{flex:0 0 auto}
+.tasp{background:var(--surface);border:1px solid var(--warn);border-radius:var(--r);padding:14px;margin:0 0 16px}
+.tasr{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.tasr input{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 8px;font:inherit}
 .cadena .cad-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .cadena .cad-top b{font-family:var(--f-display);font-size:16px}
 .cadena .cad-rg{font-size:12.5px;color:var(--muted)}
@@ -1126,6 +1130,7 @@ function render(){
   {const ss=$("#secsel");if(ss){ss.hidden=S.soloVirtual;if(!S.soloVirtual)ss.innerHTML=secSelHtml()}}
   document.querySelectorAll("#tabs button").forEach(b=>{b.setAttribute("aria-selected",String(b.dataset.v===(VISTA_PADRE[S.view]||S.view)));b.hidden=(S.soloVirtual&&b.dataset.v!=="virtual")||(!S.soloVirtual&&!!b.dataset.sec&&b.dataset.sec!==S.sec)});
   window.__ansarVista=S.view;
+  tasCargar();
   renderRail();
   const m=$("#main");
   const banners=[];
@@ -1134,7 +1139,7 @@ function render(){
   if(S.offline)banners.push(`<div class="banner">${esc(S.offline)}</div>`);
   const rb=remBanners();if(rb)banners.push(rb);
   if(hoy()<INICIO&&(S.view==="resumen"||S.view==="semanas"))banners.push(`<div class="banner info">El registro oficial parte el <b>lunes 2 de noviembre de 2026</b>.</div>`);
-  m.innerHTML=banners.join("")+cadenaHtml()+subNav()+({stock:vStock,resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:vAgenda,virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto,reloj:vReloj,compradores:vCompradores}[S.view])();
+  m.innerHTML=banners.join("")+cadenaHtml()+subNav()+({stock:vStock,resumen:vResumen,semanas:vSemanas,autos:vAutos,radar:()=>vRadar("pres"),formulario:vFormulario,agenda:()=>tasSinFechaHtml()+vAgenda(),virtual:()=>vRadar("virt"),express:vExpress,llamadas:vLlamadas,seguimiento:vSeg,equipo:vEquipo,piloto:vPiloto,reloj:vReloj,compradores:vCompradores}[S.view])();
   {const bn=$("#bN");if(bn){const n=(S.compradores||[]).filter(bDue).length;bn.textContent=n||"";bn.hidden=!n}}
   {const ln=$("#lwN");if(ln){const n=(S.leadsWeb||[]).filter(l=>!l.contactadoEn&&lwActivo(l)).length;ln.textContent=n||"";ln.hidden=!n}}
   {const an=$("#agN");if(an){const n=(S.agenda||[]).filter(c=>c.estado==="Por confirmar"&&c.fecha>=hoy()).length;an.textContent=n||"";an.hidden=!n}}
@@ -1652,7 +1657,7 @@ function temaPinta(){const b=document.getElementById("btnTema");if(!b)return;con
 function temaCambia(){const n=temaActual()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);lsSet("ansar_tema",n);temaPinta()}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("#btnTema");if(b){e.preventDefault();temaCambia()}});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",temaPinta);else temaPinta();
-function cfDefault(){return {consignador:rCons(),ruta:lsGet("ansar_ruta"),fuente:"",fecha:hoy(),telefono:"",contacto:"",perfil:"",marca:"",modelo:"",anio:"",precioPide:"",resultado:"",proximaFecha:"",notas:"",veh:""}}
+function cfDefault(){return {consignador:rCons(),ruta:lsGet("ansar_ruta"),fuente:"",fecha:hoy(),telefono:"",contacto:"",perfil:"",marca:"",modelo:"",anio:"",precioPide:"",resultado:"",proximaFecha:"",horaCita:"",notas:"",veh:""}}
 const CF_RG=[["Sin contacto",["No contesta","Número equivocado"],"rg0"],["Se cierra",["Contestó · no le interesa","Contestó · ya vendió","Pidió no ser contactado","Descartado"],"rg1"],["Avanza",["Interesado · seguimiento","Tiene prenda","Agendó tasación","Tasación hecha","Mandato firmado"],"rg2"]];
 const cfCierra=r=>!!r&&((NIVEL[r]??0)===1||(NIVEL[r]??0)>=5||r==="Número equivocado");
 function parseVeh(v){
@@ -1932,7 +1937,7 @@ function vLlamadas(){
      </div>
      <div id="telInfo"></div>
      <div class="cfres">${CF_RG.map(([t,rs,c])=>`<div class="cfg ${c}"><span>${t}</span><div class="chips">${rs.map(v=>`<button type="button" data-cset="resultado" data-val="${esc(v)}" aria-pressed="${cf.resultado===v}" ${ro}>${esc(v.replace("Contestó · ",""))}</button>`).join("")}</div></div>`).join("")}</div>
-     ${cfCierra(cf.resultado)?"":`<div class="cfnext"><label class="sgdl" for="c_proximaFecha">${cf.resultado==="Agendó tasación"?"Fecha de la tasación":"Volver a llamar"}<input id="c_proximaFecha" type="date" value="${esc(cf.proximaFecha)}" ${ro}></label><div class="chips">${[["1","Mañana"],["3","En 3 días"],["7","En 1 semana"]].map(([n,l])=>`<button type="button" data-cprox="${n}" ${ro}>${l}</button>`).join("")}</div></div>`}
+     ${cfCierra(cf.resultado)?"":`<div class="cfnext"><label class="sgdl" for="c_proximaFecha">${cf.resultado==="Agendó tasación"?"Fecha de la tasación":"Volver a llamar"}<input id="c_proximaFecha" type="date" value="${esc(cf.proximaFecha)}" ${ro}></label>${cf.resultado==="Agendó tasación"?`<label class="sgdl" for="c_horaCita">Hora<input id="c_horaCita" type="time" step="900" value="${esc(cf.horaCita||"")}" ${ro}></label>`:""}<div class="chips">${[["1","Mañana"],["3","En 3 días"],["7","En 1 semana"]].map(([n,l])=>`<button type="button" data-cprox="${n}" ${ro}>${l}</button>`).join("")}</div></div>`}
      <div class="field"><label for="c_notas">Nota</label><input id="c_notas" type="text" value="${esc(cf.notas)}" placeholder="lo que dijo, objeción, hora acordada" autocomplete="off" ${ro}></div>
      <details class="pmsg" data-gopen="cf_mas" ${S.gopen.cf_mas?"open":""}><summary>Más datos (opcional)${cf.contacto||cf.perfil?" · "+esc([cf.contacto,cf.perfil].filter(Boolean).join(" · ")):" · nombre y perfil"}</summary><div class="pbody"><div class="field"><label for="c_contacto">Nombre del contacto</label><input id="c_contacto" type="text" value="${esc(cf.contacto)}" autocomplete="off" ${ro}></div>${chips("perfil","Perfil del vehículo",PERFILES)}</div></details>
      <div class="filters">${S.cfEdit?`<button class="btn danger" type="button" id="btnCallDel" ${ro}>Eliminar</button><button class="btn" type="button" id="btnCallCancel">Cancelar</button>`:""}<span style="flex:1"></span><button class="btn primary" type="button" id="btnCallSave" ${ro}>${S.cfEdit?"Guardar cambios":"Registrar llamada"}</button></div>
@@ -1966,16 +1971,17 @@ async function saveCall(){
   if(String(c.veh||"").trim()){const v=parseVeh(c.veh);c.marca=v.marca;c.modelo=v.modelo;c.anio=v.anio}
   if(cfCierra(c.resultado))c.proximaFecha="";
   else if(c.resultado==="Agendó tasación"&&!c.proximaFecha){toast("Pon la fecha de la tasación");const el=$("#c_proximaFecha");if(el)el.focus();return}
+  else if(c.resultado==="Agendó tasación"&&!c.horaCita){toast("Pon la hora de la tasación: queda en la Agenda");const el=$("#c_horaCita");if(el)el.focus();return}
   const num=v=>v===""||v==null?"":Number(v);
   const pp=parsePrecio(c.precioPide);const conv=pp&&String(c.precioPide).replace(/\D/g,"")!==String(pp)?" · precio: "+clp(pp):"";c.precioPide=pp;
   const prevDoc=S.cfEdit?S.llamadas.find(x=>x._id===S.cfEdit):null;
-  const data={fecha:c.fecha||hoy(),consignador:c.consignador,ruta:c.ruta,fuente:(c.fuente||"").trim(),telefono:(c.telefono||"").trim(),telefonoN:normTel(c.telefono),contacto:(c.contacto||"").trim(),perfil:c.perfil||"",marca:(c.marca||"").trim(),modelo:(c.modelo||"").trim(),anio:num(c.anio),precioPide:num(c.precioPide),resultado:c.resultado,nivel:NIVEL[c.resultado]??0,proximaFecha:c.proximaFecha||"",notas:(c.notas||"").trim(),noContactar:c.resultado==="Pidió no ser contactado"||!!(prevDoc&&prevDoc.noContactar&&c.resultado==="Pidió no ser contactado"),
+  const data={fecha:c.fecha||hoy(),consignador:c.consignador,ruta:c.ruta,fuente:(c.fuente||"").trim(),telefono:(c.telefono||"").trim(),telefonoN:normTel(c.telefono),contacto:(c.contacto||"").trim(),perfil:c.perfil||"",marca:(c.marca||"").trim(),modelo:(c.modelo||"").trim(),anio:num(c.anio),precioPide:num(c.precioPide),resultado:c.resultado,nivel:NIVEL[c.resultado]??0,proximaFecha:c.proximaFecha||"",horaCita:c.resultado==="Agendó tasación"?(c.horaCita||""):"",notas:(c.notas||"").trim(),noContactar:c.resultado==="Pidió no ser contactado"||!!(prevDoc&&prevDoc.noContactar&&c.resultado==="Pidió no ser contactado"),
     creadoPor:prevDoc?.creadoPor||S.uid||null,creadoEn:prevDoc?.creadoEn||new Date().toISOString(),updatedAt:new Date().toISOString(),updatedBy:S.uid||null,...(prevDoc&&prevDoc.radarId?{radarId:prevDoc.radarId}:{}),equipo:prevDoc&&prevDoc.radarId&&prevDoc.equipo?prevDoc.equipo:(S.virtuales.includes(c.consignador)?"Virtual":"Presencial")};
   const b=$("#btnCallSave");b.disabled=true;b.textContent="Guardando…";
   try{
     const ccol=prevDoc&&prevDoc._col==="virtualLlamadas"?"virtualLlamadas":"llamadas";
     const ref=S.cfEdit?S.db.collection(ccol).doc(S.cfEdit):S.db.collection(ccol).doc();
-    await ref.set(data);S.writeProbe=true;
+    await ref.set(data);S.writeProbe=true;S.tas=null;
     lsSet("ansar_cons",c.consignador);lsSet("ansar_ruta",c.ruta);
     const keep={consignador:c.consignador,ruta:c.ruta,fuente:c.fuente,fecha:c.fecha};
     const was=S.cfEdit;S.cfEdit=null;S.cf={...cfDefault(),...keep};
@@ -2095,10 +2101,70 @@ const agCfg=()=>({...AG_DEF,...(S.agCfg||{})});
 function agMsg(c){const yo=String(miNombre()||"").split(" ")[0],d=agDate(c.fecha);const cuando=`el ${AG_DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"][d.getUTCMonth()]} a las ${c.hora}`;
   return c.tipo==="Videollamada"?`Hola ${String(c.nombre||"").split(" ")[0]}, ${yo?"soy "+yo+" de":"te escribo de"} Ansar Automotriz. Te confirmo la videollamada ${cuando} para ver tu ${c.auto||"auto"}. ¿Me confirmas que te acomoda?`
     :`Hola ${String(c.nombre||"").split(" ")[0]}, ${yo?"soy "+yo+" de":"te escribo de"} Ansar Automotriz. Te confirmo tu tasación ${cuando} para tu ${c.auto||"auto"}. Si puedes, trae el padrón y la revisión técnica. ¿Me confirmas que vienes? La tasación es referencial hasta revisar el auto.`}
+/* ---------- Tasaciones agendadas por llamada → Agenda ----------
+   La llamada es la fuente: si su resultado es "Agendó tasación" y tiene día (proximaFecha) y hora (horaCita),
+   se crea su cita en la Agenda con id fijo tas_<id de la llamada>. La crean los equipos de piso, porque el rol virtual no escribe en Agenda. */
+const TAS_RES="Agendó tasación",TAS_ABIERTA=new Set(["Por confirmar","Confirmada"]);
+const tasKey=c=>c.radarId?"r:"+c.radarId:(c.telefonoN?"t:"+c.telefonoN:"c:"+c._id);
+/* Sigue vigente si es la última llamada de ese aviso (o de ese teléfono) y nadie la marcó como "ya no aplica". */
+function tasVigentes(){
+  const L=(S.tas&&S.tas.calls)||[],ult=new Map();
+  L.forEach(c=>{const k=tasKey(c),o=ult.get(k);if(!o||String(c.creadoEn||c.fecha)>String(o.creadoEn||o.fecha))ult.set(k,c)});
+  return [...ult.values()].filter(c=>{if(c.citaDescartada)return false;const r=c.radarId&&S.radarMap?S.radarMap[c.radarId]:null;return !r||(r.ultimaLlamadaId?r.ultimaLlamadaId===c._id:(!r.ultimoResultado||r.ultimoResultado===TAS_RES))});
+}
+function tasCargar(){
+  if(!S.db||S.soloVirtual||S.tasBusy)return;
+  if(S.tas&&Date.now()-S.tas.at<30000)return;
+  S.tasBusy=true;
+  const q=c=>S.db.collection(c).where("resultado","==",TAS_RES).get().then(x=>x.docs.map(d=>({...d.data(),_id:d.id,_col:c}))).catch(()=>[]);
+  Promise.all([q("llamadas"),q("virtualLlamadas")]).then(([a,b])=>{S.tas={at:Date.now(),calls:[...a,...b]};S.tasBusy=false;tasSync();safeRender()}).catch(()=>{S.tasBusy=false});
+}
+function tasSync(){
+  if(!S.db||!S.canWrite||S.soloVirtual||!S.agendaLoaded||!S.tas)return;
+  S.tasDone=S.tasDone||new Set();const now=new Date().toISOString();
+  tasVigentes().filter(c=>c.proximaFecha).forEach(c=>{
+    const id="tas_"+c._id,ex=(S.agenda||[]).find(a=>a._id===id),k=tasKey(c),n=String(c.telefonoN||"").replace(/\D/g,"");
+    if(ex){ /* si corrigen el día o la hora en la llamada, la cita abierta se mueve con ella */
+      if(TAS_ABIERTA.has(ex.estado||"Por confirmar")&&(ex.fecha!==c.proximaFecha||(c.horaCita&&ex.hora!==c.horaCita))&&!S.tasDone.has(id+c.proximaFecha+c.horaCita)){S.tasDone.add(id+c.proximaFecha+c.horaCita);S.db.collection("agenda").doc(id).update({fecha:c.proximaFecha,hora:c.horaCita||ex.hora||"",actualizadoEn:now}).catch(()=>{})}
+      return}
+    if(S.tasDone.has(id))return;S.tasDone.add(id);
+    S.db.collection("agenda").doc(id).set({fecha:c.proximaFecha,hora:c.horaCita||"",duracion:60,tipo:c.equipo==="Virtual"?"Videollamada":"Tasación presencial",nombre:c.contacto||"",tel:n.length===9?"56"+n:n,
+      auto:[c.marca,c.modelo,c.anio].filter(Boolean).join(" "),origen:"Llamada"+(c.consignador?" · "+String(c.consignador).split(" ")[0]:""),estado:"Por confirmar",llamadaId:c._id,llamadaCol:c._col,clave:k,...(c.radarId?{radarId:c.radarId}:{}),creadoEn:now}).catch(()=>S.tasDone.delete(id));
+    /* reagendada: la cita abierta anterior del mismo dueño deja de contar */
+    (S.agenda||[]).filter(a=>a.clave===k&&a._id!==id&&TAS_ABIERTA.has(a.estado||"Por confirmar")).forEach(a=>S.db.collection("agenda").doc(a._id).update({estado:"Reagendada",actualizadoEn:now}).catch(()=>{}));
+  });
+}
+function tasSinFechaHtml(){
+  if(S.soloVirtual||!S.tas)return "";
+  const L=tasVigentes().filter(c=>!c.proximaFecha).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
+  if(!L.length)return "";
+  const ro=S.canWrite?"":"disabled";
+  return `<section class="panel tasp"><h2 class="stockh" style="margin-top:0">Tasaciones agendadas sin día ni hora · ${L.length}</h2>
+    <p class="rdet" style="margin:0 0 10px">Se registraron como “Agendó tasación” sin fecha, por eso no están en el calendario. Ponles día y hora, o márcalas si ya no aplican.</p>
+    ${L.map(c=>{const id=esc(c._id),nota=String(c.notas||"").split(" · ").filter(x=>!/^Radar/.test(x)&&x!=="Seguimiento").join(" · ");
+      return `<div class="tasr"><span><b>${esc([c.marca,c.modelo,c.anio].filter(Boolean).join(" ")||"Auto sin datos")}</b>${c.contacto?" · "+esc(c.contacto):""} · registró ${esc(String(c.consignador||"—").split(" ")[0])} el ${fmtD(c.fecha)}${c.telefonoN?"":` · <span style="color:var(--bad)">sin teléfono</span>`}</span>
+        ${nota?`<span class="rdet">${esc(nota)}</span>`:""}
+        <div class="racts"><input type="date" id="tf_${id}" aria-label="Día de la tasación" ${ro}><input type="time" id="th_${id}" step="900" aria-label="Hora de la tasación" ${ro}><button type="button" class="btn primary" data-tasfix="${esc(c._col)}|${id}" ${ro}>Poner en agenda</button><button type="button" class="btn" data-tasno="${esc(c._col)}|${id}" ${ro}>Ya no aplica</button></div></div>`}).join("")}
+  </section>`;
+}
+async function tasFix(v,descartar,btn){
+  if(!S.db)return;const [col,id]=v.split("|"),c=((S.tas&&S.tas.calls)||[]).find(x=>x._id===id);if(!c)return;
+  const now=new Date().toISOString();let upd;
+  if(descartar)upd={citaDescartada:true,updatedAt:now};
+  else{const f=($("#tf_"+id)||{}).value||"",h=($("#th_"+id)||{}).value||"";
+    if(!f){toast("Pon el día de la tasación");const el=$("#tf_"+id);if(el)el.focus();return}
+    if(!h){toast("Pon la hora de la tasación");const el=$("#th_"+id);if(el)el.focus();return}
+    upd={proximaFecha:f,horaCita:h,updatedAt:now}}
+  btn.disabled=true;
+  try{await S.db.collection(col==="virtualLlamadas"?"virtualLlamadas":"llamadas").doc(id).update(upd);
+    if(!descartar&&c.radarId&&S.radarMap&&S.radarMap[c.radarId]&&S.radarMap[c.radarId].ultimaLlamadaId===id&&upd.proximaFecha>=hoy())await rRef(c.radarId).update({proximaFecha:upd.proximaFecha,updatedAt:now}).catch(()=>{});
+    Object.assign(c,upd);tasSync();render();toast(descartar?"Marcada como ya no aplica":"Quedó en la Agenda · "+agFecha(upd.proximaFecha)+" "+upd.horaCita);
+  }catch(e){btn.disabled=false;handleWriteErr(e)}
+}
 function agCard(c){
   const id=esc(c._id),tel=String(c.tel||"").replace(/\D/g,"");
   return `<div class="agc ${esc(c.estado||"")}">
-   <span class="h">${esc(c.hora)} <span class="t">· ${esc(c.tipo||"Tasación")}</span></span>
+   <span class="h">${esc(c.hora||"sin hora")} <span class="t">· ${esc(c.tipo||"Tasación")}</span></span>
    <span><b>${esc(c.nombre||"Sin nombre")}</b> · ${esc(c.auto||"")}</span>
    <span class="t">${esc([c.perfil,c.etiqueta,c.origen].filter(Boolean).join(" · "))}${c.confirmadaPor?" · confirmó "+esc(c.confirmadaPor):""}</span>
    <div class="acts">${tel?`<a class="btn primary" href="https://wa.me/${esc(tel)}?text=${encodeURIComponent(agMsg(c))}" target="_blank" rel="noopener noreferrer">Confirmar por WhatsApp</a>`:""}
@@ -2248,7 +2314,7 @@ function rCard(r){
   const copy=!activo||otro?"":r.pedidoId?`<button type="button" class="btn primary" data-rcopy="${id}" data-k="Pedido">Copiar mensaje: Cliente busca</button>`:(r.motor?`<button type="button" class="btn primary" data-rcopy="${id}" data-k="${esc(r.ruta==="Consignación por tiempo"||r.ruta==="Ajuste de precio"?r.ruta:r.motor)}">Copiar mensaje: ${esc(r.ruta==="Consignación por tiempo"||r.ruta==="Ajuste de precio"?r.ruta:r.motor)}</button><button type="button" class="btn" data-rcopy="${id}" data-k="${esc(alt)}">Alternativo: ${esc(alt)}</button>`:`<button type="button" class="btn" data-rcopy="${id}" data-k="Consignar">Copiar mensaje: Consignar</button>`);
   const quick=!S.canWrite||!activo||otro||rNivel(r)>=0?"":`<button type="button" class="btn" data-rquick="${id}">Ya le escribí</button>`;
   const busy=otro?`<p class="rbusy">Lo está contactando ${esc(cl.by)}. Si en 24 horas no registra nada, el aviso se libera solo.</p>`:"";
-  const reg=r.noContactar||!S.canWrite||otro?"":`<div class="rreg"><select id="r_res_${id}" data-rres="${id}" aria-label="Resultado del contacto"><option value="">Resultado del contacto…</option>${RRES.map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><input id="r_tel_${id}" data-rtel="${id}" type="tel" inputmode="tel" value="${esc(f.tel??r.telefono??((S.pm[r._id]||{}).tel||""))}" placeholder="teléfono del dueño" aria-label="Teléfono o WhatsApp del dueño" autocomplete="off" class="rtel"><input id="r_nom_${id}" data-rnom="${id}" type="text" value="${esc(f.nom??r.contacto??((S.pm[r._id]||{}).nombre||""))}" placeholder="nombre (opcional)" aria-label="Nombre del dueño" autocomplete="off" class="rnom"><input id="r_nota_${id}" data-rnota="${id}" type="text" value="${esc(f.nota||"")}" placeholder="nota opcional: qué respondió, objeción" autocomplete="off"><button type="button" class="btn primary" data-rreg="${id}">Registrar${rCons()?" como "+esc(String(rCons()).split(" ")[0]):""}</button></div>`;
+  const reg=r.noContactar||!S.canWrite||otro?"":`<div class="rreg"><select id="r_res_${id}" data-rres="${id}" aria-label="Resultado del contacto"><option value="">Resultado del contacto…</option>${RRES.map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><label class="sgdl rcita" id="r_cita_${id}" ${f.res==="Agendó tasación"?"":"hidden"}>Día y hora de la tasación<input type="date" data-rcf="${id}" min="${hoy()}" value="${esc(f.cf||"")}" aria-label="Día de la tasación"><input type="time" data-rch="${id}" step="900" value="${esc(f.ch||"")}" aria-label="Hora de la tasación"></label><input id="r_tel_${id}" data-rtel="${id}" type="tel" inputmode="tel" value="${esc(f.tel??r.telefono??((S.pm[r._id]||{}).tel||""))}" placeholder="teléfono del dueño" aria-label="Teléfono o WhatsApp del dueño" autocomplete="off" class="rtel"><input id="r_nom_${id}" data-rnom="${id}" type="text" value="${esc(f.nom??r.contacto??((S.pm[r._id]||{}).nombre||""))}" placeholder="nombre (opcional)" aria-label="Nombre del dueño" autocomplete="off" class="rnom"><input id="r_nota_${id}" data-rnota="${id}" type="text" value="${esc(f.nota||"")}" placeholder="nota opcional: qué respondió, objeción" autocomplete="off"><button type="button" class="btn primary" data-rreg="${id}">Registrar${rCons()?" como "+esc(String(rCons()).split(" ")[0]):""}</button></div>`;
   const rm=remOf(r),myRem=rm&&rm.a===rCons();
   const remPill=rm?`<span class="pill rem${rm.at<=Date.now()?" due":""}">Volver a llamar ${hhmm(new Date(rm.at))}${rm.a?" · "+esc(String(rm.a).split(" ")[0]):""}</span>`:"";
   const remCtl=!S.canWrite||!activo||otro?"":`<select class="rrem" data-rmin="${id}" aria-label="Volver a llamar dentro de"><option value="">${myRem?"Cambiar recordatorio…":"Volver a llamar dentro de…"}</option>${REM_OPTS.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select>${myRem?`<button type="button" class="btn" data-rclr="${id}">Quitar recordatorio</button>`:""}`;
@@ -2550,16 +2616,20 @@ async function regRadar(id,btn,quick){
   const nom=String(quick?(r.contacto||(S.pm[id]||{}).nombre||""):(f.nom??r.contacto??((S.pm[id]||{}).nombre||""))).trim();
   if(tel&&!telOk(tel)){toast("Revisa el teléfono: 9 dígitos, ej. 9 1234 5678");const el=$("#r_tel_"+id);if(el)el.focus();return}
   if(nivel>=2&&!tel){toast("Anota el teléfono del dueño: pasa a Seguimiento y ahí lo vas a necesitar");const el=$("#r_tel_"+id);if(el)el.focus();return}
+  if(f.res==="Agendó tasación"){const ct=document.getElementById("r_cita_"+id),foco=n=>{const el=ct&&ct.querySelectorAll("input")[n];if(el)el.focus()};
+    if(!f.cf){toast("Pon el día de la tasación: queda en la Agenda");foco(0);return}
+    if(f.cf<hoy()){toast("El día de la tasación no puede quedar en el pasado");foco(0);return}
+    if(!f.ch){toast("Pon la hora de la tasación");foco(1);return}}
   const plus=d=>{const x=pd(fecha);x.setDate(x.getDate()+d);return ds(x)};
-  const prox=f.res==="No contesta"||f.res==="Interesado · seguimiento"||f.res==="Tiene prenda"?plus(1):"";
+  const prox=f.res==="Agendó tasación"?f.cf:f.res==="No contesta"||f.res==="Interesado · seguimiento"||f.res==="Tiene prenda"?plus(1):"";
   const dest=f.res==="Pidió no ser contactado"?"Cerrados":f.res==="Tiene prenda"?"Con prenda":nivel===1||nivel>=5?"Cerrados":"En gestión";
   const now=new Date().toISOString();
-  const data={fecha,consignador:cons,ruta:"Propio",fuente:r.src||"Radar",telefono:tel?telFmt(tel):"",telefonoN:normTel(tel),contacto:nom,perfil:r.perfil||"",marca:r.marca||"",modelo:r.modelo||"",anio:r.anio===""||r.anio==null?"":Number(r.anio),precioPide:Number(r.precio)||"",resultado:f.res,nivel,proximaFecha:prox,
+  const data={fecha,consignador:cons,ruta:"Propio",fuente:r.src||"Radar",telefono:tel?telFmt(tel):"",telefonoN:normTel(tel),contacto:nom,perfil:r.perfil||"",marca:r.marca||"",modelo:r.modelo||"",anio:r.anio===""||r.anio==null?"":Number(r.anio),precioPide:Number(r.precio)||"",resultado:f.res,nivel,proximaFecha:prox,...(f.res==="Agendó tasación"?{horaCita:f.ch}:{}),
     notas:[(f.nota||"").trim(),"Radar: "+(r.url||"")].filter(Boolean).join(" · "),noContactar:f.res==="Pidió no ser contactado",radarId:id,...(r.pedidoId?{pedidoId:r.pedidoId}:{}),equipo:esVirt(r)?"Virtual":"Presencial",creadoPor:S.uid||null,creadoEn:now,updatedAt:now,updatedBy:S.uid||null};
   btn.disabled=true;btn.textContent="Guardando…";
   try{
     const ref=S.db.collection(callCol(r)).doc();
-    await ref.set(data);S.writeProbe=true;
+    await ref.set(data);S.writeProbe=true;S.tas=null;
     await rRef(id).update({ultimoResultado:f.res,nivel,ultimoContacto:fecha,consignador:cons,asignado:cons,asignadoEn:now,ultimaLlamadaId:ref.id,...(tel?{telefono:telFmt(tel),telefonoN:normTel(tel)}:{}),...(nom?{contacto:nom}:{}),proximaFecha:prox,...(r.recordarEn&&Date.parse(r.recordarEn)<=Date.now()?{recordarEn:"",recordarA:"",recordarMin:""}:{}),nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
     window.__ansarGestion=Date.now()+60000;lsSet("ansar_cons",cons);delete S.rform[id];render();toast((quick?"Marcado como contactado":"Registrado en Llamadas")+" · pasó a "+dest);
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
@@ -2700,7 +2770,7 @@ function sgCard(x){
   const proxTxt=g.prox?`<span${g.prox<t?' style="color:var(--bad);font-weight:600"':g.prox===t?' style="color:var(--warn);font-weight:600"':""}>${esTas?"Tasación":"Próximo contacto"} ${fmtD(g.prox)}${g.prox<t?" · vencido":g.prox===t?" · hoy":""}</span>`:`<span style="color:var(--bad);font-weight:600">${esTas?"Tasación sin fecha":"Sin próxima fecha"}</span>`;
   const nota=[...g.cs].reverse().map(c=>sgNota(c.notas)).filter(Boolean)[0]||"";
   const def=f.prox??(esTas?(g.prox&&g.prox>=t?g.prox:""):sgCad(g));
-  const reg=!S.canWrite?"":`<div class="rreg"><select id="sg_res_${sid}" data-sgres="${esc(g.k)}" aria-label="Resultado del seguimiento"><option value="">Resultado del seguimiento…</option>${RRES.filter(([v])=>v!=="Descartado").map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><label class="sgdl" for="sg_prox_${sid}">Próxima fecha<input type="date" id="sg_prox_${sid}" data-sgprox="${esc(g.k)}" value="${esc(def)}"></label><input id="sg_nota_${sid}" type="text" data-sgnota="${esc(g.k)}" value="${esc(f.nota||"")}" placeholder="qué dijo, objeción, hora acordada" autocomplete="off"><button type="button" class="btn primary" data-sgreg="${esc(g.k)}">Registrar</button></div>`;
+  const reg=!S.canWrite?"":`<div class="rreg"><select id="sg_res_${sid}" data-sgres="${esc(g.k)}" aria-label="Resultado del seguimiento"><option value="">Resultado del seguimiento…</option>${RRES.filter(([v])=>v!=="Descartado").map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><label class="sgdl" for="sg_prox_${sid}">Próxima fecha<input type="date" id="sg_prox_${sid}" data-sgprox="${esc(g.k)}" value="${esc(def)}"></label><label class="sgdl rcita" id="sg_hc_${sid}" ${f.res==="Agendó tasación"?"":"hidden"}>Hora de la tasación<input type="time" id="sg_hora_${sid}" data-sghora="${esc(g.k)}" step="900" value="${esc(f.hora||"")}"></label><input id="sg_nota_${sid}" type="text" data-sgnota="${esc(g.k)}" value="${esc(f.nota||"")}" placeholder="qué dijo, objeción, hora acordada" autocomplete="off"><button type="button" class="btn primary" data-sgreg="${esc(g.k)}">Registrar</button></div>`;
   const hist=`<details class="pmsg" data-gopen="sgh_${sid}" ${S.gopen["sgh_"+sid]?"open":""}><summary>Historial · ${g.cs.length} contacto${g.cs.length===1?"":"s"}</summary><div class="pbody"><ul class="insights">${[...g.cs].reverse().map(c=>`<li><b>${fmtD(c.fecha)}</b> · ${esc(c.consignador||"")} · ${esc(c.resultado||"")}${sgNota(c.notas)?` · <span style="color:var(--muted)">${esc(sgNota(c.notas))}</span>`:""}</li>`).join("")}</ul></div></details>`;
   return `<article class="rcard" id="sg_${sid}">
    <div class="rrail"><span class="sc num">${x.sc.total}</span><span class="rl">puntaje</span><span class="bd ${band[1]}">${band[0]}</span><span class="rl num sgp">${Math.round(x.pr*100)}% mandato</span></div>
@@ -2894,12 +2964,14 @@ async function regSeg(k,btn){
   if(cierra)prox="";
   else if(!prox){toast(res==="Agendó tasación"?"Pon la fecha de la tasación":"Pon la próxima fecha");const el=$("#sg_prox_"+sid);if(el)el.focus();return}
   else if(prox<hoy()){toast("La próxima fecha no puede quedar en el pasado");return}
+  const horaCita=res==="Agendó tasación"?(f.hora||($("#sg_hora_"+sid)||{}).value||""):"";
+  if(res==="Agendó tasación"&&!horaCita){toast("Pon la hora de la tasación: queda en la Agenda");const el=$("#sg_hora_"+sid);if(el)el.focus();return}
   const L=g.last,r=g.r,now=new Date().toISOString(),fecha=hoy();
-  const data={fecha,consignador:cons,ruta:L.ruta||"Propio",fuente:L.fuente||"",telefono:g.tel||"",telefonoN:normTel(g.tel),contacto:g.nom||"",perfil:L.perfil||"",marca:L.marca||"",modelo:L.modelo||"",anio:L.anio??"",precioPide:L.precioPide??"",resultado:res,nivel,proximaFecha:prox,
+  const data={fecha,consignador:cons,ruta:L.ruta||"Propio",fuente:L.fuente||"",telefono:g.tel||"",telefonoN:normTel(g.tel),contacto:g.nom||"",perfil:L.perfil||"",marca:L.marca||"",modelo:L.modelo||"",anio:L.anio??"",precioPide:L.precioPide??"",resultado:res,nivel,proximaFecha:prox,...(horaCita?{horaCita}:{}),
     notas:[String(nota).trim(),"Seguimiento",r&&r.url?"Radar: "+r.url:""].filter(Boolean).join(" · "),noContactar:res==="Pidió no ser contactado",...(L.radarId?{radarId:L.radarId}:{}),...(L.pedidoId?{pedidoId:L.pedidoId}:{}),equipo:equipoDe(L),seguimiento:true,creadoPor:S.uid||null,creadoEn:now,updatedAt:now,updatedBy:S.uid||null};
   btn.disabled=true;btn.textContent="Guardando…";
   try{
-    const ref=S.db.collection(L._col==="virtualLlamadas"?"virtualLlamadas":"llamadas").doc();await ref.set(data);S.writeProbe=true;
+    const ref=S.db.collection(L._col==="virtualLlamadas"?"virtualLlamadas":"llamadas").doc();await ref.set(data);S.writeProbe=true;S.tas=null;
     if(L.radarId&&r)await rRef(L.radarId).update({ultimoResultado:res,nivel,ultimoContacto:fecha,consignador:cons,ultimaLlamadaId:ref.id,proximaFecha:prox,nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
     lsSet("ansar_cons",cons);delete S.sgform[k];
     window.__ansarGestion=Date.now()+60000;toast(cierra?(nivel>=5?"Mandato registrado · sale del seguimiento":"Registrado · sale del seguimiento"):`Registrado · próximo contacto ${fmtD(prox)}`);safeRender();
@@ -3473,6 +3545,8 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
   if(t.dataset.per&&PER_TXT[t.dataset.per]){S.per=t.dataset.per;lsSet("ansar_per",S.per);render();return}
+  if(t.dataset.tasfix){tasFix(t.dataset.tasfix,false,t);return}
+  if(t.dataset.tasno){tasFix(t.dataset.tasno,true,t);return}
   if(t.dataset.secgo){secIr(t.dataset.secgo);ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.cgo){const [sec,v,vista]=t.dataset.cgo.split("|");if(v==="radar"&&vista&&S.rf&&S.rf.pres)S.rf.pres.vista=vista;if(sec&&SEC_INI[sec]){S.sec=sec;lsSet("ansar_sec",sec)}S.view=v;ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();if(S.view==="reloj")relojCargar(true);render();window.scrollTo(0,0);return}
@@ -3585,12 +3659,15 @@ document.addEventListener("change",e=>{
   if(e.target.dataset&&(e.target.dataset.rqs||e.target.dataset.rms||e.target.dataset.rtrs)){const F=S.rf[e.target.dataset.team||"pres"];F[e.target.dataset.rqs?"quien":e.target.dataset.rms?"motor":"tramo"]=e.target.value;render();return}
   if(e.target.dataset&&e.target.dataset.rfx){const tm=e.target.dataset.team||"pres",X=rfx(tm);X[e.target.dataset.rfx]=String(e.target.value||"").trim();rfxSave(tm);S.gopen["rfx_"+tm]=true;render();return}
   if(e.target.dataset&&e.target.dataset.xs){S.xf[e.target.dataset.xs]=e.target.value;return}
-  if(e.target.dataset&&e.target.dataset.sgres){const k=e.target.dataset.sgres;(S.sgform[k]=S.sgform[k]||{}).res=e.target.value;return}
+  if(e.target.dataset&&e.target.dataset.sgres){const k=e.target.dataset.sgres;(S.sgform[k]=S.sgform[k]||{}).res=e.target.value;const hc=document.getElementById("sg_hc_"+sgId(k));if(hc)hc.hidden=e.target.value!=="Agendó tasación";return}
   if(e.target.dataset&&e.target.dataset.sgprox){const k=e.target.dataset.sgprox;(S.sgform[k]=S.sgform[k]||{}).prox=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.sgrt){sgRutSave(e.target.dataset.sgrt,e.target.dataset.item,e.target.checked);return}
   if(e.target.dataset&&e.target.dataset.sgcons){S.sgf.cons=e.target.value;render();return}
   if(e.target.dataset&&e.target.dataset.rmin){rRemind(e.target.dataset.rmin,e.target.value,e.target);return}
-  if(e.target.dataset&&e.target.dataset.rres){const id=e.target.dataset.rres;(S.rform[id]=S.rform[id]||{}).res=e.target.value;return}
+  if(e.target.dataset&&e.target.dataset.rres){const id=e.target.dataset.rres;(S.rform[id]=S.rform[id]||{}).res=e.target.value;const ct=document.getElementById("r_cita_"+id);if(ct){ct.hidden=e.target.value!=="Agendó tasación";if(!ct.hidden){const i=ct.querySelector("input");if(i)i.focus()}}return}
+  if(e.target.dataset&&e.target.dataset.rcf){(S.rform[e.target.dataset.rcf]=S.rform[e.target.dataset.rcf]||{}).cf=e.target.value;return}
+  if(e.target.dataset&&e.target.dataset.rch){(S.rform[e.target.dataset.rch]=S.rform[e.target.dataset.rch]||{}).ch=e.target.value;return}
+  if(e.target.dataset&&e.target.dataset.sghora){(S.sgform[e.target.dataset.sghora]=S.sgform[e.target.dataset.sghora]||{}).hora=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.pt){const id=e.target.dataset.pid,r=S.radarMap&&S.radarMap[id];if(r){pmState(r)[e.target.dataset.pt]=e.target.checked;pmRefresh(id)}return}
   if(e.target.dataset&&e.target.dataset.rcons){S.rcons=e.target.value;lsSet("ansar_cons",e.target.value);render();return}
   if(e.target.id==="ctsortsel"){S.ctSort=e.target.value;S.ctDir=e.target.value==="k"?1:-1;render();return}
@@ -3616,7 +3693,7 @@ document.addEventListener("submit",e=>{if(e.target.id==="usrForm"){e.preventDefa
 
 /* Don't re-render under someone typing in a week form or the sheet */
 document.addEventListener("toggle",e=>{const d=e.target;if(!d||!d.dataset)return;if(d.dataset.popen)S.popen[d.dataset.popen]=d.open;if(d.dataset.gopen)S.gopen[d.dataset.gopen]=d.open},true);
-function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota)){S.pendingRender=true;return}if(a&&a.id&&(a.id.startsWith("c_")||a.id.startsWith("b_")||a.id==="pmeta")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
+function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota||a.dataset.rcf||a.dataset.rch||a.dataset.sghora)){S.pendingRender=true;return}if(a&&a.id&&(a.id.startsWith("c_")||a.id.startsWith("b_")||a.id.startsWith("tf_")||a.id.startsWith("th_")||a.id==="pmeta")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
 /* When someone else updated the list while you typed, refresh once you leave the field (never mid-click) */
 let ptrDown=false,lateT=null;
 document.addEventListener("pointerdown",()=>{ptrDown=true},true);
@@ -3691,7 +3768,7 @@ render();
   db.collection("leadsWeb").onSnapshot(snap=>{const prev=S.leadsWeb;S.leadsWeb=snap.docs.map(d=>({...d.data(),_id:d.id}));
     if(prev){const nuevos=S.leadsWeb.filter(l=>!prev.some(p=>p._id===l._id));if(nuevos.length){toast(nuevos.length===1?lwAvisoTxt(nuevos[0]):`${nuevos.length} leads nuevos de consignación`);nuevos.forEach(lwNotificar)}}
     safeRender()},()=>{});
-  db.collection("agenda").onSnapshot(snap=>{const prev=S.agenda;S.agenda=snap.docs.map(d=>({...d.data(),_id:d.id}));
+  db.collection("agenda").onSnapshot(snap=>{const prev=S.agenda;S.agenda=snap.docs.map(d=>({...d.data(),_id:d.id}));S.agendaLoaded=true;tasSync();
     if(prev){const nuevas=S.agenda.filter(c=>!prev.some(p=>p._id===c._id));nuevas.forEach(c=>{toast(`Nueva cita: ${c.nombre||""} · ${agFecha(c.fecha)} ${c.hora} · ${c.auto||""}`);agNotificar(c)})}
     safeRender()},()=>{});
   db.doc("config/agenda").onSnapshot(d=>{S.agCfg=d.exists?d.data():null;safeRender()},()=>{});

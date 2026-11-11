@@ -731,6 +731,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .cadena .cad-n{margin:0;font-size:13px;color:var(--muted)}
 .cadena .cad-n b{color:var(--ink)}
 .cadena .cad-a{color:var(--bad);font-weight:600}
+.cad-ing{margin:8px 0 0;color:var(--ink)}
 .stockh{font-family:var(--f-display);font-size:18px;font-weight:700;margin:18px 0 8px}
 .secsel button{min-width:0}
 .manp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:0 0 6px}
@@ -1152,10 +1153,13 @@ function cadenaHtml(){
   const emb=E.map(([l,v,go,tit],i)=>{const ant=i?E[i-1][1]:null,pc=i>=2&&typeof v==="number"&&typeof ant==="number"&&ant>=10&&v<=ant?Math.round(v/ant*100)+"%":"";
     const on=!enAutos&&((i<6&&S.sec==="consig")||(i>=6&&S.sec==="venta"));
     return `<button type="button" class="emb-s${on?" on":""}${i===6?" corte":""}" data-cgo="${go}" title="${tit}${pc?". "+pc+" de la etapa anterior":""}"><span class="l">${l}</span><span class="v num">${v}</span><span class="c">${i===7&&vend.length?clp(Math.round(com)):pc?"↳ "+pc:"&nbsp;"}</span></button>`}).join("");
-  const peri=`En el período: <b>${ing}</b> ${pl(ing,"auto ingresado","autos ingresados")} · <b>${bNew}</b> ${pl(bNew,"comprador nuevo","compradores nuevos")} · comisión <b>${vend.length?clp(Math.round(com)):"$0"}</b>.`;
+  /* Ingresados a la vista y por origen del mandato: piso y virtual suman al mismo stock. Sin origen marcado se muestra aparte, no se reparte. */
+  const ingA=A.filter(a=>en(a.fechaIngreso)),ingP=ingA.filter(a=>a.modalidad===MODALIDADES[1]).length,ingV=ingA.filter(a=>a.modalidad===MODALIDADES[2]).length,ingS=ingA.length-ingP-ingV;
+  const ingHtml=`<p class="cad-n cad-ing">Ingresados ${S.per==="dia"?"hoy":S.per==="sem"?"esta semana":"este mes"}: <b>${ing}</b> ${pl(ing,"auto","autos")} · piso <b>${ingP}</b> · virtual <b>${ingV}</b>${ingS?` · sin origen marcado <b>${ingS}</b>`:""}</p>`;
+  const peri=`En el período: <b>${bNew}</b> ${pl(bNew,"comprador nuevo","compradores nuevos")} · comisión <b>${vend.length?clp(Math.round(com)):"$0"}</b>.`;
   return `<section class="cadena" aria-label="Monitoreo por período">
     <div class="cad-top"><b>Monitoreo</b><div class="chips cad-per" role="group" aria-label="Período">${Object.keys(PER_TXT).map(k=>`<button type="button" data-per="${k}" aria-pressed="${S.per===k}">${PER_TXT[k]}</button>`).join("")}</div><span class="cad-rg">${esc(rango)}</span></div>
-    <div class="emb" role="group" aria-label="Embudo del aviso a la venta">${emb}</div>${alerta}
+    <div class="emb" role="group" aria-label="Embudo del aviso a la venta">${emb}</div>${ingHtml}${alerta}
     <details class="cad-d"${lsGet("ansar_cadd")==="1"?" open":""}><summary>Detalle del período</summary>
       <p class="cad-n">${peri}</p>
       <p class="cad-n">${quien}${conv}</p>

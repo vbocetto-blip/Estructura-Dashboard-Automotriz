@@ -732,10 +732,14 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .cadena .cad-a{color:var(--bad);font-weight:600}
 .stockh{font-family:var(--f-display);font-size:18px;font-weight:700;margin:18px 0 8px}
 .secsel button{min-width:0}
+.cadena .cad-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cadena .cad-top b{font-family:var(--f-display);font-size:16px}
+.cadena .cad-rg{font-size:12.5px;color:var(--muted)}
+.cadena .cad-b{flex:0 1 120px}
 @media (max-width:640px){
   .secsel{flex-wrap:nowrap;gap:6px}.secsel button{flex:1 1 0;padding:8px 10px;flex-wrap:wrap;gap:2px 8px}.secsel button small{display:none}.secsel button b{font-size:15.5px}.secsel button .secn{margin-left:0;font-size:11.5px;white-space:normal}
   .cadena{padding:8px}.cadena .cad-g{flex:1 1 100%;padding:5px;gap:4px}.cadena .cad-s{flex:1 1 62px;padding:4px 6px}.cadena .cad-s .v{font-size:17px}.cadena .cad-s .l{font-size:11px;line-height:1.2}
-  .cadena .cad-row>.cad-s{flex:1 1 100%!important;display:flex;align-items:baseline;gap:8px}
+  .cadena .cad-row>.cad-s{flex:1 1 100%;display:flex;align-items:baseline;gap:8px}
 }
 </style>
 
@@ -1032,28 +1036,59 @@ function secStats(){
 function secSelHtml(){
   const sg=S.segLoaded?sgDue():0,bd=(S.compradores||[]).filter(bDue).length;
   const n={consig:sg?sg+" seguimiento"+(sg===1?"":"s")+" hoy":"",venta:bd?bd+" comprador"+(bd===1?"":"es")+" por atender":""};
-  return ["consig","venta"].map(k=>`<button type="button" data-secgo="${k}" aria-pressed="${S.sec===k}"><b>${SEC_TXT[k][0]}</b><small>${SEC_TXT[k][1]}</small>${n[k]?`<span class="secn">${n[k]}</span>`:""}</button>`).join("");
+  return ["consig","venta"].map(k=>`<button type="button" data-secgo="${k}" aria-pressed="${S.sec===k}"><b>${SEC_TXT[k][0]}</b><small>${SEC_TXT[k][1]}</small>${n[k]&&S.sec!==k?`<span class="secn">${n[k]}</span>`:""}</button>`).join("");
+}
+/* ---------- Monitoreo por período: lo que mira el dueño hoy, en la semana y en el mes ----------
+   Cuenta hechos con fecha: llamadas registradas, autos ingresados, compradores creados y ventas.
+   Las llamadas se piden aparte (desde el lunes o el día 1, lo que sea anterior) para no depender del mes elegido en Resumen. */
+const PER_TXT={dia:"Hoy",sem:"Semana",mes:"Mes"};
+function perRango(){
+  const t=hoy(),d=pd(t),l=new Date(d);l.setDate(d.getDate()-((d.getDay()+6)%7));
+  const lun=ds(l),m1=t.slice(0,8)+"01";
+  return {t,lun,m1,desde:{dia:t,sem:lun,mes:m1}[S.per]||t,min:lun<m1?lun:m1};
+}
+function monCargar(){
+  if(!S.db||S.soloVirtual||S.monBusy)return;
+  const R=perRango();if(S.mon&&S.mon.min===R.min&&Date.now()-S.mon.at<45000)return;
+  S.monBusy=true;
+  const q=c=>S.db.collection(c).where("fecha",">=",R.min).where("fecha","<=",R.t).get().then(x=>x.docs.map(d=>d.data())).catch(()=>[]);
+  Promise.all([q("llamadas"),q("virtualLlamadas")]).then(([a,b])=>{S.mon={at:Date.now(),min:R.min,calls:[...a,...b]};S.monBusy=false;safeRender()}).catch(()=>{S.monBusy=false});
 }
 function cadenaHtml(){
   if(S.soloVirtual||!(SEC_DE[S.view]||S.view==="autos"))return "";
-  const st=secStats(),paso=(v,l,go,tit)=>`<button type="button" class="cad-s" data-cgo="${go}" title="${tit}"><span class="v num">${v}</span><span class="l">${l}</span></button>`;
-  const rl=S.radarLoaded||(S.radar||[]).length,q=x=>rl?x:"…";
-  const enAutos=S.view==="autos";
-  const nota=enAutos
-    ?`Autos es el puente: aquí entra cada mandato de Consignación y de aquí sale a Venta. <b>${st.porEntrar.length}</b> en tasación o mandato pendiente · <b>${st.stock.length}</b> en stock · <b>${st.vend.length}</b> vendido${st.vend.length===1?"":"s"} este mes.`
-    :S.sec==="consig"
-    ?`En Venta ahora: <b>${st.stock.length}</b> auto${st.stock.length===1?"":"s"} en stock y <b>${st.act.length}</b> comprador${st.act.length===1?"":"es"} activo${st.act.length===1?"":"s"}.${st.sinCalce.length?` <b>${st.sinCalce.length}</b> busca${st.sinCalce.length===1?"":"n"} algo que no hay en stock${(()=>{const t=st.sinCalce.map(b=>String(b.busca||"").trim()).filter(Boolean).slice(0,3);return t.length?": "+t.map(esc).join(" · "):""})()}. Eso es lo que conviene consignar.`:""}`
-    :`Desde Consignación: <b>${q(st.tas)}</b> ${st.tas===1?"tasación":"tasaciones"} y <b>${q(st.man)}</b> mandato${st.man===1?"":"s"} en el Radar · <b>${st.porEntrar.length}</b> auto${st.porEntrar.length===1?"":"s"} por entrar a stock.${st.vend.length?` Comisión del mes: <b>${clp(Math.round(st.com))}</b>${st.diasVenta!==null?" · "+st.diasVenta+" días promedio para vender":""}.`:""}`;
-  const alerta=rl&&st.manSin.length?`<p class="cad-n cad-a">${st.manSin.length} mandato${st.manSin.length===1?"":"s"} firmado${st.manSin.length===1?"":"s"} en el Radar sin ingresar a Autos: mientras no se ingrese${st.manSin.length===1?"":"n"}, Venta no lo${st.manSin.length===1?"":"s"} ve. <button type="button" class="btn sm" data-cgo="consig|radar|man">Ver mandatos</button></p>`:"";
-  return `<section class="cadena" aria-label="Cadena completa, de aviso a venta">
+  if(!S.per)S.per=PER_TXT[lsGet("ansar_per")]?lsGet("ansar_per"):"dia";
+  monCargar();
+  const st=secStats(),R=perRango(),en=f=>!!f&&String(f).slice(0,10)>=R.desde&&String(f).slice(0,10)<=R.t;
+  const C=S.mon?S.mon.calls.filter(c=>en(c.fecha)):null,nv=n=>C?C.filter(c=>n.includes(sgNiv(c))).length:"…";
+  const A=S.autos||[],B=S.compradores||[];
+  const ing=A.filter(a=>en(a.fechaIngreso)).length,vend=A.filter(a=>a.estado==="Vendido"&&en(a.fechaVenta));
+  const com=vend.reduce((x,a)=>x+(Number(a.precioVenta)||0)*(Number(a.comision)||0)/100,0);
+  const bNew=B.filter(b=>en(b.creadoEn)).length;
+  const paso=(v,l,go,tit)=>`<button type="button" class="cad-s" data-cgo="${go}" title="${tit}"><span class="v num">${v}</span><span class="l">${l}</span></button>`;
+  const enAutos=S.view==="autos",pl=(n,a,b)=>n===1?a:b;
+  const rango=S.per==="dia"?fmtD(R.t):S.per==="sem"?(R.lun===R.t?"lunes "+fmtD(R.t):"lunes "+fmtD(R.lun)+" a hoy"):MESES[pd(R.t).getMonth()]+", del 1 a hoy";
+  /* Quién registró contactos en el período: al dueño le importa tanto el que hizo 20 como el que no tiene ninguno. */
+  let quien="";
+  if(C){const m=new Map();C.forEach(c=>{const k=String(c.consignador||"Sin nombre").split(" ")[0];m.set(k,(m.get(k)||0)+1)});
+    const con=[...m.entries()].sort((x,y)=>y[1]-x[1]).map(([k,n])=>`${esc(k)} <b>${n}</b>`);
+    const sin=(S.equipo||[]).map(x=>String(x).split(" ")[0]).filter((k,i,a)=>a.indexOf(k)===i&&!m.has(k));
+    quien=con.length?`Contactos por persona: ${con.join(" · ")}.${sin.length?` Sin registro: ${sin.map(esc).join(", ")}.`:""}`:`Nadie ha registrado contactos ${S.per==="dia"?"hoy":S.per==="sem"?"esta semana":"este mes"}.`}
+  const nC=C?C.length:0,nM=C?C.filter(c=>sgNiv(c)===5).length:0;
+  const conv=S.per==="mes"&&C?(nC>=30?` De cada 100 contactos del mes, <b>${(Math.round(nM/nC*1000)/10).toLocaleString("es-CL")}</b> terminan en mandato.`:` La conversión a mandato se calcula con 30 contactos o más; van ${nC}.`):"";
+  const ahora=`Pendiente ahora: <b>${st.pend}</b> ${pl(st.pend,"aviso","avisos")} sin contactar · <b>${st.stock.length}</b> ${pl(st.stock.length,"auto","autos")} en stock · <b>${st.act.length}</b> ${pl(st.act.length,"comprador activo","compradores activos")}.${st.sinCalce.length?` <b>${st.sinCalce.length}</b> ${pl(st.sinCalce.length,"comprador busca","compradores buscan")} algo que no hay en stock${(()=>{const t=st.sinCalce.map(b=>String(b.busca||"").trim()).filter(Boolean).slice(0,3);return t.length?" ("+t.map(esc).join(" · ")+")":""})()}: eso conviene consignar.`:""}`;
+  const rl=S.radarLoaded||(S.radar||[]).length;
+  const alerta=rl&&st.manSin.length?`<p class="cad-n cad-a">${st.manSin.length} ${pl(st.manSin.length,"mandato firmado","mandatos firmados")} en el Radar sin ingresar a Autos: mientras no ${pl(st.manSin.length,"se ingrese","se ingresen")}, Venta no ${pl(st.manSin.length,"lo","los")} ve. <button type="button" class="btn sm" data-cgo="consig|radar|man">Ver</button></p>`:"";
+  return `<section class="cadena" aria-label="Monitoreo por período">
+    <div class="cad-top"><b>Monitoreo</b><div class="chips cad-per" role="group" aria-label="Período">${Object.keys(PER_TXT).map(k=>`<button type="button" data-per="${k}" aria-pressed="${S.per===k}">${PER_TXT[k]}</button>`).join("")}</div><span class="cad-rg">${esc(rango)}</span></div>
     <div class="cad-row">
-      <div class="cad-g${S.sec==="consig"&&!enAutos?" on":""}"><span class="cad-t">Consignación · estado actual del Radar</span>
-        ${paso(q(st.pend),"sin contactar","consig|radar|pend","Avisos del Radar que nadie ha contactado")}${paso(q(st.gest),"en gestión","consig|radar|gest","Avisos contactados que siguen abiertos")}${paso(q(st.tas),"tasaciones","consig|radar|tas","Tasaciones agendadas o hechas")}${paso(q(st.man),"mandatos","consig|radar|man","Mandatos firmados desde el Radar")}</div>
-      <button type="button" class="cad-s" style="flex:0 1 110px" data-cgo="|autos|" title="Autos registrados que no están retirados ni vendidos"><span class="v num">${st.porEntrar.length+st.stock.length}</span><span class="l">→ en Autos →</span></button>
-      <div class="cad-g${S.sec==="venta"&&!enAutos?" on":""}"><span class="cad-t">Venta · stock y compradores</span>
-        ${paso(st.stock.length,"en stock","venta|stock|","Autos en preparación, publicados, con oferta o reservados")}${paso(st.act.length,"compradores activos","venta|compradores|","Compradores abiertos")}${paso(st.avanz.length,"con visita u oferta","venta|compradores|","Compradores con visita agendada, que probaron el auto o hicieron oferta")}${paso(st.vend.length,"ventas este mes","venta|stock|","Autos marcados Vendido con fecha de venta en el mes en curso")}</div>
+      <div class="cad-g${S.sec==="consig"&&!enAutos?" on":""}"><span class="cad-t">Consignación</span>
+        ${paso(C?nC:"…",pl(nC,"contacto registrado","contactos registrados"),"consig|llamadas|","Llamadas y mensajes registrados en el período, de piso y virtual")}${paso(nv([2]),pl(nv([2]),"interesado","interesados"),"consig|seguimiento|","Contactos que quedaron como interesado o con prenda")}${paso(nv([3,4]),pl(nv([3,4]),"tasación","tasaciones"),"consig|radar|tas","Tasaciones agendadas o hechas, según lo registrado en Llamadas")}${paso(C?nM:"…",pl(nM,"mandato","mandatos"),"consig|radar|man","Mandatos firmados registrados en Llamadas")}</div>
+      <button type="button" class="cad-s cad-b" data-cgo="|autos|" title="Autos con fecha de ingreso en el período"><span class="v num">${ing}</span><span class="l">${pl(ing,"auto ingresado","autos ingresados")}</span></button>
+      <div class="cad-g${S.sec==="venta"&&!enAutos?" on":""}"><span class="cad-t">Venta</span>
+        ${paso(bNew,pl(bNew,"comprador nuevo","compradores nuevos"),"venta|compradores|","Compradores registrados en el período")}${paso(vend.length,pl(vend.length,"venta","ventas"),"venta|stock|","Autos marcados Vendido con fecha de venta en el período")}${paso(vend.length?clp(Math.round(com)):"$0","comisión","|resumen|","Precio de venta por el porcentaje de comisión de cada auto vendido en el período")}</div>
     </div>
-    <p class="cad-n">${nota}</p>${alerta}
+    <p class="cad-n">${quien}${conv}</p>
+    <p class="cad-n">${ahora}</p>${alerta}
   </section>`;
 }
 /* Venta → Stock en venta: los autos que hoy se pueden vender, con la demanda real que tiene cada uno. */
@@ -3437,6 +3472,7 @@ function setStatus(kind,txt){$("#status").innerHTML=`<span class="dot ${kind}"><
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
+  if(t.dataset.per&&PER_TXT[t.dataset.per]){S.per=t.dataset.per;lsSet("ansar_per",S.per);render();return}
   if(t.dataset.secgo){secIr(t.dataset.secgo);ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.cgo){const [sec,v,vista]=t.dataset.cgo.split("|");if(v==="radar"&&vista&&S.rf&&S.rf.pres)S.rf.pres.vista=vista;if(sec&&SEC_INI[sec]){S.sec=sec;lsSet("ansar_sec",sec)}S.view=v;ensureCalls();render();window.scrollTo(0,0);return}
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();if(S.view==="reloj")relojCargar(true);render();window.scrollTo(0,0);return}

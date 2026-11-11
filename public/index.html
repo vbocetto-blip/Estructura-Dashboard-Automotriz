@@ -1183,9 +1183,13 @@ function casoDe(a,r){
   if(r&&!a)a=autoDeRadar(r)||null;
   const f10=x=>x?String(x).slice(0,10):"",tel=normTel((a&&a.propTelefono)||(r&&r.telefono)||"");
   const I=S.todasIdx,vis=new Set(),calls=[];
-  if(I)[...(r&&I.porR.get(r._id)||[]),...(tel&&I.porT.get(tel)||[])].forEach(c=>{if(!vis.has(c._id)){vis.add(c._id);calls.push(c)}});
+  /* El teléfono solo une cuando no contradice al caso: un dueño con dos autos comparte número, así que una llamada
+     de otro aviso o de otra marca o modelo no cuenta para este auto. */
+  const veh=a||r||{},mismo=(ma,mo)=>(!ma||!veh.marca||lc(ma)===lc(veh.marca))&&(!mo||!veh.modelo||lc(mo)===lc(veh.modelo));
+  const porTel=c=>!(r&&c.radarId&&c.radarId!==r._id)&&mismo(c.marca,c.modelo);
+  if(I)[...(r&&I.porR.get(r._id)||[]),...(tel&&I.porT.get(tel)||[]).filter(porTel)].forEach(c=>{if(!vis.has(c._id)){vis.add(c._id);calls.push(c)}});
   calls.sort((x,y)=>String(x.fecha||"").localeCompare(String(y.fecha||"")));
-  const citas=(S.agenda||[]).filter(g=>(r&&g.radarId===r._id)||(g.llamadaId&&vis.has(g.llamadaId))||(tel&&normTel(g.tel)===tel)).sort((x,y)=>String(x.fecha||"").localeCompare(String(y.fecha||"")));
+  const citas=(S.agenda||[]).filter(g=>(r&&g.radarId===r._id)||(g.llamadaId&&vis.has(g.llamadaId))||(tel&&normTel(g.tel)===tel&&!(r&&g.radarId&&g.radarId!==r._id)&&(!g.auto||!veh.marca||lc(g.auto).includes(lc(veh.marca))))).sort((x,y)=>String(x.fecha||"").localeCompare(String(y.fecha||"")));
   const rn=r?rNivel(r):-1,pri=n=>calls.find(c=>sgNiv(c)>=n),ex=n=>calls.find(c=>sgNiv(c)===n);
   const c2=pri(2),c3=ex(3),c4=ex(4),c5=ex(5),cita=citas[0];
   const e=[

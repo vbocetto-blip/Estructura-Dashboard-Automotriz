@@ -1933,8 +1933,13 @@ function histBuscador(){
   const Q=String(S.hbusQ||"").trim(),buscando=Q.length>=2;
   const box=`<div class="rbus" style="margin:0 0 12px"><input type="search" id="hbus" data-hbus="1" style="flex:1 1 0;width:0" value="${esc(Q)}" placeholder="¿Ya lo llamamos? Busca marca, modelo, año, dueño, teléfono o enlace del aviso" aria-label="Buscar un aviso ya llamado" autocomplete="off" enterkeyhint="search">${Q?`<button type="button" class="btn" data-hbusclr="1">Limpiar</button>`:""}</div>`;
   if(!buscando)return box;
-  const ws=rfxTxt(Q).split(/\s+/).filter(Boolean),dig=w=>/^[\d+]{5,}$/.test(w)?w.replace(/\D/g,"").replace(/^56/,""):w;
-  const gs=sgGroups().filter(g=>{const r=g.r||{},l=g.last;
+  /* Un celular escrito con espacios o con +56 se busca como un solo número. */
+  const Qn=Q.replace(/(?<!\d)(?:\+\s?)?(?:56\s?)?9(?:\s?\d){8}(?!\d)/g,m=>" "+m.replace(/\D/g,"").replace(/^56/,"")+" ");
+  const ws=rfxTxt(Qn).split(/\s+/).filter(Boolean),dig=w=>/^[\d+]{5,}$/.test(w)?w.replace(/\D/g,"").replace(/^56/,""):w;
+  /* Llamadas manuales unidas solo por teléfono: un dueño con dos autos comparte número, así que se separan por marca y modelo. */
+  const porAuto=g=>{if(g.k[0]!=="t")return [g];const m=new Map();g.cs.forEach(c=>{const k=rfxTxt((c.marca||"")+"|"+(c.modelo||""));if(!m.has(k))m.set(k,[]);m.get(k).push(c)});
+    if(m.size<2)return [g];return [...m.values()].map(cs=>{const last=cs[cs.length-1],nc=[...cs].reverse().find(c=>(c.contacto||"").trim());return {...g,cs,last,nom:nc?nc.contacto:g.nom,maxN:Math.max(0,...cs.map(sgNiv)),prox:last.proximaFecha||""}})};
+  const gs=sgGroups().flatMap(porAuto).filter(g=>{const r=g.r||{},l=g.last;
     const h=rfxTxt([l.marca,l.modelo,l.anio,l.perfil,l.fuente,r.marca,r.modelo,r.ver,r.anio,r.comuna,r.src,r.url,g.nom,l.radarId,...g.cs.map(c=>[c.consignador,c.resultado,c.contacto,c.notas].join(" "))].join(" "))+" "+[g.tel,r.telefono,...g.cs.map(c=>c.telefono)].map(normTel).join(" ");
     return ws.every(w=>h.includes(dig(w)))});
   gs.sort((a,b)=>(b.last.fecha||"").localeCompare(a.last.fecha||"")||(b.last.creadoEn||"").localeCompare(a.last.creadoEn||""));

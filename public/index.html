@@ -1928,6 +1928,27 @@ function callAviso(c){
 /* ---------- Historial de llamadas por consignador: día, semana, mes e histórico ---------- */
 const HIST_PER=[["dia","Día","días"],["semana","Semana","semanas"],["mes","Mes","meses"],["historico","Histórico",""]];
 const lunesDe=f=>{const d=pd(f);if(!d||isNaN(d))return "";d.setDate(d.getDate()-((d.getDay()+6)%7));return ds(d)};
+/* Buscador de avisos ya llamados: busca en TODAS las llamadas (piso y virtual, sin filtros de mes ni consignador), agrupadas por aviso. No muestra teléfonos: solo sirven para buscar. */
+function histBuscador(){
+  const Q=String(S.hbusQ||"").trim(),buscando=Q.length>=2;
+  const box=`<div class="rbus" style="margin:0 0 12px"><input type="search" id="hbus" data-hbus="1" style="flex:1 1 0;width:0" value="${esc(Q)}" placeholder="¿Ya lo llamamos? Busca marca, modelo, año, dueño, teléfono o enlace del aviso" aria-label="Buscar un aviso ya llamado" autocomplete="off" enterkeyhint="search">${Q?`<button type="button" class="btn" data-hbusclr="1">Limpiar</button>`:""}</div>`;
+  if(!buscando)return box;
+  const ws=rfxTxt(Q).split(/\s+/).filter(Boolean),dig=w=>/^[\d+]{5,}$/.test(w)?w.replace(/\D/g,"").replace(/^56/,""):w;
+  const gs=sgGroups().filter(g=>{const r=g.r||{},l=g.last;
+    const h=rfxTxt([l.marca,l.modelo,l.anio,l.perfil,l.fuente,r.marca,r.modelo,r.ver,r.anio,r.comuna,r.src,r.url,g.nom,l.radarId,...g.cs.map(c=>[c.consignador,c.resultado,c.contacto,c.notas].join(" "))].join(" "))+" "+[g.tel,r.telefono,...g.cs.map(c=>c.telefono)].map(normTel).join(" ");
+    return ws.every(w=>h.includes(dig(w)))});
+  gs.sort((a,b)=>(b.last.fecha||"").localeCompare(a.last.fecha||"")||(b.last.creadoEn||"").localeCompare(a.last.creadoEn||""));
+  const LIM=30,vis=gs.slice(0,LIM),t=hoy();
+  const head=`<div class="banner info" style="margin:0 0 10px"><b class="num">${gs.length}</b> ${gs.length===1?"aviso ya llamado calza":"avisos ya llamados calzan"} con “${esc(Q)}”. Busca en todas las llamadas, de piso y virtual; no usa los filtros de arriba.</div>`;
+  if(!gs.length)return box+`<div class="banner info" style="margin:0 0 10px">Ninguna llamada registrada calza con “${esc(Q)}”. Si no aparece aquí, no hay registro de que lo hayamos llamado: revisa el Radar antes de llamar.</div>`;
+  const rows=vis.map(g=>{const l=g.last,r=g.r||{},url=r.url||((String(l.notas||"").match(/Radar:\s*(\S+)/)||[])[1])||"",precio=l.precioPide||r.precio,no=g.cs.some(c=>c.noContactar)||!!r.noContactar,venc=g.prox&&g.prox<t&&g.maxN<5&&!no;
+    return `<tr><td><b>${esc([l.marca||r.marca,l.modelo||r.modelo,l.anio||r.anio].filter(Boolean).join(" ")||"Sin datos del auto")}</b><br><small style="color:var(--muted)">${esc([precio?clp(precio):"",r.comuna,l.fuente||r.src,g.nom].filter(Boolean).join(" · "))}</small></td>
+      <td class="num">${g.cs.length}</td><td>${fmtD(l.fecha)}<br><small style="color:var(--muted)">${esc(l.consignador||"")}</small></td>
+      <td>${no?`<b style="color:var(--bad,#c0392b)">No contactar</b>`:esc(l.resultado||"")}${sgNota(l.notas)?`<br><small style="color:var(--muted)">${esc(sgNota(l.notas).slice(0,90))}</small>`:""}</td>
+      <td>${g.prox?fmtD(g.prox)+(venc?` <small style="color:var(--bad,#c0392b)">vencida</small>`:""):"—"}</td>
+      <td>${url?`<a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>`:""}</td></tr>`}).join("");
+  return box+head+`<div class="tbl" style="margin:0 0 14px"><table><thead><tr><th>Auto</th><th>Contactos</th><th>Último</th><th>Resultado</th><th>Volver a llamar</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>${gs.length>LIM?`<p class="zfoot" style="margin:-6px 0 14px">Se muestran los ${LIM} más recientes de ${gs.length}. Escribe algo más para afinar.</p>`:""}`;
+}
 function histLlamadas(F){
   if(!S.segLoaded)return `<p class="none">Cargando historial…</p>`;
   const P=HIST_PER.find(p=>p[0]===S.histPer)||HIST_PER[0],per=P[0];
@@ -2034,8 +2055,8 @@ function vLlamadas(){
     <div class="zb"><ul class="insights">${ins.join("")}</ul></div></section>
 
   <details class="zone z-det" id="z-hist" data-gopen="call_hist" ${S.gopen.call_hist===false?"":"open"}>
-    <summary class="zh"><span class="zn">◷</span><div class="zt"><h2>Historial de llamadas</h2><p>Por consignador · día, semana, mes e histórico</p></div><span class="chev" aria-hidden="true">▾</span></summary>
-    <div class="zb">${(()=>{try{return histLlamadas(F)}catch(e){console.error("historial",e);return `<p class="none">No se pudo armar el historial. Toca Actualizar.</p>`}})()}</div>
+    <summary class="zh"><span class="zn">◷</span><div class="zt"><h2>Historial de llamadas</h2><p>Busca si un aviso ya se llamó · por consignador: día, semana, mes e histórico</p></div><span class="chev" aria-hidden="true">▾</span></summary>
+    <div class="zb">${(()=>{try{return S.segLoaded?histBuscador():""}catch(e){console.error("buscador historial",e);return ""}})()}${(()=>{try{return histLlamadas(F)}catch(e){console.error("historial",e);return `<p class="none">No se pudo armar el historial. Toca Actualizar.</p>`}})()}</div>
   </details>
 
   <details class="zone z-det" data-gopen="call_tablas" ${S.gopen.call_tablas===false?"":"open"}>
@@ -3870,6 +3891,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.cdim){S.callDim=t.dataset.cdim;render();return}
   if(t.dataset.hper){S.histPer=t.dataset.hper;S.histAll=false;render();return}
   if(t.dataset.hall){S.histAll=!S.histAll;render();return}
+  if(t.dataset.hbusclr){S.hbusQ="";render();const el=document.getElementById("hbus");if(el)el.focus();return}
   if(t.dataset.zjump){const z=document.getElementById(t.dataset.zjump);if(z&&z.tagName==="DETAILS")z.open=true;if(z)z.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});return}
   if(t.hasAttribute("data-resall")){S.gopen.res_alltodo=!S.gopen.res_alltodo;render();return}
   if(t.dataset.gofil){S.filtro.estado=t.dataset.gofil;S.view="autos";render();window.scrollTo(0,0);return}
@@ -3892,6 +3914,7 @@ document.addEventListener("click",e=>{if(e.target.id==="sheet")closeSheet()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&editing)closeSheet();if(e.key==="Enter"&&!e.isComposing&&e.target&&e.target.tagName==="INPUT"&&e.target.id!=="c_veh"&&e.target.closest&&e.target.closest("#callForm")){e.preventDefault();saveCall()}});
 document.addEventListener("input",e=>{
   if(e.target.dataset&&e.target.dataset.sgnota){(S.sgform[e.target.dataset.sgnota]=S.sgform[e.target.dataset.sgnota]||{}).nota=e.target.value;return}
+  if(e.target.dataset&&e.target.dataset.hbus){S.hbusQ=e.target.value;clearTimeout(S.rbusT);S.rbusT=setTimeout(()=>{render();const el=document.getElementById("hbus");if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(_){}}},280);return}
   if(e.target.dataset&&e.target.dataset.manq){S.manQ=e.target.value;clearTimeout(S.rbusT);S.rbusT=setTimeout(()=>{render();const el=document.getElementById("manq");if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(_){}}},280);return}
   if(e.target.dataset&&e.target.dataset.rbus){const tm=e.target.dataset.rbus;(S.rbus=S.rbus||{})[tm]=e.target.value;clearTimeout(S.rbusT);S.rbusT=setTimeout(()=>{render();const el=document.getElementById("rbus_"+tm);if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(_){}}},280);return}
   if(e.target.dataset&&e.target.dataset.rtel){const id=e.target.dataset.rtel;(S.rform[id]=S.rform[id]||{}).tel=e.target.value;const r=S.radarMap&&S.radarMap[id];if(r){pmState(r).tel=e.target.value;waSync(id);const pi=document.getElementById("p_tel_"+id);if(pi&&pi!==e.target)pi.value=e.target.value}return}
@@ -3949,7 +3972,7 @@ document.addEventListener("submit",e=>{if(e.target.id==="usrForm"){e.preventDefa
 
 /* Don't re-render under someone typing in a week form or the sheet */
 document.addEventListener("toggle",e=>{const d=e.target;if(!d||!d.dataset)return;if(d.dataset.popen)S.popen[d.dataset.popen]=d.open;if(d.dataset.gopen)S.gopen[d.dataset.gopen]=d.open},true);
-function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota||a.dataset.rcf||a.dataset.rch||a.dataset.sghora||a.dataset.rbus||a.dataset.manq)){S.pendingRender=true;return}if(a&&a.id&&(a.id.startsWith("c_")||a.id.startsWith("b_")||a.id.startsWith("tf_")||a.id.startsWith("th_")||a.id==="pmeta")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
+function safeRender(){const a=document.activeElement;if(a&&a.dataset&&(a.dataset.pfb||a.dataset.wk||a.dataset.rnota||a.dataset.rfx||a.dataset.rtel||a.dataset.rnom||a.dataset.sgtelin||a.dataset.pf||a.dataset.ptxt||a.dataset.xf||a.dataset.sgnota||a.dataset.rcf||a.dataset.rch||a.dataset.sghora||a.dataset.rbus||a.dataset.hbus||a.dataset.manq)){S.pendingRender=true;return}if(a&&a.id&&(a.id.startsWith("c_")||a.id.startsWith("b_")||a.id.startsWith("tf_")||a.id.startsWith("th_")||a.id==="pmeta")&&a.tagName!=="SELECT"){S.pendingRender=true;return}S.pendingRender=false;render()}
 /* When someone else updated the list while you typed, refresh once you leave the field (never mid-click) */
 let ptrDown=false,lateT=null;
 document.addEventListener("pointerdown",()=>{ptrDown=true},true);

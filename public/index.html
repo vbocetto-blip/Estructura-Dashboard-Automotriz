@@ -2971,7 +2971,8 @@ function sgGroups(){
     const fi=cs.find(c=>sgNiv(c)>=2);
     let trail=0;for(let i=cs.length-1;i>=0;i--){if(sgNiv(cs[i])===0)trail++;else break}
     const tc=[...cs].reverse().find(c=>normTel(c.telefono)),tel=tc?tc.telefono:(r&&r.telefono)||"",nc=[...cs].reverse().find(c=>(c.contacto||"").trim()),nom=nc?nc.contacto:(r&&r.contacto)||"";
-    return {k,cs,last,r,tel,nom,maxN,etapa:Math.min(4,Math.max(2,maxN)),estado,prox:last.proximaFecha||"",first:fi?fi.fecha:last.fecha,firstCons:fi?fi.consignador:last.consignador,trail,radar:!!last.radarId};
+    const seg=Math.max(0,cs.length-1);
+    return {k,cs,last,r,tel,nom,maxN,seg,etapa:Math.min(4,Math.max(2,maxN)),estado,prox:last.proximaFecha||"",first:fi?fi.fecha:last.fecha,firstCons:fi?fi.consignador:last.consignador,trail,radar:!!last.radarId};
   });
 }
 function sgScore(g){
@@ -3040,13 +3041,13 @@ function sgCard(x){
   const nota=[...g.cs].reverse().map(c=>sgNota(c.notas)).filter(Boolean)[0]||"";
   const def=f.prox??(esTas?(g.prox&&g.prox>=t?g.prox:""):sgCad(g));
   const reg=!S.canWrite?"":`<div class="rreg"><select id="sg_res_${sid}" data-sgres="${esc(g.k)}" aria-label="Resultado del seguimiento"><option value="">Resultado del seguimiento…</option>${RRES.filter(([v])=>v!=="Descartado").map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><label class="sgdl" for="sg_prox_${sid}">Próxima fecha<input type="date" id="sg_prox_${sid}" data-sgprox="${esc(g.k)}" value="${esc(def)}"></label><label class="sgdl rcita" id="sg_hc_${sid}" ${f.res==="Agendó tasación"?"":"hidden"}>Hora de la tasación<input type="time" id="sg_hora_${sid}" data-sghora="${esc(g.k)}" step="900" value="${esc(f.hora||"")}"></label><input id="sg_nota_${sid}" type="text" data-sgnota="${esc(g.k)}" value="${esc(f.nota||"")}" placeholder="qué dijo, objeción, hora acordada" autocomplete="off"><button type="button" class="btn primary" data-sgreg="${esc(g.k)}">Registrar</button></div>`;
-  const hist=`<details class="pmsg" data-gopen="sgh_${sid}" ${S.gopen["sgh_"+sid]?"open":""}><summary>Historial · ${g.cs.length} contacto${g.cs.length===1?"":"s"}</summary><div class="pbody"><ul class="insights">${[...g.cs].reverse().map(c=>`<li><b>${fmtD(c.fecha)}</b> · ${esc(c.consignador||"")} · ${esc(c.resultado||"")}${sgNota(c.notas)?` · <span style="color:var(--muted)">${esc(sgNota(c.notas))}</span>`:""}</li>`).join("")}</ul></div></details>`;
+  const hist=`<details class="pmsg" data-gopen="sgh_${sid}" ${S.gopen["sgh_"+sid]?"open":""}><summary>Historial · ${g.seg} seguimiento${g.seg===1?"":"s"} (${g.cs.length} contacto${g.cs.length===1?"":"s"})</summary><div class="pbody"><ul class="insights">${g.cs.map((c,i)=>[i,c]).reverse().map(([i,c])=>`<li><span class="pill ${i?"st-Tasación":"gap ok"} num">${i?"Seguimiento "+i:"Contacto inicial"}</span> <b>${fmtD(c.fecha)}</b> · ${esc(c.consignador||"")} · ${esc(c.resultado||"")}${sgNota(c.notas)?` · <span style="color:var(--muted)">${esc(sgNota(c.notas))}</span>`:""}</li>`).join("")}</ul></div></details>`;
   return `<article class="rcard" id="sg_${sid}">
    <div class="rrail"><span class="sc num">${x.sc.total}</span><span class="rl">puntaje</span><span class="bd ${band[1]}">${band[0]}</span><span class="rl num sgp">${Math.round(x.pr*100)}% mandato</span></div>
    <div class="rbody">
     <div class="rtop"><div style="min-width:0"><h3>${esc(auto)} ${esc(L.anio||"")}</h3><span class="vv">${esc(r&&r.ver?r.ver:"")}</span></div>
      <div class="chips">${r?srcPill(r):""}<span class="pill ${etCls}">${SG_ET[g.etapa]}</span>${prenda?`<span class="pill gap m">Con prenda</span>`:""}${equipoDe(L)==="Virtual"?`<span class="pill virt">Virtual</span>`:""}${g.radar?"":`<span class="pill st-Tasación">Llamada directa</span>`}</div></div>
-    <div class="rmeta">${proxTxt}<span>Último: ${esc(L.resultado||"")} · ${fmtD(L.fecha)} · ${esc(L.consignador||"")}</span><span class="num">${g.cs.length} contacto${g.cs.length===1?"":"s"}</span>${L.fuente?`<span>${esc(L.fuente)}</span>`:""}${L.precioPide?`<span class="num">pide ${clp(L.precioPide)}</span>`:""}${r&&r.comuna?`<span>${esc(r.comuna)}</span>`:""}</div>
+    <div class="rmeta">${proxTxt}<span>Último: ${esc(L.resultado||"")} · ${fmtD(L.fecha)} · ${esc(L.consignador||"")}</span><span class="num" title="Contactos después del primero, según lo registrado en Llamadas y aquí"><b>${g.seg}</b> seguimiento${g.seg===1?"":"s"}${g.seg?" · último "+fmtD(L.fecha):" · aún sin seguimiento"}</span>${L.fuente?`<span>${esc(L.fuente)}</span>`:""}${L.precioPide?`<span class="num">pide ${clp(L.precioPide)}</span>`:""}${r&&r.comuna?`<span>${esc(r.comuna)}</span>`:""}</div>
     ${sgTelHtml(g,sid)}
     ${x.why.length?`<p class="rbusy">${x.why.map(esc).join(" · ")}</p>`:""}
     ${nota?`<p class="rdet">Última nota: ${esc(nota)}</p>`:""}

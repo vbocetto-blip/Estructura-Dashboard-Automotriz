@@ -2126,7 +2126,13 @@ async function saveCall(){
   if(!c.resultado){toast("Elige el resultado del llamado");return}
   if(!normTel(c.telefono)&&!c.contacto){toast("Anota el teléfono o el nombre del contacto");return}
   if(String(c.veh||"").trim()){const v=parseVeh(c.veh);c.marca=v.marca;c.modelo=v.modelo;c.anio=v.anio}
+  /* Registro completo: quien queda abierto con interés (nivel 2 a 4) no se guarda sin teléfono ni fecha; "No contesta" sin fecha queda para el día hábil siguiente. */
+  const nvC=NIVEL[c.resultado]??0;
+  if(!cfCierra(c.resultado)&&nvC>=2&&!telOk(c.telefono)){toast("Anota el teléfono del dueño (9 dígitos): sin él no hay seguimiento");const el=$("#c_telefono");if(el)el.focus();return}
   if(cfCierra(c.resultado))c.proximaFecha="";
+  else if(nvC>=2&&c.resultado!=="Agendó tasación"&&!c.proximaFecha){toast("Pon la fecha para volver a llamar");const el=$("#c_proximaFecha");if(el)el.focus();return}
+  else if(!S.cfEdit&&c.proximaFecha&&c.proximaFecha<hoy()){toast("La próxima fecha no puede quedar en el pasado");const el=$("#c_proximaFecha");if(el)el.focus();return}
+  else if(!S.cfEdit&&nvC===0&&!c.proximaFecha)c.proximaFecha=sgHabil(sgPlus(hoy(),1));
   else if(c.resultado==="Agendó tasación"&&!c.proximaFecha){toast("Pon la fecha de la tasación");const el=$("#c_proximaFecha");if(el)el.focus();return}
   else if(c.resultado==="Agendó tasación"&&!c.horaCita){toast("Pon la hora de la tasación: queda en la Agenda");const el=$("#c_horaCita");if(el)el.focus();return}
   const num=v=>v===""||v==null?"":Number(v);
@@ -3224,6 +3230,7 @@ async function regSeg(k,btn){
   if(!cons){toast("Elige quién contacta");const el=$("#sg_cons");if(el)el.focus();return}
   if(!res){toast("Elige el resultado del seguimiento");return}
   const nivel=NIVEL[res]??0,cierra=nivel===1||nivel>=5;
+  if(!cierra&&nivel>=2&&!telOk(g.tel)){toast("Guarda primero el teléfono del dueño: sin él no hay seguimiento");const el=$("#sg_tel_"+sid);if(el)el.focus();return}
   if(cierra)prox="";
   else if(!prox){toast(res==="Agendó tasación"?"Pon la fecha de la tasación":"Pon la próxima fecha");const el=$("#sg_prox_"+sid);if(el)el.focus();return}
   else if(prox<hoy()){toast("La próxima fecha no puede quedar en el pasado");return}

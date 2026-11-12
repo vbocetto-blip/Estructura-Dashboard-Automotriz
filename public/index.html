@@ -1702,8 +1702,9 @@ function usuariosHtml(){
   if(!S.usuarios&&!S.usrLoading)cargarUsuarios();
   const us=S.usuarios||[];
   return `<section class="panel"><div class="sec-head"><h2 style="font-size:20px">Usuarios del sitio</h2><p>Quién entra y qué ve</p></div>
-  <p style="margin:0">Administrador ve y administra todo (usuarios, respaldo, equipo). Equipo trabaja todas las pestañas, sin administrar. Virtual ve solo Consignación virtual. Una persona nueva entra con “Primer acceso” y crea su contraseña; hazlo apenas la agregues para que nadie más pueda usar su correo.</p>
-  ${!S.usuarios?`<p class="none">Cargando…</p>`:`<div class="tbl"><table><thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>${us.map(x=>`<tr><td>${esc(x.email)}</td><td>${esc(x.nombre)}</td><td>${x.rol==="admin"?"Administrador":x.rol==="equipo"?"Equipo":"Virtual"}</td><td>${!x.activo?'<span class="pill st-Retirado">Inactivo</span>':x.tiene_clave?'<span class="pill st-Vendido">Activo</span>':'<span class="pill st-Mandato-pendiente">Sin contraseña</span>'}</td><td style="white-space:nowrap">${x.tiene_clave?`<button type="button" class="btn sm" data-ureset="${esc(x.email)}">Reiniciar contraseña</button>`:""} <button type="button" class="btn sm" data-uact="${esc(x.email)}" data-on="${x.activo?0:1}">${x.activo?"Desactivar":"Activar"}</button></td></tr>`).join("")}</tbody></table></div>`}
+  <p style="margin:0">Administrador ve y administra todo (usuarios, respaldo, equipo). Equipo trabaja todas las pestañas, sin administrar. Virtual ve solo Consignación virtual. Al agregar a una persona o reiniciar su contraseña aparece aquí un código de primer acceso: entrégaselo solo a ella. Con su correo y ese código crea su contraseña en “Primer acceso”.</p>
+  ${S.usrCod?`<div class="banner" role="status">Código de primer acceso para <b>${esc(S.usrCod.email)}</b>: <b style="font-family:ui-monospace,Menlo,monospace;font-size:18px;letter-spacing:2px;user-select:all">${esc(S.usrCod.codigo)}</b><br>Vale ${esc(S.usrCod.horas)} horas y un solo uso. No se vuelve a mostrar: si se pierde, genera otro.</div>`:""}
+  ${!S.usuarios?`<p class="none">Cargando…</p>`:`<div class="tbl"><table><thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>${us.map(x=>`<tr><td>${esc(x.email)}</td><td>${esc(x.nombre)}</td><td>${x.rol==="admin"?"Administrador":x.rol==="equipo"?"Equipo":"Virtual"}</td><td>${!x.activo?'<span class="pill st-Retirado">Inactivo</span>':x.tiene_clave?'<span class="pill st-Vendido">Activo</span>':'<span class="pill st-Mandato-pendiente">Sin contraseña</span>'}</td><td style="white-space:nowrap">${x.activo?`<button type="button" class="btn sm" data-ureset="${esc(x.email)}">${x.tiene_clave?"Reiniciar contraseña":"Generar código nuevo"}</button>`:""} <button type="button" class="btn sm" data-uact="${esc(x.email)}" data-on="${x.activo?0:1}">${x.activo?"Desactivar":"Activar"}</button></td></tr>`).join("")}</tbody></table></div>`}
   <form id="usrForm" class="filters"><div class="field" style="flex:2 1 220px"><label for="u_email">Correo</label><input id="u_email" type="email" required autocomplete="off"></div>
    <div class="field" style="flex:1 1 140px"><label for="u_nombre">Nombre</label><input id="u_nombre" type="text" maxlength="60" autocomplete="off"></div>
    <div class="field" style="flex:1 1 140px"><label for="u_rol">Rol</label><select id="u_rol"><option value="equipo">Equipo (trabaja todo, no administra)</option><option value="virtual">Virtual (solo Consignación virtual)</option><option value="admin">Administrador</option></select></div>
@@ -1712,6 +1713,7 @@ function usuariosHtml(){
 async function usrPost(path,body,ok){
   try{const r=await fetch("/api/"+path,{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));
     if(!r.ok){toast(j.error==="no_puedes_quitarte_admin"?"No puedes quitarte tu propio acceso de administrador":j.error==="correo_invalido"?"Revisa el correo":"No se pudo guardar");return false}
+    S.usrCod=j.codigo?{email:String(body.email||"").trim().toLowerCase(),codigo:j.codigo,horas:j.horas}:null;
     toast(ok);await cargarUsuarios();return true}catch(_){toast("Sin conexión");return false}
 }
 async function armarRespaldo(){
@@ -3861,7 +3863,7 @@ document.addEventListener("click",e=>{
   if(t.id==="btnPfb"){savePfb(t);return}
   if(t.id==="btnExport"){exportarRespaldo(t);return}
   if(t.id==="btnCopyResp"){copiarRespaldo(t);return}
-  if(t.dataset.ureset){usrPost("usuarios/reset",{email:t.dataset.ureset},"Contraseña reiniciada: la persona entra con “Primer acceso”");return}
+  if(t.dataset.ureset){usrPost("usuarios/reset",{email:t.dataset.ureset},"Listo: entrégale el código que aparece arriba");return}
   if(t.dataset.uact){const x=(S.usuarios||[]).find(u=>u.email===t.dataset.uact);if(x)usrPost("usuarios",{email:x.email,nombre:x.nombre,rol:x.rol,activo:t.dataset.on==="1"},t.dataset.on==="1"?"Usuario activado":"Usuario desactivado");return}
   if(t.id==="btnImport"){importarRespaldo(t);return}
   if(t.dataset.pfbf){S.pfbFiltro=t.dataset.pfbf;render();return}

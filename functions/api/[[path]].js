@@ -53,6 +53,19 @@ async function nuevaSesion(env, email) {
   await env.DB.prepare("INSERT INTO sesiones (token,email,expira,creada) VALUES (?,?,?,?)").bind(tok, email, exp, now()).run();
   return json({ ok: true }, 200, { "set-cookie": setCookie(tok, SES_DIAS * 86400) });
 }
+/* Código de primer acceso: lo genera un administrador al crear a la persona o reiniciar su contraseña.
+   Sin el código, saber el correo no basta para crear la contraseña. Se guarda solo su hash, en la tabla de sesiones
+   con prefijo "i:" (nunca calza con una cookie de sesión, que son 64 hexadecimales), vence solo y sirve una vez. */
+const COD_HORAS = 72, COD_ABC = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const normCodigo = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20);
+const codTok = async (email, cod) => "i:" + await sha256hex(email + "|" + cod);
+async function emitirCodigo(env, email, t) {
+  const cod = Array.from(crypto.getRandomValues(new Uint8Array(10)), b => COD_ABC[b % COD_ABC.length]).join("");
+  const exp = new Date(Date.now() + COD_HORAS * 3600e3).toISOString();
+  return { codigo: cod.slice(0, 5) + "-" + cod.slice(5), stmts: [
+    env.DB.prepare("DELETE FROM sesiones WHERE email=? AND token LIKE 'i:%'").bind(email),
+    env.DB.prepare("INSERT INTO sesiones (token,email,expira,creada) VALUES (?,?,?,?)").bind(await codTok(email, cod), email, exp, t)] };
+}
 async function authRoutes(path, request, env) {
   if (request.method !== "POST") return null;
   if (path === "logout") {
@@ -67,11 +80,21 @@ async function authRoutes(path, request, env) {
   const t = now();
   if (path === "primer-acceso") {
     if (!u || u.pass_hash) return json({ error: "no_disponible" }, 400);
+    if (u.bloqueado_hasta && u.bloqueado_hasta > t) return json({ error: "bloqueado", hasta: u.bloqueado_hasta }, 429);
     if (pass.length < MIN_PASS) return json({ error: "clave_corta", min: MIN_PASS }, 400);
+    const cod = normCodigo(b.codigo);
+    const inv = cod ? await env.DB.prepare("SELECT 1 AS ok FROM sesiones WHERE token=? AND email=? AND expira>?").bind(await codTok(email, cod), email, t).first() : null;
+    if (!inv) {
+      const f = (u.fallos || 0) + 1, lock = f >= 8 ? new Date(Date.now() + 15 * 60e3).toISOString() : null;
+      await env.DB.prepare("UPDATE usuarios SET fallos=?, bloqueado_hasta=? WHERE email=?").bind(lock ? 0 : f, lock, email).run();
+      return json({ error: "codigo" }, 401);
+    }
     const salt = randHex(16), h = await hashPass(pass, salt);
     const r = await env.DB.prepare("UPDATE usuarios SET pass_hash=?, pass_salt=?, fallos=0, bloqueado_hasta=NULL WHERE email=? AND pass_hash IS NULL").bind(h, salt, email).run();
     if (!r.meta.changes) return json({ error: "no_disponible" }, 400);
-    await env.DB.prepare("INSERT INTO auditoria (cuando,email,accion) VALUES (?,?,?)").bind(t, email, "primer_acceso").run();
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM sesiones WHERE email=? AND token LIKE 'i:%'").bind(email),
+      env.DB.prepare("INSERT INTO auditoria (cuando,email,accion) VALUES (?,?,?)").bind(t, email, "primer_acceso")]);
     return nuevaSesion(env, email);
   }
   if (!u || !u.pass_hash) { await hashPass(pass || "x", "00".repeat(16)); return json({ error: "credenciales" }, 401); }
@@ -158,14 +181,23 @@ const statsDe = lista => {
     kmMediana: kms.length >= 3 ? pct(kms, .5) : null };
 };
 /* tipoCliente: el tipo que eligió el cliente cuando no reconocimos su modelo */
-export async function mercado(env, marca, modelo, anio, tipoCliente) {
+/* Esta consulta es pública (sin login): el radar se lee y se interpreta una vez cada 10 minutos y se reutiliza,
+   para que nadie pueda cargar la base pidiendo la página muchas veces. Solo se guardan los campos que usan los agregados. */
+let radarMemo = null, radarMemoAt = 0;
+async function radarBase(env) {
+  if (radarMemo && Date.now() - radarMemoAt < 600e3) return radarMemo;
   const r = await env.DB.prepare("SELECT id, data FROM docs WHERE col IN ('radar','virtual') AND deleted=0").all();
   const vistos = new Map();
   for (const row of r.results || []) { if (vistos.has(row.id)) continue; try { vistos.set(row.id, JSON.parse(row.data)); } catch {} }
-  const todos = [...vistos.values()].filter(x => x && Number(x.precio) > 0).map(x => {
+  radarMemo = [...vistos.values()].filter(x => x && Number(x.precio) > 0).map(x => {
     const rc = reconocer(x.marca, x.modelo);
-    return { ...x, _marca: rc.marca, _modelo: rc.modelo, _tipo: rc.tipo || TIPO_RADAR[x.perfil] || null };
+    return { precio: x.precio, km: x.km, anio: x.anio, primerRadar: x.primerRadar, src: x.src, _marca: rc.marca, _modelo: rc.modelo, _tipo: rc.tipo || TIPO_RADAR[x.perfil] || null };
   });
+  radarMemoAt = Date.now();
+  return radarMemo;
+}
+export async function mercado(env, marca, modelo, anio, tipoCliente) {
+  const todos = await radarBase(env);
   const desde = todos.reduce((m, x) => (x.primerRadar && (!m || x.primerRadar < m) ? x.primerRadar : m), null);
   const portales = new Set(todos.map(x => x.src).filter(Boolean)).size;
   const vh = reconocer(marca, modelo), an = parseInt(anio, 10) || 0;
@@ -284,28 +316,44 @@ export async function onRequest(ctx) {
       const em = String(b.email || "").trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return json({ error: "correo_invalido" }, 400);
       const t = now();
+      const previo = await env.DB.prepare("SELECT activo FROM usuarios WHERE email=?").bind(em).first();
       if (path === "usuarios/reset") {
+        if (!previo || !previo.activo) return json({ error: "no_existe" }, 404);
+        const inv = await emitirCodigo(env, em, t);
         await env.DB.batch([
           env.DB.prepare("UPDATE usuarios SET pass_hash=NULL, pass_salt=NULL, fallos=0, bloqueado_hasta=NULL WHERE email=?").bind(em),
           env.DB.prepare("DELETE FROM sesiones WHERE email=?").bind(em),
+          ...inv.stmts,
           env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,id) VALUES (?,?,?,?)").bind(t, u.email, "reset_clave", em)]);
-        return json({ ok: true });
+        return json({ ok: true, codigo: inv.codigo, horas: COD_HORAS });
       }
       const rol = ["admin", "equipo", "virtual"].includes(b.rol) ? b.rol : "virtual", nombre = String(b.nombre || "").trim().slice(0, 60) || em, activo = b.activo === false ? 0 : 1;
       if (em === u.email && (rol !== "admin" || !activo)) return json({ error: "no_puedes_quitarte_admin" }, 400);
+      /* Persona nueva: sale con su código de primer acceso. A quien ya existía no se le toca la contraseña ni el código. */
+      const inv = !previo && activo ? await emitirCodigo(env, em, t) : null;
       await env.DB.batch([
         env.DB.prepare("INSERT INTO usuarios (email,nombre,rol,activo,creado_en) VALUES (?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET nombre=excluded.nombre, rol=excluded.rol, activo=excluded.activo").bind(em, nombre, rol, activo, t),
         ...(activo ? [] : [env.DB.prepare("DELETE FROM sesiones WHERE email=?").bind(em)]),
+        ...(inv ? inv.stmts : []),
         env.DB.prepare("INSERT INTO auditoria (cuando,email,accion,id) VALUES (?,?,?,?)").bind(t, u.email, "usuario_" + rol + (activo ? "" : "_inactivo"), em)]);
-      return json({ ok: true });
+      return json(inv ? { ok: true, codigo: inv.codigo, horas: COD_HORAS } : { ok: true });
     }
   }
 
   if (path === "changes" && request.method === "GET") {
     const since = url.searchParams.get("since") || "";
-    const rs = await env.DB.prepare("SELECT col,id,data,version,updated_at,deleted FROM docs WHERE updated_at > ? ORDER BY updated_at LIMIT 2000").bind(since).all();
+    const SEL = "SELECT col,id,data,version,updated_at,deleted FROM docs WHERE updated_at";
+    const rs = await env.DB.prepare(SEL + " > ? ORDER BY updated_at LIMIT 2000").bind(since).all();
+    /* El navegador sigue desde la última hora recibida. Si la página se llena, se completa con todos los registros de esa
+       misma hora (un respaldo importado los deja a todos con la misma): cortados a la mitad, el resto no llegaba nunca. */
+    if (rs.results.length === 2000) {
+      const ult = rs.results[1999].updated_at;
+      const resto = await env.DB.prepare(SEL + " = ?").bind(ult).all();
+      rs.results = rs.results.filter(r => r.updated_at !== ult).concat(resto.results);
+    }
+    const lleno = rs.results.length >= 2000;
     const rows = rs.results.filter(r => canRead(u.rol, r.col, r.id)).map(r => ({ col: r.col, id: r.id, v: r.version, t: r.updated_at, del: !!r.deleted, data: r.deleted ? null : JSON.parse(r.data) }));
-    return json({ rows, more: rs.results.length === 2000, serverTime: now() });
+    return json({ rows, more: lleno, serverTime: now() });
   }
 
   if (path === "import" && request.method === "POST") {

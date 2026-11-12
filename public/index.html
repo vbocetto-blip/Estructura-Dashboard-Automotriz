@@ -732,6 +732,35 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .cadena .cad-n b{color:var(--ink)}
 .cadena .cad-a{color:var(--bad);font-weight:600}
 .cad-ing{margin:8px 0 0;color:var(--ink)}
+/* Línea de tiempo: mismas 8 columnas del embudo; el riel une las etapas y cada vehículo cuelga de la suya. */
+.lt{list-style:none;margin:2px 0 0;padding:0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+.lt li{position:relative;min-width:0;padding:14px 8px 0;display:grid;gap:4px;align-content:start}
+.lt li::before{content:"";position:absolute;left:0;right:-4px;top:4px;height:2px;background:var(--line)}
+.lt li:last-child::before{right:0}
+.lt li::after{content:"";position:absolute;left:8px;top:0;width:10px;height:10px;border-radius:50%;box-sizing:border-box;background:var(--surface);border:2px solid var(--line)}
+.lt li.on::after{background:var(--accent);border-color:var(--accent)}
+.lt li.corte{margin-left:8px}
+.lt-e{display:none;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.lt-e b{color:var(--ink)}
+.lt-c{display:grid;gap:1px;min-width:0;justify-items:start}
+.lt-v,.lt-m{max-width:100%;border:0;background:none;padding:2px 0;font:inherit;font-size:12.5px;line-height:1.3;color:var(--ink);cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:4px}
+.lt-v::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:middle;box-sizing:border-box;background:var(--muted);border:1.5px solid var(--muted)}
+.lt-v.virt::before{background:none}
+.lt-v.al{color:var(--bad)}.lt-v.al::before{background:var(--bad);border-color:var(--bad)}
+.lt-m{color:var(--muted);font-weight:600}
+.lt-v:hover,.lt-v:focus-visible,.lt-m:hover,.lt-m:focus-visible{color:var(--accent);text-decoration:underline}
+.lt-n{margin:4px 0 0}
+@media (max-width:640px){
+  .lt{grid-template-columns:minmax(0,1fr);gap:0;margin-top:6px}
+  .lt li,.lt li.corte{margin:0;padding:0 0 10px 20px;grid-template-columns:92px minmax(0,1fr);gap:8px;align-items:start}
+  .lt li:last-child{padding-bottom:0}
+  .lt li::before{left:4px;right:auto;top:0;bottom:0;width:2px;height:auto}
+  .lt li:last-child::before{bottom:auto;height:8px}
+  .lt li::after{left:0;top:3px}
+  .lt-e{display:block;padding-top:1px}
+  .lt-c{display:flex;flex-wrap:wrap;gap:2px 12px;min-height:18px}
+  .lt-v,.lt-m{padding:1px 0;font-size:13px}
+}
 .stockh{font-family:var(--f-display);font-size:18px;font-weight:700;margin:18px 0 8px}
 .secsel button{min-width:0}
 .manp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:0 0 6px}
@@ -1113,6 +1142,29 @@ function monCargar(){
   const q=c=>S.db.collection(c).where("fecha",">=",R.min).where("fecha","<=",R.t).get().then(x=>x.docs.map(d=>d.data())).catch(()=>[]);
   Promise.all([q("llamadas"),q("virtualLlamadas")]).then(([a,b])=>{S.mon={at:Date.now(),min:R.min,calls:[...a,...b]};S.monBusy=false;safeRender()}).catch(()=>{S.monBusy=false});
 }
+/* ---------- Línea de tiempo del Monitoreo: dónde está hoy cada vehículo ----------
+   Una sola línea con las 8 etapas, alineada con el embudo. Cada vehículo aparece una vez, en su etapa actual:
+   los autos de Autos según su recorrido, y los avisos del Radar desde Seguimiento (nivel 2 a 5) que todavía no tienen auto.
+   Aviso y Contacto no listan vehículos: son cientos y aún no hay un dueño interesado. Los vendidos se muestran solo el mes de la venta. */
+const LT_MAX=4,LT_GO=["consig|radar|","consig|llamadas|","consig|seguimiento|","consig|agenda|","consig|radar|tas","consig|mandatos|","venta|stock|","venta|stock|"];
+function lineaHtml(){
+  const mes=hoy().slice(0,7),col=ETAPAS8.map(()=>[]),corto=x=>String(x.modelo||x.marca||"Sin datos").trim();
+  (S.autos||[]).forEach(a=>{
+    if(a.estado==="Retirado"||(a.estado==="Vendido"&&String(a.fechaVenta||"").slice(0,7)!==mes))return;
+    const c=casoDe(a,null);if(c.ult<0)return;
+    col[c.ult].push({n:corto(a),t:nombre(a)+(a.anio?" "+a.anio:""),v:a.modalidad===MODALIDADES[2],at:`data-open="${esc(a._id)}"`});
+  });
+  (S.radar||[]).forEach(r=>{
+    const n=rNivel(r);if(r.pedidoId||r.noContactar||n<2||n>5||autoDeRadar(r))return;
+    col[n].push({n:corto(r),t:rModelo(r)+(r.anio?" "+r.anio:"")+(n===5?" · mandato sin ingresar a Autos":""),v:esVirt(r),at:`data-rgo="${esc(r._id)}"`,al:n===5});
+  });
+  const tot=col.reduce((x,c)=>x+c.length,0),hayV=col.some(c=>c.some(x=>x.v));
+  const cols=col.map((c,i)=>{
+    const ver=c.slice(0,LT_MAX),mas=c.length-ver.length;
+    return `<li class="${c.length?"on":""}${i===6?" corte":""}"><span class="lt-e">${ETAPAS8[i]}${c.length?` <b>${c.length}</b>`:""}</span><span class="lt-c">${ver.map(x=>`<button type="button" class="lt-v${x.v?" virt":""}${x.al?" al":""}" ${x.at} title="${esc(x.t)} · ${ETAPAS8[i]}${x.v?" · equipo virtual":""}">${esc(x.n)}</button>`).join("")}${mas>0?`<button type="button" class="lt-m" data-cgo="${LT_GO[i]}" title="Ver los ${c.length} en ${ETAPAS8[i]}">+${mas}</button>`:""}</span></li>`}).join("");
+  return `<ol class="lt" aria-label="Línea de tiempo: etapa actual de cada vehículo">${cols}</ol>
+    <p class="cad-n lt-n">${tot?`Dónde está hoy cada vehículo, desde Seguimiento: <b>${tot}</b> en proceso.${hayV?" Punto vacío: equipo virtual.":""}`:"Todavía no hay vehículos en proceso desde Seguimiento."}</p>`;
+}
 function cadenaHtml(){
   /* El monitoreo vive solo en Seguimiento: las demás pestañas quedan limpias para trabajar. */
   if(S.soloVirtual||S.view!=="seguimiento")return "";
@@ -1159,7 +1211,7 @@ function cadenaHtml(){
   const peri=`En el período: <b>${bNew}</b> ${pl(bNew,"comprador nuevo","compradores nuevos")} · comisión <b>${vend.length?clp(Math.round(com)):"$0"}</b>.`;
   return `<section class="cadena" aria-label="Monitoreo por período">
     <div class="cad-top"><b>Monitoreo</b><div class="chips cad-per" role="group" aria-label="Período">${Object.keys(PER_TXT).map(k=>`<button type="button" data-per="${k}" aria-pressed="${S.per===k}">${PER_TXT[k]}</button>`).join("")}</div><span class="cad-rg">${esc(rango)}</span></div>
-    <div class="emb" role="group" aria-label="Embudo del aviso a la venta">${emb}</div>${ingHtml}${alerta}
+    <div class="emb" role="group" aria-label="Embudo del aviso a la venta">${emb}</div>${rl?lineaHtml():""}${ingHtml}${alerta}
     <details class="cad-d"${lsGet("ansar_cadd")==="1"?" open":""}><summary>Detalle del período</summary>
       <p class="cad-n">${peri}</p>
       <p class="cad-n">${quien}${conv}</p>

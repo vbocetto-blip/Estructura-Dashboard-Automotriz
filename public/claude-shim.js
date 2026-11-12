@@ -107,10 +107,11 @@
     let modo = "login";
     const draw = () => {
       box.innerHTML = `<form novalidate><h1>${LOGO}</h1>
-        <p>${modo === "login" ? "Ingresa con tu correo y contraseña." : "Primer acceso: crea tu contraseña. Solo funciona para correos autorizados que aún no tienen una."}</p>
+        <p>${modo === "login" ? "Ingresa con tu correo y contraseña." : "Primer acceso: crea tu contraseña con el código que te entregó el administrador."}</p>
         <label for="lg_email">Correo<input id="lg_email" type="email" autocomplete="username" required></label>
         <label for="lg_pass">${modo === "login" ? "Contraseña" : "Contraseña nueva (mínimo 10 caracteres)"}<input id="lg_pass" type="password" autocomplete="${modo === "login" ? "current-password" : "new-password"}" required></label>
-        ${modo === "login" ? "" : `<label for="lg_pass2">Repite la contraseña<input id="lg_pass2" type="password" autocomplete="new-password" required></label>`}
+        ${modo === "login" ? "" : `<label for="lg_pass2">Repite la contraseña<input id="lg_pass2" type="password" autocomplete="new-password" required></label>
+        <label for="lg_cod">Código de primer acceso<input id="lg_cod" type="text" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="20" required></label>`}
         <p class="err" id="lg_err" role="alert">${motivo || ""}</p>
         <button type="submit" id="lg_btn">${modo === "login" ? "Entrar" : "Crear contraseña y entrar"}</button>
         <button type="button" class="alt" id="lg_alt">${modo === "login" ? "¿Primera vez? Crea tu contraseña" : "Ya tengo contraseña"}</button></form>`;
@@ -120,13 +121,13 @@
         e.preventDefault();
         const em = box.querySelector("#lg_email").value.trim(), pw = box.querySelector("#lg_pass").value, out = box.querySelector("#lg_err"), btn = box.querySelector("#lg_btn");
         if (!em || !pw) { out.textContent = "Escribe tu correo y contraseña."; return; }
-        if (modo === "primer") { if (pw.length < 10) { out.textContent = "La contraseña debe tener al menos 10 caracteres."; return; } if (pw !== box.querySelector("#lg_pass2").value) { out.textContent = "Las contraseñas no coinciden."; return; } }
+        if (modo === "primer") { if (pw.length < 10) { out.textContent = "La contraseña debe tener al menos 10 caracteres."; return; } if (pw !== box.querySelector("#lg_pass2").value) { out.textContent = "Las contraseñas no coinciden."; return; } if (!box.querySelector("#lg_cod").value.trim()) { out.textContent = "Escribe el código de primer acceso que te entregó el administrador."; return; } }
         btn.disabled = true; out.textContent = "";
         try {
-          const r = await fetch("/api/" + (modo === "login" ? "login" : "primer-acceso"), { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: em, password: pw }) });
+          const r = await fetch("/api/" + (modo === "login" ? "login" : "primer-acceso"), { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify(modo === "login" ? { email: em, password: pw } : { email: em, password: pw, codigo: box.querySelector("#lg_cod").value }) });
           const j = await r.json().catch(() => ({}));
           if (r.ok) { location.reload(); return; }
-          out.textContent = j.error === "bloqueado" ? "Demasiados intentos. Espera 15 minutos." : j.error === "no_disponible" ? "Este correo no está habilitado para un primer acceso. Si es tu primera vez, pide a Luis que te habilite. Si ya creaste tu contraseña, usa «Ya tengo contraseña» o pide que te la reinicien." : j.error === "clave_corta" ? "La contraseña debe tener al menos 10 caracteres." : "Correo o contraseña incorrectos.";
+          out.textContent = j.error === "bloqueado" ? "Demasiados intentos. Espera 15 minutos." : j.error === "codigo" ? "El código no es correcto o ya venció. Pide uno nuevo al administrador." : j.error === "no_disponible" ? "Este correo no está habilitado para un primer acceso. Si es tu primera vez, pide a Luis que te habilite. Si ya creaste tu contraseña, usa «Ya tengo contraseña» o pide que te la reinicien." : j.error === "clave_corta" ? "La contraseña debe tener al menos 10 caracteres." : "Correo o contraseña incorrectos.";
         } catch { out.textContent = "Sin conexión. Inténtalo de nuevo."; }
         btn.disabled = false;
       };

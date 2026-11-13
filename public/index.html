@@ -2035,6 +2035,7 @@ function vLlamadas(){
   const editOpen=!!S.cfEdit;
   return `<section class="sec-head res-head"><h2>Llamadas de ${MESES[mo.m]} ${mo.y}</h2><p>Qué trae mandatos · registro por consignador</p></section>
   ${S.callErr?`<div class="banner">No se pudieron cargar las llamadas (${esc(S.callErr)}). Toca Actualizar.</div>`:""}
+  <section class="zone z-acc" id="z-hbus"><div class="zb">${(()=>{try{return S.segLoaded?histBuscador():`<p class="none" style="margin:0">Cargando el buscador de avisos ya llamados…</p>`}catch(e){console.error("buscador historial",e);return ""}})()}</div></section>
   <div class="filters"><select id="csem" aria-label="Semana"><option value="">Todo ${MESES[mo.m]}</option>${ws.map(w=>`<option value="${w.key}" ${w.key===F.sem?"selected":""}>Semana ${w.n} · ${fmtD(w.from)} – ${fmtD(w.to)}</option>`).join("")}</select>
     <select id="cequipo" aria-label="Equipo"><option value="">Piso y virtual</option>${[["Presencial","Equipo en piso"],["Virtual","Equipo virtual"]].map(([v,l])=>`<option value="${v}" ${v===F.equipo?"selected":""}>${l}</option>`).join("")}</select>
     <select id="ccons" aria-label="Consignador"><option value="">Todos los consignadores</option>${uniq([...S.equipo,...S.llamadas.map(c=>c.consignador)]).map(p=>`<option ${p===F.cons?"selected":""}>${esc(p)}</option>`).join("")}</select>
@@ -2061,8 +2062,8 @@ function vLlamadas(){
     <div class="zb"><ul class="insights">${ins.join("")}</ul></div></section>
 
   <details class="zone z-det" id="z-hist" data-gopen="call_hist" ${S.gopen.call_hist===false?"":"open"}>
-    <summary class="zh"><span class="zn">◷</span><div class="zt"><h2>Historial de llamadas</h2><p>Busca si un aviso ya se llamó · por consignador: día, semana, mes e histórico</p></div><span class="chev" aria-hidden="true">▾</span></summary>
-    <div class="zb">${(()=>{try{return S.segLoaded?histBuscador():""}catch(e){console.error("buscador historial",e);return ""}})()}${(()=>{try{return histLlamadas(F)}catch(e){console.error("historial",e);return `<p class="none">No se pudo armar el historial. Toca Actualizar.</p>`}})()}</div>
+    <summary class="zh"><span class="zn">◷</span><div class="zt"><h2>Historial de llamadas</h2><p>Por consignador: día, semana, mes e histórico · el buscador de avisos ya llamados está arriba</p></div><span class="chev" aria-hidden="true">▾</span></summary>
+    <div class="zb">${(()=>{try{return histLlamadas(F)}catch(e){console.error("historial",e);return `<p class="none">No se pudo armar el historial. Toca Actualizar.</p>`}})()}</div>
   </details>
 
   <details class="zone z-det" data-gopen="call_tablas" ${S.gopen.call_tablas===false?"":"open"}>

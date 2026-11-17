@@ -259,11 +259,11 @@ export async function onRequest(ctx) {
     const puede = await verEquipo();
     if (pedido === "equipo") {
       if (!puede) return json({ error: "sin_permiso" }, 403);
-      const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, a.minuto, coalesce(a.estado,'activo') AS e FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.dia BETWEEN ? AND ? ORDER BY a.email, a.dia, a.minuto").bind(desde, hasta).all();
+      const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, a.minuto, coalesce(a.estado,'activo') AS e, a.pagina AS p FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.dia BETWEEN ? AND ? ORDER BY a.email, a.dia, a.minuto").bind(desde, hasta).all();
       return json({ filas: rs.results });
     }
     const email = puede && pedido ? pedido : u.email;
-    const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, a.minuto, coalesce(a.estado,'activo') AS e FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.email=? AND a.dia BETWEEN ? AND ? ORDER BY a.dia, a.minuto").bind(email, desde, hasta).all();
+    const rs = await env.DB.prepare("SELECT a.email, u.nombre, a.dia, a.minuto, coalesce(a.estado,'activo') AS e, a.pagina AS p FROM actividad a LEFT JOIN usuarios u ON u.email=a.email WHERE a.email=? AND a.dia BETWEEN ? AND ? ORDER BY a.dia, a.minuto").bind(email, desde, hasta).all();
     return json({ email, filas: rs.results });
   }
   if (path === "actividad" && request.method === "GET") {

@@ -262,6 +262,14 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .rrail .sc{font-family:var(--f-display);font-size:34px;font-weight:700;line-height:.9}
 .rrail .rl{font-size:10.5px;color:var(--muted);margin-top:-4px}
 .rdet{margin:0;font-size:12.5px;color:var(--muted)}
+.rdia{display:inline-flex;align-items:center;gap:6px;margin-right:8px}.rdia input[type=date]{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--line,#ccd);background:var(--sunk);color:inherit}.rdia .btn{padding:4px 11px}
+.rchip{display:inline-flex;gap:5px;padding:2px 9px;border-radius:999px;background:var(--sunk)}
+.rbit{list-style:none;margin:10px 0 0;padding:0;border-left:2px solid var(--sunk)}.rbit li{display:flex;gap:12px;padding:6px 0 6px 12px;position:relative;font-size:14px}
+.rbit .rt{flex:0 0 96px;font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}.rbit .rbody{flex:1;min-width:0}
+.rbit li.rb::before{content:"";position:absolute;left:-6px;top:11px;width:10px;height:10px;border-radius:50%;background:#0b8a5f}
+.rbit li.rp{color:var(--muted)}.rbit li.rp.larga{color:#b4432f}.rbit li.rk{padding-left:28px}.rbit li.rk .rt{flex-basis:80px;color:#0b4fb3}
+.rbar{display:flex;height:6px;border-radius:3px;overflow:hidden;margin:5px 0 3px;max-width:340px}.rbar .rc{height:6px;border-radius:0}
+tr.rdsel td{background:var(--sunk)}
 .rrail .bd{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:2px 5px}
 .bd.hoy{background:var(--accent);color:var(--on-accent)} .bd.sem{background:var(--surface);color:var(--ink);border:1px solid var(--line)} .bd.tar{color:var(--muted);border:1px dashed var(--line)}
 .rbody{padding:12px 14px;display:grid;gap:10px;min-width:0}
@@ -949,23 +957,30 @@ const fmtHM=min=>{min=Math.max(0,Math.round(min));const h=Math.floor(min/60),m=m
 const DSEM2=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 function jorOf(nombre){const c=S.jornada||{};return {...JOR_DEF,...(c.def||{}),...((c.porPersona||{})[nombre]||{})}}
 function jorCargar(){if(S.jorBusy||S.jornada)return;S.jorBusy=true;fetch("/api/doc?col=config&id=jornada",{credentials:"same-origin"}).then(r=>r.json()).then(j=>{S.jornada=j&&j.exists?j.data:{};S.jorV=j&&j.exists?j.v:null;S.jorBusy=false;safeRender()}).catch(()=>{S.jornada={};S.jorBusy=false})}
+const relojFecha=()=>S.relojDia&&S.relojDia<=hoy()?S.relojDia:hoy();
 function relojCargar(force){
   if(!window.__ANSAR_SITE)return;jorCargar();
-  if(S.relojBusy||(!force&&S.relojAt&&Date.now()-S.relojAt<150000))return;S.relojBusy=true;
-  const d=pd(hoy());d.setDate(d.getDate()-6);const desde=ds(d);
-  const q=relojEq()&&S.relojSel&&S.relojSel!=="__yo"?"&email="+encodeURIComponent(S.relojSel):"";
-  fetch(`/api/reloj?desde=${desde}&hasta=${hoy()}${q}`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{
-    const filas=j.filas||[];S.relojAt=Date.now();S.relojBusy=false;
-    if(!q){S.relojMe=filas;S.relojMeNom=(filas[0]&&filas[0].nombre)||window.__ANSAR_NOMBRE||miNombre()||""}
-    S.relojData={email:j.email,nombre:(filas[0]&&filas[0].nombre)||"",filas};relojTick();if(S.view==="reloj")safeRender()}).catch(()=>{S.relojBusy=false});
-  if(relojEq()&&S.view==="reloj"&&(force||!S.relojEqAt||Date.now()-S.relojEqAt>150000)){
-    fetch(`/api/reloj?desde=${desde}&hasta=${hoy()}&email=equipo`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{S.relojEq=j.filas||[];S.relojEqAt=Date.now();if(S.view==="reloj")safeRender()}).catch(()=>{});
-  }
+  const hoyS=hoy(),f=relojFecha(),d=pd(f);d.setDate(d.getDate()-6);const desde=ds(d);
+  const q=relojEq()&&S.relojSel&&S.relojSel!=="__yo"?S.relojSel:"";
+  /* Mi reloj de hoy: alimenta el botón de arriba aunque esté mirando otro día u otra persona. */
+  if(!S.relojBusy&&(force||!S.relojAt||Date.now()-S.relojAt>150000)){S.relojBusy=true;const d7=pd(hoyS);d7.setDate(d7.getDate()-6);
+    fetch(`/api/reloj?desde=${ds(d7)}&hasta=${hoyS}`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{
+      const filas=j.filas||[];S.relojAt=Date.now();S.relojBusy=false;S.relojMe=filas;S.relojMeEmail=j.email;
+      S.relojMeNom=(filas[0]&&filas[0].nombre)||window.__ANSAR_NOMBRE||miNombre()||"";relojTick();if(S.view==="reloj")safeRender()}).catch(()=>{S.relojAt=Date.now();S.relojBusy=false})}
+  if(S.view!=="reloj")return;
+  /* Persona y día elegidos en la vista. */
+  const key=f+"|"+q;
+  if((q||f!==hoyS)&&!S.relojDBusy&&(force||S.relojKey!==key||Date.now()-(S.relojDAt||0)>150000)){S.relojDBusy=true;S.relojKey=key;
+    fetch(`/api/reloj?desde=${desde}&hasta=${f}${q?"&email="+encodeURIComponent(q):""}`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{
+      const filas=j.filas||[];S.relojData={key,email:j.email,nombre:(filas[0]&&filas[0].nombre)||"",filas};S.relojDAt=Date.now();S.relojDBusy=false;safeRender()}).catch(()=>{S.relojDAt=Date.now();S.relojDBusy=false})}
+  /* Equipo completo del día elegido. */
+  if(relojEq()&&!S.relojEqBusy&&(force||S.relojEqKey!==f||Date.now()-(S.relojEqAt||0)>150000)){S.relojEqBusy=true;S.relojEqKey=f;
+    fetch(`/api/reloj?desde=${desde}&hasta=${f}&email=equipo`,{credentials:"same-origin"}).then(r=>r.json()).then(j=>{S.relojEq=j.filas||[];S.relojEqF=f;S.relojEqAt=Date.now();S.relojEqBusy=false;safeRender()}).catch(()=>{S.relojEqAt=Date.now();S.relojEqBusy=false})}
 }
 function relojDia(filas,dia,nombre){
   const J=jorOf(nombre),d=pd(dia),w=d?d.getDay():1,lab=J.dias.includes(w),a=hm(J.desde),b=hm(J.hasta);
   const nom=lab?Math.max(0,b-a-(Number(J.colacion)||0)):0;
-  const mins=filas.filter(f=>f.dia===dia).map(f=>({m:hm(f.minuto),e:f.e}));
+  const mins=filas.filter(f=>f.dia===dia).map(f=>({m:hm(f.minuto),e:f.e,p:f.p||""})).sort((x,y)=>x.m-y.m);
   const by=new Map(mins.map(x=>[x.m,x.e]));
   let g=0,ac=0,pr=0,fuera=0;mins.forEach(x=>{const dentro=lab&&x.m>=a&&x.m<b;if(x.e==="presente"){pr++;return}if(!dentro){fuera++;return}if(x.e==="gestion")g++;else ac++});
   const efe=g+ac;
@@ -977,7 +992,7 @@ function relojDia(filas,dia,nombre){
   const calls=(S.segCalls&&S.segCalls.length?S.segCalls:S.llamadas||[]).filter(c=>c.fecha===dia&&c.consignador===nombre);
   const tas=calls.filter(c=>sgNiv(c)>=3).length,man=calls.filter(c=>sgNiv(c)>=5).length;
   const tick=calls.map(c=>{const t=c.creadoEn?new Date(c.creadoEn):null;return t?t.getHours()*60+t.getMinutes():null}).filter(x=>x!=null);
-  return {dia,lab,J,a,b,nom,transc,g,ac,pr,fuera,efe,racha,pausas,pausaMin,primero:efm[0],ultimo:efm[efm.length-1],by,cont:calls.length,tas,man,tick,
+  return {dia,lab,J,a,b,nom,transc,g,ac,pr,fuera,efe,racha,pausas,pausaMin,primero:efm[0],ultimo:efm[efm.length-1],by,mins,calls,cont:calls.length,tas,man,tick,
     cob:transc?efe/transc:null,cph:efe?calls.length/(efe/60):null,mpc:calls.length?efe/calls.length:null};
 }
 function relojTick(){
@@ -996,34 +1011,73 @@ function relojLinea(r,compact){
   const horas=compact?"":`<div class="rhs">${Array.from({length:14},(_,i)=>`<span>${8+i}</span>`).join("")}</div>`;
   return `<div class="rline${compact?" sm":""}"><div class="rtks">${ticks}</div><div class="rcells">${cells.join("")}</div>${horas}</div>`;
 }
+const relHM=m=>m==null?"—":String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const RELOJ_SEC={seguimiento:"Seguimiento",radar:"Radar",virtual:"Radar virtual",express:"Búsqueda express",llamadas:"Llamadas",formulario:"Formulario",agenda:"Agenda",compradores:"Compradores",stock:"Stock",mandatos:"Mandatos",resumen:"Resumen",semanas:"Semanas",autos:"Autos",piloto:"Piloto",equipo:"Equipo",reloj:"Reloj",patio:"Patio"};
+const relojSec=p=>{const v=String(p||"").split(":").pop();return RELOJ_SEC[v]||(v?v:"Panel")};
+/* Bloques continuos (huecos de hasta 2 min se unen), pausas de 3 min o más y contactos a la hora exacta. */
+function relojBloques(r){
+  const out=[];let cur=null;
+  r.mins.forEach(x=>{if(cur&&x.m-cur.fin<=3){cur.fin=x.m}else{if(cur)out.push(cur);cur={ini:x.m,fin:x.m,g:0,ac:0,pr:0,sec:new Map()}}
+    if(x.e==="gestion")cur.g++;else if(x.e==="presente")cur.pr++;else cur.ac++;
+    if(x.e!=="presente"){const k=relojSec(x.p);cur.sec.set(k,(cur.sec.get(k)||0)+1)}});
+  if(cur)out.push(cur);return out;
+}
+function relojBitacora(r,etq){
+  const bl=relojBloques(r);
+  const calls=r.calls.map(c=>{const t=c.creadoEn?new Date(c.creadoEn):null;return {c,m:t&&!isNaN(t)?t.getHours()*60+t.getMinutes():null}}).sort((x,y)=>(x.m??9999)-(y.m??9999));
+  if(!bl.length&&!calls.length)return `<section class="panel"><div class="sec-head"><h2 style="font-size:17px">Bitácora · ${esc(etq)}</h2></div><p class="none">Sin actividad registrada ese día.</p></section>`;
+  const sec=new Map();bl.forEach(b=>b.sec.forEach((v,k)=>sec.set(k,(sec.get(k)||0)+v)));
+  const secTxt=[...sec.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="rchip">${esc(k)} <b>${fmtHM(v)}</b></span>`).join("");
+  const dentro=m=>r.lab&&m>=r.a&&m<r.b;
+  const ev=[];
+  bl.forEach((b,i)=>{ev.push({m:b.ini,o:0,b});const nx=bl[i+1];if(nx&&nx.ini-b.fin-1>=3)ev.push({m:b.fin+1,o:2,p:{ini:b.fin+1,fin:nx.ini-1}})});
+  calls.forEach(x=>ev.push({m:x.m??9999,o:1,x}));
+  ev.sort((a,b)=>a.m-b.m||a.o-b.o);
+  const fila=e=>{
+    if(e.b){const b=e.b,dur=b.fin-b.ini+1,tot=b.g+b.ac+b.pr||1,ss=[...b.sec.entries()].sort((a,c)=>c[1]-a[1]).slice(0,3).map(([k])=>esc(k)).join(", ");
+      return `<li class="rb"><span class="rt">${relHM(b.ini)}–${relHM(b.fin)}</span><div class="rbody"><div class="rbt"><b>Trabajo · ${fmtHM(dur)}</b>${b.g?` · gestión ${fmtHM(b.g)}`:""}${b.ac?` · panel ${fmtHM(b.ac)}`:""}${b.pr?` · sin uso ${fmtHM(b.pr)}`:""}${dentro(b.ini)||dentro(b.fin)?"":" · <i>fuera de jornada</i>"}</div><div class="rbar"><i class="rc gestion" style="flex:${b.g}"></i><i class="rc activo" style="flex:${b.ac}"></i><i class="rc presente" style="flex:${b.pr}"></i></div>${ss?`<div class="rdet">En ${ss}</div>`:""}</div></li>`}
+    if(e.p){const p=e.p,dur=p.fin-p.ini+1,j=dentro(p.ini);
+      return `<li class="rp${j&&dur>=15?" larga":""}"><span class="rt">${relHM(p.ini)}–${relHM(p.fin)}</span><div class="rbody">Pausa · ${fmtHM(dur)}${j?"":" · fuera de jornada"}</div></li>`}
+    const c=e.x.c,auto=[c.marca,c.modelo,c.anio].filter(Boolean).join(" ");
+    return `<li class="rk"><span class="rt">${relHM(e.x.m)}</span><div class="rbody">● ${esc(c.resultado||"Contacto")}${auto?` · ${esc(auto)}`:""}${c.contacto?` · ${esc(c.contacto)}`:""}${c._col==="virtualLlamadas"?" · virtual":""}</div></li>`};
+  return `<section class="panel"><div class="sec-head"><h2 style="font-size:17px">Bitácora · ${esc(etq)}</h2><p>Entrada <b>${relHM(r.primero)}</b> · salida <b>${relHM(r.ultimo)}</b> · ${bl.length} bloque${bl.length===1?"":"s"} de trabajo · ${r.cont} contacto${r.cont===1?"":"s"} · ${r.tas} ${r.tas===1?"tasación":"tasaciones"} · ${r.man} mandato${r.man===1?"":"s"}</p></div>
+    ${secTxt?`<p class="rleg">Tiempo por sección: ${secTxt}</p>`:""}
+    <ol class="rbit">${ev.map(fila).join("")}</ol></section>`;
+}
 function vReloj(){
   relojCargar(false);
   const yo=window.__ANSAR_NOMBRE||miNombre()||"";const sel=relojEq()&&S.relojSel&&S.relojSel!=="__yo";
-  const D=S.relojData,nombre=sel?(D&&D.nombre)||S.relojSel:yo,filas=sel?(D&&D.email===S.relojSel?D.filas:[]):(S.relojMe||[]);
-  const r=relojDia(filas,hoy(),nombre);
-  const dias=[];for(let i=6;i>=0;i--){const d=pd(hoy());d.setDate(d.getDate()-i);dias.push(ds(d))}
+  const F=relojFecha(),esHoy=F===hoy(),usaD=sel||!esHoy,key=F+"|"+(sel?S.relojSel:"");
+  const D=S.relojData,okD=D&&D.key===key,eqNom=sel&&S.relojEq?(S.relojEq.find(x=>x.email===S.relojSel)||{}).nombre:"";
+  const nombre=sel?(okD&&D.nombre)||eqNom||S.relojSel:yo,filas=usaD?(okD?D.filas:[]):(S.relojMe||[]),cargando=usaD&&!okD;
+  const r=relojDia(filas,F,nombre);
+  const dias=[];for(let i=6;i>=0;i--){const d=pd(F);d.setDate(d.getDate()-i);dias.push(ds(d))}
+  const mov=n=>{const d=pd(F);d.setDate(d.getDate()+n);return ds(d)};
+  const etq=esHoy?"Hoy":`${DSEM2[pd(F).getDay()]} ${fmtD(F)}`;
+  const nav=`<span class="rdia"><button type="button" class="btn" data-reldia="${mov(-1)}" aria-label="Día anterior">‹</button><input type="date" data-reldiain="1" value="${F}" max="${hoy()}" aria-label="Elegir día"><button type="button" class="btn" data-reldia="${mov(1)}" aria-label="Día siguiente" ${esHoy?"disabled":""}>›</button>${esHoy?"":`<button type="button" class="btn" data-reldia="${hoy()}">Hoy</button>`}</span>`;
   const sem=dias.map(d=>relojDia(filas,d,nombre));
   const tot=sem.reduce((o,x)=>({nom:o.nom+x.nom,efe:o.efe+x.efe,cont:o.cont+x.cont,tas:o.tas+x.tas,man:o.man+x.man}),{nom:0,efe:0,cont:0,tas:0,man:0});
   const pc=x=>x==null?"—":Math.round(x*100)+"%",f1=x=>x==null?"—":x.toLocaleString("es-CL",{maximumFractionDigits:1});
   const kpi=(l,v,s,cls)=>`<div class="kpi${cls?" "+cls:""}"><span class="l">${l}</span><span class="v num">${v}</span><span class="s">${s}</span></div>`;
   const selector=relojEq()?`<label class="rwho"><span>Ver</span><select data-relsel="1"><option value="__yo">Yo (${esc(yo)})</option>${(S.relojEq?[...new Map(S.relojEq.map(f=>[f.email,f.nombre||f.email])).entries()]:[]).filter(([e])=>e!==(D&&!sel?D.email:"")).map(([e,n])=>`<option value="${esc(e)}" ${S.relojSel===e?"selected":""}>${esc(n)}</option>`).join("")}</select></label>`:"";
   const equipo=relojEq()?relojEquipoHtml(dias):"";
-  return `<section class="sec-head"><h2>${sel?"Reloj de "+esc(nombre):"Mi reloj"}</h2><p>Jornada ${r.lab?`${esc(r.J.desde)}–${esc(r.J.hasta)} · colación ${esc(r.J.colacion)} min · ${fmtHM(r.nom)} nominales`:"hoy no es día laboral para esta jornada"} ${selector}</p></section>
+  return `<section class="sec-head"><h2>${sel?"Reloj de "+esc(nombre):"Mi reloj"}</h2><p>${nav} ${selector}</p><p>${cargando?"Cargando el día… · ":""}${etq} · jornada ${r.lab?`${esc(r.J.desde)}–${esc(r.J.hasta)} · colación ${esc(r.J.colacion)} min · ${fmtHM(r.nom)} nominales`:"no es día laboral para esta jornada"}</p></section>
   <div class="kpis">
     ${kpi("Horas efectivas",fmtHM(r.efe),`gestión ${fmtHM(r.g)} · uso del panel ${fmtHM(r.ac)}`,"hl")}
-    ${kpi("Cobertura de jornada",pc(r.cob),r.lab?`de ${fmtHM(r.transc)} nominales transcurridas`:"sin jornada hoy",r.cob!=null&&r.cob<0.5?"bad":"")}
+    ${kpi("Cobertura de jornada",pc(r.cob),r.lab?`de ${fmtHM(r.transc)} nominales${esHoy?" transcurridas":""}`:"sin jornada ese día",r.cob!=null&&r.cob<0.5?"bad":"")}
     ${kpi("Contactos",r.cont,`${f1(r.cph)} por hora efectiva${r.mpc?" · "+Math.round(r.mpc)+" min c/u":""}`)}
     ${kpi("Pausas en jornada",r.pausas,r.pausas?`${fmtHM(r.pausaMin)} en pausas de 15 min o más`:"ninguna de 15 min o más")}
     ${kpi("Mejor racha",fmtHM(r.racha),r.primero!=null?`de ${String(Math.floor(r.primero/60)).padStart(2,"0")}:${String(r.primero%60).padStart(2,"0")} a ${String(Math.floor(r.ultimo/60)).padStart(2,"0")}:${String(r.ultimo%60).padStart(2,"0")}`:"sin actividad aún")}
   </div>
-  <section class="panel"><div class="sec-head"><h2 style="font-size:17px">Hoy, minuto a minuto</h2><p>Cada cuadro son 5 minutos de 8:00 a 21:00. Las marcas de arriba son contactos registrados.</p></div>
+  <section class="panel"><div class="sec-head"><h2 style="font-size:17px">${etq}, minuto a minuto</h2><p>Cada cuadro son 5 minutos de 8:00 a 21:00. Las marcas de arriba son contactos registrados.</p></div>
     ${relojLinea(r,false)}
     <p class="rleg"><span><i class="rc gestion"></i>En gestión</span><span><i class="rc activo"></i>Usando el panel</span><span><i class="rc presente"></i>Panel abierto sin uso</span><span><i class="rc hueco nom"></i>Sin actividad en jornada</span><span><b class="rtk" style="position:static;display:inline-block"></b> Contacto registrado</span>${r.fuera?`<span>Fuera de jornada: ${fmtHM(r.fuera)}</span>`:""}</p>
   </section>
-  <section class="panel"><div class="sec-head"><h2 style="font-size:17px">Últimos 7 días</h2><p>Horas efectivas contra nominales y lo que produjeron</p></div>
-    <div class="tbl"><table><thead><tr><th>Día</th><th>Nominal</th><th>Efectivas</th><th>Cobertura</th><th>Gestión</th><th>Contactos</th><th>Contactos / h</th><th>Tasaciones</th><th>Línea del día</th></tr></thead><tbody>
-    ${sem.map(x=>`<tr><td>${DSEM2[pd(x.dia).getDay()]} ${fmtD(x.dia)}</td><td class="num">${x.nom?fmtHM(x.nom):"—"}</td><td class="num"><b>${fmtHM(x.efe)}</b></td><td class="num">${x.nom?pc(x.efe/x.nom):"—"}</td><td class="num">${fmtHM(x.g)}</td><td class="num">${x.cont}</td><td class="num">${f1(x.cph)}</td><td class="num">${x.tas}</td><td style="min-width:240px">${relojLinea(x,true)}</td></tr>`).join("")}
-    </tbody><tfoot><tr><th>Semana</th><td class="num">${fmtHM(tot.nom)}</td><td class="num"><b>${fmtHM(tot.efe)}</b></td><td class="num">${tot.nom?pc(tot.efe/tot.nom):"—"}</td><td></td><td class="num">${tot.cont}</td><td class="num">${f1(tot.efe?tot.cont/(tot.efe/60):null)}</td><td class="num">${tot.tas}</td><td></td></tr></tfoot></table></div>
+  ${relojBitacora(r,etq)}
+  <section class="panel"><div class="sec-head"><h2 style="font-size:17px">7 días hasta ${esHoy?"hoy":fmtD(F)}</h2><p>Toca un día para abrir su bitácora</p></div>
+    <div class="tbl"><table><thead><tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Nominal</th><th>Efectivas</th><th>Cobertura</th><th>Gestión</th><th>Contactos</th><th>Contactos / h</th><th>Tasaciones</th><th>Línea del día</th></tr></thead><tbody>
+    ${sem.map(x=>`<tr${x.dia===F?' class="rdsel"':""}><td><button type="button" class="lnk" data-reldia="${x.dia}">${DSEM2[pd(x.dia).getDay()]} ${fmtD(x.dia)}</button></td><td class="num">${relHM(x.primero)}</td><td class="num">${relHM(x.ultimo)}</td><td class="num">${x.nom?fmtHM(x.nom):"—"}</td><td class="num"><b>${fmtHM(x.efe)}</b></td><td class="num">${x.nom?pc(x.efe/x.nom):"—"}</td><td class="num">${fmtHM(x.g)}</td><td class="num">${x.cont}</td><td class="num">${f1(x.cph)}</td><td class="num">${x.tas}</td><td style="min-width:240px">${relojLinea(x,true)}</td></tr>`).join("")}
+    </tbody><tfoot><tr><th>Semana</th><td></td><td></td><td class="num">${fmtHM(tot.nom)}</td><td class="num"><b>${fmtHM(tot.efe)}</b></td><td class="num">${tot.nom?pc(tot.efe/tot.nom):"—"}</td><td></td><td class="num">${tot.cont}</td><td class="num">${f1(tot.efe?tot.cont/(tot.efe/60):null)}</td><td class="num">${tot.tas}</td><td></td></tr></tfoot></table></div>
   </section>
   ${equipo}
   <details class="zone z-det" data-gopen="reloj_metodo" ${S.gopen.reloj_metodo?"open":""}><summary class="zh"><span class="zn">?</span><div class="zt"><h2>Cómo se mide</h2><p>Qué cuenta, qué no y qué se guarda</p></div><span class="chev" aria-hidden="true">▾</span></summary><div class="zb"><ul class="insights">
@@ -1032,18 +1086,19 @@ function vReloj(){
     <li><b>Panel abierto sin uso:</b> visible pero sin uso hasta 10 minutos. Se muestra, pero no suma horas efectivas.</li>
     <li><b>Horas efectivas</b> = gestión + uso del panel dentro de tu jornada. Lo de fuera de jornada se muestra aparte.</li>
     <li><b>Cobertura</b> = horas efectivas ÷ horas nominales transcurridas (jornada menos colación). Es una medida de ritmo, no un control de asistencia.</li>
+    <li><b>Bitácora:</b> une los minutos seguidos en bloques de trabajo. Un hueco de 3 minutos o más sin registro es una pausa (panel cerrado o sin uso por más de 10 min, sin gestión abierta). Cada contacto aparece a la hora exacta en que se registró.</li>
     <li><b>Qué se guarda:</b> solo el minuto y su estado. No se guardan pantallas, teclas ni contenido. Cada persona ve su propio reloj; el administrador ve el del equipo.</li></ul></div></details>`;
 }
 function relojEquipoHtml(dias){
-  const eq=S.relojEq;if(!eq)return `<section class="panel"><p class="none">Cargando equipo…</p></section>`;
+  const eq=S.relojEq,F=relojFecha(),esHoy=F===hoy(),etq=esHoy?"hoy":fmtD(F);if(!eq||S.relojEqF!==F)return `<section class="panel"><p class="none">Cargando equipo…</p></section>`;
   const per=new Map();eq.forEach(f=>{const k=f.email;if(!per.has(k))per.set(k,{email:k,nombre:f.nombre||k,filas:[]});per.get(k).filas.push(f)});
   const nombres=uniq([...per.values()].map(p=>p.nombre).concat(S.equipo||[]));
-  const rows=[...per.values()].map(p=>{const h=relojDia(p.filas,hoy(),p.nombre);const s=dias.map(d=>relojDia(p.filas,d,p.nombre));const efe=s.reduce((a,x)=>a+x.efe,0),nom=s.reduce((a,x)=>a+x.nom,0),cont=s.reduce((a,x)=>a+x.cont,0),tas=s.reduce((a,x)=>a+x.tas,0);return {p,h,efe,nom,cont,tas}}).sort((a,b)=>b.h.efe-a.h.efe);
+  const rows=[...per.values()].map(p=>{const h=relojDia(p.filas,F,p.nombre);const s=dias.map(d=>relojDia(p.filas,d,p.nombre));const efe=s.reduce((a,x)=>a+x.efe,0),nom=s.reduce((a,x)=>a+x.nom,0),cont=s.reduce((a,x)=>a+x.cont,0),tas=s.reduce((a,x)=>a+x.tas,0);return {p,h,efe,nom,cont,tas}}).sort((a,b)=>b.h.efe-a.h.efe);S.relojEqRows=rows;
   const pc=x=>x==null?"—":Math.round(x*100)+"%",f1=x=>x==null?"—":x.toLocaleString("es-CL",{maximumFractionDigits:1});
   const J=S.jornada||{},pp=J.porPersona||{};
-  return `<section class="panel"><div class="sec-head"><h2 style="font-size:17px">Equipo · hoy y semana</h2><p>Lo ven el administrador y quienes tienen permiso para ver al equipo. Toca un nombre para ver su reloj.</p></div>
-   <div class="tbl"><table><thead><tr><th>Persona</th><th>Hoy efectivas</th><th>Cobertura hoy</th><th>Contactos hoy</th><th>Contactos / h</th><th>Semana efectivas</th><th>Cobertura semana</th><th>Tasaciones / h semana</th><th>Hoy, minuto a minuto</th></tr></thead><tbody>
-   ${rows.map(x=>`<tr><td><button type="button" class="lnk" data-relsel2="${esc(x.p.email)}">${esc(x.p.nombre)}</button></td><td class="num"><b>${fmtHM(x.h.efe)}</b></td><td class="num">${pc(x.h.cob)}</td><td class="num">${x.h.cont}</td><td class="num">${f1(x.h.cph)}</td><td class="num">${fmtHM(x.efe)}</td><td class="num">${x.nom?pc(x.efe/x.nom):"—"}</td><td class="num">${f1(x.efe?x.tas/(x.efe/60):null)}</td><td style="min-width:240px">${relojLinea(x.h,true)}</td></tr>`).join("")||`<tr><td colspan="9" class="none">Sin actividad registrada.</td></tr>`}
+  return `<section class="panel"><div class="sec-head"><h2 style="font-size:17px">Equipo · ${esc(etq)} y 7 días</h2><p>Lo ven el administrador y quienes tienen permiso para ver al equipo. Toca un nombre para ver su bitácora de ese día. <button type="button" class="btn" data-relcsv="1">Descargar día (CSV)</button></p></div>
+   <div class="tbl"><table><thead><tr><th>Persona</th><th>Entrada</th><th>Salida</th><th>Efectivas</th><th>Cobertura</th><th>Pausas</th><th>Contactos</th><th>Contactos / h</th><th>7 días efectivas</th><th>Cobertura 7 días</th><th>Tasaciones / h 7 días</th><th>Minuto a minuto</th></tr></thead><tbody>
+   ${rows.map(x=>`<tr><td><button type="button" class="lnk" data-relsel2="${esc(x.p.email)}">${esc(x.p.nombre)}</button></td><td class="num">${relHM(x.h.primero)}</td><td class="num">${relHM(x.h.ultimo)}</td><td class="num"><b>${fmtHM(x.h.efe)}</b></td><td class="num">${pc(x.h.cob)}</td><td class="num">${x.h.pausas?`${x.h.pausas} · ${fmtHM(x.h.pausaMin)}`:"0"}</td><td class="num">${x.h.cont}</td><td class="num">${f1(x.h.cph)}</td><td class="num">${fmtHM(x.efe)}</td><td class="num">${x.nom?pc(x.efe/x.nom):"—"}</td><td class="num">${f1(x.efe?x.tas/(x.efe/60):null)}</td><td style="min-width:240px">${relojLinea(x.h,true)}</td></tr>`).join("")||`<tr><td colspan="12" class="none">Sin actividad registrada.</td></tr>`}
    </tbody></table></div>
    ${S.isAdmin?`<details class="pmsg" data-gopen="jor_edit" ${S.gopen.jor_edit?"open":""}><summary>Jornada nominal por consignador</summary><div class="pbody">
     <p class="rdet">Si alguien no tiene jornada propia, usa la general: L–V 09:00–18:30 con 60 min de colación.</p>
@@ -1051,6 +1106,13 @@ function relojEquipoHtml(dias){
     ${nombres.map(n=>{const j=jorOf(n),k=esc(n);return `<tr><td>${k}</td><td><input type="time" data-jor="${k}" data-k="desde" value="${esc(j.desde)}"></td><td><input type="time" data-jor="${k}" data-k="hasta" value="${esc(j.hasta)}"></td><td><input type="number" min="0" max="180" step="15" data-jor="${k}" data-k="colacion" value="${esc(j.colacion)}" style="width:80px"></td><td>${[1,2,3,4,5,6].map(w=>`<label style="margin-right:6px"><input type="checkbox" data-jor="${k}" data-k="dia" data-w="${w}" ${j.dias.includes(w)?"checked":""}> ${DSEM2[w]}</label>`).join("")}</td></tr>`}).join("")}
     </tbody></table></div><p class="rdet">Los cambios se guardan al salir de cada campo.</p></div></details>`:""}
   </section>`;
+}
+function relojCsv(){
+  const rows=S.relojEqRows||[],F=relojFecha();if(!rows.length){toast("Sin datos del equipo para ese día");return}
+  const q=v=>{const t=String(v??"");return /[",;\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t};
+  const head=["Día","Persona","Entrada","Salida","Minutos efectivos","Minutos gestión","Minutos uso del panel","Minutos sin uso","Minutos nominales","Cobertura %","Pausas en jornada","Minutos en pausas","Contactos","Tasaciones","Mandatos"];
+  const L=[head.join(";")].concat(rows.map(({p,h})=>[F,p.nombre,relHM(h.primero),relHM(h.ultimo),h.efe,h.g,h.ac,h.pr,Math.round(h.transc),h.cob==null?"":Math.round(h.cob*100),h.pausas,h.pausaMin,h.cont,h.tas,h.man].map(q).join(";")));
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+L.join("\n")],{type:"text/csv;charset=utf-8"}));a.download=`reloj-equipo-${F}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
 }
 async function jorGuardar(nombre,k,v,w,chk){
   const J=JSON.parse(JSON.stringify(S.jornada||{}));J.porPersona=J.porPersona||{};const j={...jorOf(nombre)};
@@ -2633,7 +2695,7 @@ function vRadar(team){
     <details class="rmini" data-gopen="__reglas" ${S.gopen.__reglas?"open":""}><summary>Cliente difícil · 8 reglas</summary><ol class="greglasc">${GREGLAS_C.map(x=>`<li>${x}</li>`).join("")}</ol><p class="gwhyc">El guion de cada aviso está en su tarjeta: ábrelo antes de marcar.</p></details>
   </div>
     <div class="chips rvc">${vistas.map(([k,l])=>`<button type="button" data-rv="${k}" data-team="${team}" aria-pressed="${F.vista===k}">${l} <span class="num">${k==="todos"?all.length:cnt(k)}</span></button>`).join("")}</div>
-    <div class="rsel">
+    <div class="rdsel">
       <label><span>Quién</span><select data-rqs="1" data-team="${team}">${[["","Todo el equipo"],["libres","Libres"],["mios","Míos"]].map(([k,l])=>`<option value="${k}" ${F.quien===k?"selected":""}>${l}</option>`).join("")}</select></label>
       <label><span>Motor</span><select data-rms="1" data-team="${team}">${[["","Todos"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<option value="${k}" ${F.motor===k?"selected":""}>${l}</option>`).join("")}</select></label>
       <button type="button" class="mkpbtn" data-rmkp="${team}" aria-pressed="${rfx(team).src==="Facebook Marketplace"}">⚑ Solo Marketplace <span class="num">${(F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista)).filter(r=>r.src==="Facebook Marketplace").length}</span></button>
@@ -3830,6 +3892,8 @@ document.addEventListener("click",e=>{
     const ct=document.getElementById("r_cita_"+id);if(ct){ct.hidden=!on;if(on){const i=ct.querySelector("input");if(i)i.focus()}}
     t.setAttribute("aria-pressed",String(on));return}
   if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
+  if(t.dataset.reldia){if(t.disabled)return;S.relojDia=t.dataset.reldia>hoy()?hoy():t.dataset.reldia;relojCargar(false);render();return}
+  if(t.dataset.relcsv){relojCsv();return}
   {const mm=$("#mas");if(mm&&mm.open&&t.closest("#masMenu"))mm.open=false}
   if(t.dataset.per&&PER_TXT[t.dataset.per]){S.per=t.dataset.per;lsSet("ansar_per",S.per);render();return}
   if(t.dataset.rman){mandatoFirmar(t.dataset.rman,t);return}
@@ -3950,6 +4014,7 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   if(e.target.dataset&&e.target.dataset.relsel){S.relojSel=e.target.value;S.relojData=null;relojCargar(true);render();return}
+  if(e.target.dataset&&e.target.dataset.reldiain){const v=e.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(v)){S.relojDia=v>hoy()?hoy():v;relojCargar(false);render()}return}
   if(e.target.dataset&&e.target.dataset.jor){const x=e.target.dataset;jorGuardar(x.jor,x.k,e.target.value,Number(x.w),e.target.checked);return}
   if(e.target.dataset&&(e.target.dataset.rqs||e.target.dataset.rms||e.target.dataset.rtrs)){const F=S.rf[e.target.dataset.team||"pres"];F[e.target.dataset.rqs?"quien":e.target.dataset.rms?"motor":"tramo"]=e.target.value;render();return}
   if(e.target.dataset&&e.target.dataset.rfx){const tm=e.target.dataset.team||"pres",X=rfx(tm);X[e.target.dataset.rfx]=String(e.target.value||"").trim();rfxSave(tm);S.gopen["rfx_"+tm]=true;render();return}

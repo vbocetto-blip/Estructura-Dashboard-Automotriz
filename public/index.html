@@ -262,6 +262,9 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .rrail .sc{font-family:var(--f-display);font-size:34px;font-weight:700;line-height:.9}
 .rrail .rl{font-size:10.5px;color:var(--muted);margin-top:-4px}
 .rdet{margin:0;font-size:12.5px;color:var(--muted)}
+.sgcons{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px}.sgcons .l{font-size:12px;font-weight:600;color:var(--muted);margin-right:4px}
+.sgcons button{font:inherit;font-size:13.5px;padding:5px 12px;border-radius:999px;border:1px solid var(--line,#ccd);background:transparent;color:inherit;cursor:pointer}.sgcons button .num{opacity:.65;margin-left:3px}
+.sgcons button[aria-pressed="true"]{background:var(--ink,#fff);color:var(--bg,#111);border-color:transparent;font-weight:700}.sgcons button[aria-pressed="true"] .num{opacity:.8}
 .rdia{display:inline-flex;align-items:center;gap:6px;margin-right:8px}.rdia input[type=date]{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--line,#ccd);background:var(--sunk);color:inherit}.rdia .btn{padding:4px 11px}
 .rchip{display:inline-flex;gap:5px;padding:2px 9px;border-radius:999px;background:var(--sunk)}
 .rbit{list-style:none;margin:10px 0 0;padding:0;border-left:2px solid var(--sunk)}.rbit li{display:flex;gap:12px;padding:6px 0 6px 12px;position:relative;font-size:14px}
@@ -1844,6 +1847,7 @@ const DIAS=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"
 const diaSem=c=>{const d=pd(c.fecha);return d?DIAS[d.getDay()]:""};
 const ORD_DIA=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo","Sin dato"];
 const lsGet=k=>{try{return localStorage.getItem(k)||""}catch(_){return ""}};
+S.sgf.cons=lsGet("ansar_sgcons");
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}};
 /* ---------- Modo oscuro / claro: cada persona elige y se guarda en su navegador (oscuro por defecto) ---------- */
 const temaActual=()=>document.documentElement.getAttribute("data-theme")==="light"?"light":"dark";
@@ -3129,8 +3133,12 @@ function sgRut(key,title,sub,items){
 function vSeg(){
   const F=S.sgf,t=hoy(),cons=rCons(),ro=S.canWrite?"":"disabled";
   const all=sgGroups();S.sgMap=new Map(all.map(g=>[g.k,g]));
-  const gs=all.filter(g=>F.orig==="todas"||g.radar);
-  const R=sgRates(gs);
+  const gsAll=all.filter(g=>F.orig==="todas"||g.radar);
+  /* Filtro por consignador: quien lleva el caso (último contacto registrado). Las probabilidades se calculan con todo el equipo. */
+  const nombres=uniq([...S.equipo,...gsAll.filter(g=>g.estado==="activo"||g.maxN>=2).map(g=>g.last.consignador)]);
+  if(F.cons&&!nombres.includes(F.cons))nombres.push(F.cons);
+  const gs=F.cons?gsAll.filter(g=>(g.last.consignador||"")===F.cons):gsAll;
+  const R=sgRates(gsAll);
   const rows=gs.filter(g=>g.estado==="activo"&&(!F.cons||g.last.consignador===F.cons)).map(g=>({g,...sgPri(g),sc:sgScore(g),pr:sgProb(g,R)}));
   const man=sgPlus(t,1);
   const agen=rows.filter(x=>x.g.etapa===3);
@@ -3152,14 +3160,16 @@ function vSeg(){
   let peor=-1,pv=2;fun.forEach((x,i)=>{if(i&&fun[i-1][2]){const c=x[2]/fun[i-1][2];if(c<pv){pv=c;peor=i}}});
   const embudo=fun[0][2]?`<div class="cfun">${fun.map(([l,s,n],i)=>`${i?`<div class="cstep${i===peor?" worst":""}"><span>↓ ${fun[i-1][2]?Math.round(n/fun[i-1][2]*100)+"%":"—"} pasa</span>${i===peor?"<b>aquí se cae más</b>":""}</div>`:""}<div class="crw"><span class="cl">${l}<small>${s}</small></span><span class="ctr"><i class="c${i+1}" style="width:${Math.max(n?3:0,n/f0*100)}%"></i></span><span class="cv num">${n}<small>${i?Math.round(n/f0*100)+"%":"100%"}</small></span></div>`).join("")}</div><p class="zfoot">${perdidos} interesado${perdidos===1?"":"s"} se perdieron después (ya vendió, no le interesa o pidió no ser contactado).</p>`
     :`<p class="none">Cuando alguien del Radar responda con interés y se registre en Llamadas, aquí aparece el embudo.</p>`;
-  const porCons=groupBy(gs.filter(g=>g.maxN>=2),g=>g.firstCons).map(x=>{const arr=gs.filter(g=>g.maxN>=2&&(g.firstCons||"Sin dato")===x.k);return {k:x.k,n:arr.length,ag:arr.filter(g=>g.maxN>=3).length,ma:arr.filter(g=>g.maxN>=5).length,act:arr.filter(g=>g.estado==="activo").length}});
+  const porCons=groupBy(gsAll.filter(g=>g.maxN>=2),g=>g.firstCons).map(x=>{const arr=gsAll.filter(g=>g.maxN>=2&&(g.firstCons||"Sin dato")===x.k);return {k:x.k,n:arr.length,ag:arr.filter(g=>g.maxN>=3).length,ma:arr.filter(g=>g.maxN>=5).length,act:arr.filter(g=>g.estado==="activo").length}});
   const consTbl=porCons.length?`<div class="tbl"><table><thead><tr><th>Consignador</th><th>Interesados</th><th>Activos</th><th>Agendaron</th><th>% a tasación</th><th>Mandatos</th></tr></thead><tbody>${porCons.map(x=>`<tr><td>${esc(x.k)}</td><td class="num">${x.n}</td><td class="num">${x.act}</td><td class="num">${x.ag}</td><td class="num"><b>${pct(x.ag,x.n)}%</b></td><td class="num">${x.ma}</td></tr>`).join("")}</tbody></table></div>`:`<p class="none">Sin interesados todavía.</p>`;
   const probTbl=`<div class="tbl"><table><thead><tr><th>Etapa alcanzada</th><th>Casos cerrados</th><th>Terminaron en mandato</th><th>Referencia inicial</th><th>Probabilidad usada</th></tr></thead><tbody>${[2,3,4].map(s=>`<tr><td>${SG_ET[s]}</td><td class="num">${R[s].n}</td><td class="num">${R[s].w}</td><td class="num">${Math.round(SG_PRIOR[s]*100)}%</td><td class="num"><b>${Math.round(R[s].p*100)}%</b></td></tr>`).join("")}</tbody></table></div>`;
   const lun=(()=>{const x=pd(t);x.setDate(x.getDate()-((x.getDay()+6)%7));return ds(x)})();
   const resueltos=gs.filter(g=>g.maxN>=2&&g.estado!=="activo").length;
   const vistas=[["cola","Cola de hoy",cola.length],["agen","Tasaciones agendadas",agen.length],["todos","Todos los interesados",rows.length]];
-  const nombres=uniq([...S.equipo,...gs.map(g=>g.last.consignador)]);
-  return `<section class="sec-head"><h2>Seguimiento de interesados</h2><p><span class="rlive"><i></i>En vivo</span> · se arma solo con lo que el equipo registra en Llamadas desde el Radar</p></section>
+  const nAct=k=>gsAll.filter(g=>g.estado==="activo"&&(!k||(g.last.consignador||"")===k)).length;
+  const filtroCons=`<nav class="sgcons" aria-label="Filtrar por consignador"><span class="l">Consignador</span>${[["","Todo el equipo"],...nombres.map(x=>[x,x])].map(([k,l])=>`<button type="button" data-sgconsb="${esc(k)}" aria-pressed="${(F.cons||"")===k}">${esc(l)} <span class="num">${nAct(k)}</span></button>`).join("")}</nav>`;
+  return `<section class="sec-head"><h2>Seguimiento de interesados${F.cons?" · "+esc(F.cons):""}</h2><p><span class="rlive"><i></i>En vivo</span> · se arma solo con lo que el equipo registra en Llamadas desde el Radar</p></section>
+  ${filtroCons}
   ${S.segErr?`<div class="banner">No se pudieron cargar las llamadas (${esc(S.segErr)}). Toca Actualizar.</div>`:""}
   <nav class="pulse sgtiles" aria-label="Pulso del seguimiento">
     <button type="button" class="ptile z-hoy" data-sgt="hoy" aria-expanded="${F.tile==="hoy"}" aria-controls="sgpanel"><span class="pl">Para hoy</span><span class="pv num${venc?" alarm":""}">${cola.length}</span><span class="ps">${venc} vencido${venc===1?"":"s"} o sin fecha</span><span class="pgo" aria-hidden="true">${F.tile==="hoy"?"Ocultar ▴":"Ver detalle ▾"}</span></button>
@@ -3176,7 +3186,7 @@ function vSeg(){
     const ctrlCons=miNombre()?consFijo("sg_cons","Quién contacta"):`<div class="field"><label for="sg_cons">Quién contacta</label><select id="sg_cons" data-rcons="1" ${ro}><option value="">—</option>${uniq([...S.equipo,cons]).map(p=>`<option ${p===cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`;
     const ctrlVer=`<div class="field"><label for="sg_fcons">Ver interesados de</label><select id="sg_fcons" data-sgcons="1"><option value="">Todo el equipo</option>${nombres.map(p=>`<option ${p===F.cons?"selected":""}>${esc(p)}</option>`).join("")}</select></div>`;
     const ctrlOrig=`<div class="chips">${[["radar","Solo del Radar"],["todas","Radar y llamadas directas"]].map(([k,l])=>`<button type="button" data-sgo="${k}" aria-pressed="${F.orig===k}">${l}</button>`).join("")}</div>`;
-    const ctrl=(conCons)=>`<section class="panel"><div class="rbar">${conCons?ctrlCons:""}${ctrlVer}</div>${ctrlOrig}</section>`;
+    const ctrl=(conCons)=>`<section class="panel">${conCons?`<div class="rbar">${ctrlCons}</div>`:""}${ctrlOrig}</section>`;
     const vacio=(h,p)=>`<div class="empty"><h3>${h}</h3><p>${p}</p></div>`;
     let head,body;
 
@@ -3891,6 +3901,7 @@ document.addEventListener("click",e=>{
     const sel=document.getElementById("r_res_"+id);if(sel)sel.value=f.res;
     const ct=document.getElementById("r_cita_"+id);if(ct){ct.hidden=!on;if(on){const i=ct.querySelector("input");if(i)i.focus()}}
     t.setAttribute("aria-pressed",String(on));return}
+  if(t.dataset.sgconsb!=null&&t.closest(".sgcons")){S.sgf.cons=t.dataset.sgconsb;lsSet("ansar_sgcons",S.sgf.cons);render();return}
   if(t.dataset.relsel2){S.relojSel=t.dataset.relsel2;S.relojData=null;relojCargar(true);render();window.scrollTo(0,0);return}
   if(t.dataset.reldia){if(t.disabled)return;S.relojDia=t.dataset.reldia>hoy()?hoy():t.dataset.reldia;relojCargar(false);render();return}
   if(t.dataset.relcsv){relojCsv();return}
@@ -4022,7 +4033,7 @@ document.addEventListener("change",e=>{
   if(e.target.dataset&&e.target.dataset.sgres){const k=e.target.dataset.sgres;(S.sgform[k]=S.sgform[k]||{}).res=e.target.value;const hc=document.getElementById("sg_hc_"+sgId(k));if(hc)hc.hidden=e.target.value!=="Agendó tasación";return}
   if(e.target.dataset&&e.target.dataset.sgprox){const k=e.target.dataset.sgprox;(S.sgform[k]=S.sgform[k]||{}).prox=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.sgrt){sgRutSave(e.target.dataset.sgrt,e.target.dataset.item,e.target.checked);return}
-  if(e.target.dataset&&e.target.dataset.sgcons){S.sgf.cons=e.target.value;render();return}
+  if(e.target.dataset&&e.target.dataset.sgcons){S.sgf.cons=e.target.value;lsSet("ansar_sgcons",S.sgf.cons);render();return}
   if(e.target.dataset&&e.target.dataset.rmin){rRemind(e.target.dataset.rmin,e.target.value,e.target);return}
   if(e.target.dataset&&e.target.dataset.rres){const id=e.target.dataset.rres;(S.rform[id]=S.rform[id]||{}).res=e.target.value;const ct=document.getElementById("r_cita_"+id);if(ct){ct.hidden=e.target.value!=="Agendó tasación";if(!ct.hidden){const i=ct.querySelector("input");if(i)i.focus()}}{const ab=document.querySelector(`[data-ragen="${CSS.escape(id)}"]`);if(ab)ab.setAttribute("aria-pressed",String(e.target.value==="Agendó tasación"))}return}
   if(e.target.dataset&&e.target.dataset.rcf){(S.rform[e.target.dataset.rcf]=S.rform[e.target.dataset.rcf]||{}).cf=e.target.value;return}

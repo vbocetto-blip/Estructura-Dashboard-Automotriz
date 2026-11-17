@@ -556,6 +556,23 @@ a.btn{text-decoration:none;color:inherit}
 .ctf i{display:block;height:4px;border-radius:2px}
 .ctf .f1{background:var(--info)}.ctf .f2{background:var(--plum)}.ctf .f3{background:var(--warn)}.ctf .f4{background:var(--good)}
 .eleg .ctconf{margin-right:5px;vertical-align:-1px}
+.ctclick>button{background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:0;width:100%;height:100%}
+.ctclick:hover{background:var(--sunk)}
+.ctclick>button:hover .ctv,.ctclick>.ctk:hover b{text-decoration:underline;text-underline-offset:3px}
+.ctclick>button:focus-visible{outline:2px solid var(--info);outline-offset:-2px}
+.ctdbox .bh h2{display:grid;gap:2px}.ctdbox .bh h2 small{font-size:12.5px;font-weight:500;color:var(--muted);font-family:var(--f-body)}
+.ctdtabs button small{color:var(--muted);font-size:11px;margin-left:2px}
+.ctdfun{max-width:420px}
+.ctdlead{margin:0;font-size:14.5px}
+.ctdh{font-size:15px;margin:8px 0 0;display:flex;gap:8px;align-items:center}.ctdh .num{color:var(--muted);font-weight:500}
+.ctdp{margin:0;font-size:13px;color:var(--muted)}
+.ctdi{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.ctdi .cmain{flex:1 1 320px;min-width:0;display:grid;gap:4px}
+.ctdn{font-size:13px;color:var(--muted)}
+.ctda{display:flex;gap:6px;flex-wrap:wrap}
+.ctds{border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--surface)}
+.ctds summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:baseline}.ctds summary small{color:var(--muted);font-size:12px;flex-basis:100%}
+.ctds .list{margin-top:8px}
 @media(max-width:760px){.ctr2.hd{display:none}.ctr2{grid-template-columns:repeat(3,minmax(0,1fr))}.ctr2 .ctk,.ctr2 .ctf{grid-column:1/-1}.ctc::before,.ctf::before{content:attr(data-l);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}}
 /* ===== Tema estilo Apple (rama diseno-estilo-apple) =====
    Solo sobrescribe tokens y componentes; no toca la lógica. Borrar este bloque = volver al diseño anterior. */
@@ -1942,7 +1959,7 @@ function compPanel(sets,totBase,totArr){
     return `<div class="ctc ct-${k}${tone}" data-l="${(CT_COLS.find(c=>c[0]===k)||[])[1]}"><span class="ctv num">${ctFmt(k,v)}${k==="agen"||k==="mand"?"<small> /100</small>":""}</span><span class="ctb"><i style="width:${mx[k]?v/mx[k]*100:0}%"></i></span>${delta}</div>`};
   const fun=r=>`<div class="ctf" data-l="Embudo" title="De ${r.n} llamadas: ${r.cont} contestan, ${r.int} interesados, ${r.agen} tasaciones, ${r.mand} mandatos">${[["f1",r.cont],["f2",r.int],["f3",r.agen],["f4",r.mand]].map(([c,n])=>`<i class="${c}" style="width:${r.n?Math.max(n?3:0,n/r.n*100):0}%"></i>`).join("")}</div>`;
   const conf=n=>n>=30?["c2","muestra sólida"]:n>=CT_MIN?["c1","muestra media"]:["c0","muestra chica"];
-  const row=r=>{const c=conf(r.n);return `<div class="ctr2${r.n<CT_MIN?" low":""}" role="row"><div class="ctk"><b title="${esc(r.k)}">${esc(r.k)}</b><small><span class="ctconf ${c[0]}" aria-hidden="true"></span>${c[1]}</small></div>${CT_COLS.map(([k])=>cell(r,k)).join("")}${fun(r)}</div>`};
+  const row=r=>{const c=conf(r.n),dk=esc(r.k);return `<div class="ctr2 ctclick${r.n<CT_MIN?" low":""}" role="row"><button type="button" class="ctk" data-ctdrill="${dk}" data-ctstep="n" title="Ver el detalle de ${dk}"><b>${dk}</b><small><span class="ctconf ${c[0]}" aria-hidden="true"></span>${c[1]}</small></button>${CT_COLS.map(([k])=>cell(r,k).replace(/^<div class="ctc/,`<button type="button" data-ctdrill="${dk}" data-ctstep="${k}" aria-label="${dk}: ver ${(CT_COLS.find(x=>x[0]===k)||[])[1].toLowerCase()}" class="ctc`).replace(/<\/div>$/,"</button>")).join("")}<button type="button" class="ctf" data-ctdrill="${dk}" data-ctstep="n" data-l="Embudo" aria-label="${dk}: ver embudo completo">${fun(r).replace(/^<div class="ctf"[^>]*>/,"").replace(/<\/div>$/,"")}</button></div>`};
   const avgRow=tot.n?`<div class="ctr2 av" role="row"><div class="ctk"><b>Promedio</b><small>${tot.n} llamadas del período</small></div>${CT_COLS.map(([k])=>`<div class="ctc ct-${k}" data-l="${(CT_COLS.find(c=>c[0]===k)||[])[1]}"><span class="ctv num">${k==="n"?tot.n:ctFmt(k,avg[k])}${k==="agen"||k==="mand"?"<small> /100</small>":""}</span></div>`).join("")}${fun(tot)}</div>`:"";
   return `<div class="ct">
    <div class="ctbar"><div class="chips" role="group" aria-label="Comparar por">${CT_DIMS.map(([k,l])=>`<button type="button" data-ctdim="${k}" aria-pressed="${dim===k}">${l} <span class="num">${(sets[k]||[]).length}</span></button>`).join("")}</div>
@@ -1951,8 +1968,49 @@ function compPanel(sets,totBase,totArr){
    ${exp&&S.canWrite&&wk?`<div class="ctexp"><span>${expAct?`Experimento actual de la semana ${wk.n}: <b>${esc(expAct)}</b>`:`Semana ${wk.n} sin experimento anotado.`}</span><button type="button" class="btn sm" data-ctexp="1">${expAct?"Reemplazar por la acción sugerida":"Anotar la acción sugerida como experimento"}</button></div>`:""}
    ${rows.length?`<div class="ctg" role="table" aria-label="Comparación por ${esc(dl.toLowerCase())}">${head}${rows.map(row).join("")}${avgRow}</div>`:`<p class="none">Sin llamadas en el período.</p>`}
    <div class="eleg"><span><i style="background:var(--info)"></i>Contestan</span><span><i style="background:var(--plum)"></i>Interés</span><span><i style="background:var(--warn)"></i>Tasaciones</span><span><i style="background:var(--good)"></i>Mandatos</span><span><span class="ctconf c2"></span> 30+ llamadas</span><span><span class="ctconf c1"></span> ${CT_MIN}–29</span><span><span class="ctconf c0"></span> menos de ${CT_MIN}</span></div>
-   <p class="zfoot">Las barras de cada columna se comparan con el mejor grupo; el embudo muestra qué parte de las llamadas llega a cada paso. ▲▼ = diferencia con el promedio en puntos (por cada 100 llamadas en tasaciones y mandatos). Borde verde: 25% o más sobre el promedio; borde rojo: 25% o más bajo.</p>
+   <p class="zfoot"><b>Toca un nombre o un número</b> para ver las llamadas que hay detrás: quién contestó, qué tasaciones se agendaron y cuáles aún no firman. Las barras de cada columna se comparan con el mejor grupo; el embudo muestra qué parte de las llamadas llega a cada paso. ▲▼ = diferencia con el promedio en puntos (por cada 100 llamadas en tasaciones y mandatos). Borde verde: 25% o más sobre el promedio; borde rojo: 25% o más bajo.</p>
   </div>`;
+}
+/* ---------- Detalle del comparador: qué llamadas hay detrás de cada número ---------- */
+const CT_STEP={n:[0,"Llamadas"],cont:[1,"Contestan"],int:[2,"Interés"],agen:[3,"Tasaciones"],mand:[5,"Mandatos"]};
+const CT_KEYFN={consignador:c=>c.consignador,equipo:equipoDe,fuente:c=>c.fuente,ruta:c=>c.ruta,perfil:c=>c.perfil,dia:diaSem};
+function ctDrill(key,step){
+  const src=S.ctSrc;if(!src)return;
+  const dim=S.ctDim||lsGet("ansar_ctdim")||"consignador",fn=CT_KEYFN[dim]||CT_KEYFN.consignador;
+  const pool=(dim==="consignador"||dim==="equipo"?src.base:src.arr).filter(c=>(fn(c)||"Sin dato")===key);
+  S.ctd={key,step:CT_STEP[step]?step:"n",dim,calls:pool.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")||(b.creadoEn||"").localeCompare(a.creadoEn||"")),sem:src.sem};
+  ctdRender();document.body.style.overflow="hidden";
+  requestAnimationFrame(()=>{const b=document.querySelector('#sheet [data-close]');if(b)b.focus()});
+}
+function ctdRender(){
+  const D=S.ctd;if(!D)return;
+  const lv=c=>NIVEL[c.resultado]??0,cs=D.calls,st=callStats(cs);
+  const dl=((CT_DIMS.find(d=>d[0]===D.dim)||CT_DIMS[0])[1]).toLowerCase();
+  const pill=l=>l>=5?"st-Vendido":l>=3?"st-Publicado":l>=2?"st-En-preparación":l>=1?"st-Tasación":"st-Mandato-pendiente";
+  const item=c=>{const l=lv(c),r=c.radarId&&S.radarMap?S.radarMap[c.radarId]:null,url=(r&&r.url)||((String(c.notas||"").match(/Radar:\s*(\S+)/)||[])[1])||"";
+    const nota=String(c.notas||"").replace(/Radar:\s*\S+/,"").trim();
+    return `<div class="crow ctdi"><div class="cmain"><span class="cd num">${DIAS[pd(c.fecha)?.getDay()??0]} ${fmtD(c.fecha)}</span><span class="ct"><b>${esc([c.marca,c.modelo,c.anio].filter(Boolean).join(" ")||"Vehículo sin datos")}</b>${D.dim!=="consignador"&&c.consignador?" · "+esc(c.consignador):""}${c.perfil?" · "+esc(c.perfil):""}</span>
+      <span class="meta"><span class="pill ${pill(l)}">${esc(c.resultado||"Sin resultado")}</span>${c.ruta?`<span class="pill st-Tasación">${esc(c.ruta)}</span>`:""}${equipoDe(c)==="Virtual"?`<span class="pill virt">Virtual</span>`:""}<span class="num">${esc(maskTel(c.telefono))}</span>${c.fuente?`<span>${esc(c.fuente)}</span>`:""}${c.precioPide?`<span class="num">pide ${clp(c.precioPide)}</span>`:""}${c.proximaFecha&&l<5?`<span${c.proximaFecha<hoy()?' style="color:var(--bad);font-weight:600"':""}>volver a llamar ${fmtD(c.proximaFecha)}</span>`:""}</span>
+      ${nota?`<span class="ctdn">${esc(nota.length>180?nota.slice(0,180)+"…":nota)}</span>`:""}</div>
+      <div class="ctda">${url&&/^https?:\/\//.test(url)?`<a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Ver aviso ↗</a>`:""}<button type="button" class="btn sm" data-call="${esc(c._id)}">${S.canWrite?"Editar":"Abrir"}</button></div></div>`};
+  const list=(arr,empty)=>arr.length?`<div class="list">${arr.map(item).join("")}</div>`:`<p class="none">${empty}</p>`;
+  const sub=(title,arr,note)=>arr.length?`<details class="ctds"><summary><b>${title}</b> <span class="num">${arr.length}</span>${note?`<small>${note}</small>`:""}</summary>${list(arr,"")}</details>`:"";
+  const [min,label]=CT_STEP[D.step],sel=cs.filter(c=>lv(c)>=min);
+  let lead="",body="";
+  if(D.step==="n"){lead=`${st.n} llamada${st.n===1?"":"s"} en ${esc(D.sem)}.`;body=list(sel,"Sin llamadas en el período.")}
+  else if(D.step==="cont"){const no=cs.filter(c=>lv(c)<1);lead=`${st.cont} de ${st.n} contestaron (${pct(st.cont,st.n)}%).`;body=list(sel,"Nadie contestó todavía.")+sub("No contestaron",no,"número equivocado o sin respuesta: candidatos a reintentar en otro horario")}
+  else if(D.step==="int"){const fr=cs.filter(c=>lv(c)===1);lead=`${st.int} de ${st.cont} que contestaron mostraron interés.`;body=list(sel,"Ningún contacto con interés todavía.")+sub("Contestaron sin interés",fr,"ya vendió, no le interesa o descartado")}
+  else if(D.step==="agen"){const ag=cs.filter(c=>lv(c)===3),he=cs.filter(c=>lv(c)===4),fi=cs.filter(c=>lv(c)>=5);
+    lead=`${st.agen} tasaci${st.agen===1?"ón":"ones"} de ${st.n} llamadas: ${ag.length} agendada${ag.length===1?"":"s"}, ${he.length} hecha${he.length===1?"":"s"} y ${fi.length} con mandato.`;
+    body=sel.length?`${ag.length?`<h3 class="ctdh">Agendadas · por hacer <span class="num">${ag.length}</span></h3>${list(ag,"")}`:""}${he.length?`<h3 class="ctdh">Hechas · sin mandato aún <span class="num">${he.length}</span></h3>${list(he,"")}`:""}${fi.length?`<h3 class="ctdh">Terminaron en mandato <span class="num">${fi.length}</span></h3>${list(fi,"")}`:""}`:`<p class="none">Sin tasaciones agendadas en el período.</p>`}
+  else{const pend=cs.filter(c=>{const l=lv(c);return l===3||l===4});lead=`${st.mand} mandato${st.mand===1?"":"s"} firmado${st.mand===1?"":"s"} de ${st.agen} tasaci${st.agen===1?"ón":"ones"}.`;
+    body=list(sel,"Sin mandatos firmados en el período.")+(pend.length?`<h3 class="ctdh">Tasaciones que aún no firman <span class="num">${pend.length}</span></h3><p class="ctdp">Aquí está el paso que falta. Llama hoy a estas personas o anota el motivo si no firmaron.</p>${list(pend,"")}`:"")}
+  const tabs=Object.entries(CT_STEP).map(([k,[m,l]])=>{const n=k==="n"?st.n:st[k];return `<button type="button" data-ctdtab="${k}" aria-pressed="${D.step===k}">${l} <span class="num">${n}</span>${k!=="n"&&st.n?`<small>${pct(n,st.n)}%</small>`:""}</button>`}).join("");
+  $("#sheetHost").innerHTML=`<div class="sheet" id="sheet"><div class="box ctdbox" role="dialog" aria-modal="true" aria-label="Detalle de ${esc(D.key)}">
+   <div class="bh"><h2>${esc(D.key)}<small>${esc(dl)} · ${esc(D.sem)}</small></h2><button class="btn" type="button" data-close>Cerrar</button></div>
+   <div class="bb"><div class="chips ctdtabs" role="group" aria-label="Paso del embudo">${tabs}</div>
+    <div class="ctf ctdfun" title="De ${st.n} llamadas: ${st.cont} contestan, ${st.int} interesados, ${st.agen} tasaciones, ${st.mand} mandatos">${[["f1",st.cont],["f2",st.int],["f3",st.agen],["f4",st.mand]].map(([c,n])=>`<i class="${c}" style="width:${st.n?Math.max(n?3:0,n/st.n*100):0}%"></i>`).join("")}</div>
+    <p class="ctdlead"><b>${label}.</b> ${lead}</p>${body}</div></div></div>`;
 }
 async function ctSaveExp(btn){
   if(!S.db||!S.ctExpText)return;
@@ -2058,6 +2116,7 @@ function vLlamadas(){
   const fld=(k,l,type="text",extra="")=>`<div class="field"><label for="c_${k}">${l}</label><input id="c_${k}" type="${type}" value="${esc(cf[k])}" ${extra} ${ro}></div>`;
   const chips=(key,label,opts)=>`<div class="cgroup"><span class="lbl">${label}</span><div class="chips">${opts.map(o=>{const[v,sub]=Array.isArray(o)?o:[o];return `<button type="button" data-cset="${key}" data-val="${esc(v)}" aria-pressed="${cf[key]===v}" ${ro}>${esc(v)}${sub?` <small>${esc(sub)}</small>`:""}</button>`}).join("")}</div></div>`;
   const perRuta=groupBy(arr,c=>c.ruta),perPerfil=groupBy(arr,c=>c.perfil),perFuente=groupBy(arr,c=>c.fuente),perDia=groupBy(arr,diaSem).sort((a,b)=>ORD_DIA.indexOf(a.k)-ORD_DIA.indexOf(b.k)),perCons=groupBy(base,c=>c.consignador);
+  S.ctSrc={base,arr,sem:wk?`semana ${wk.n}`:`${MESES[mo.m]} ${mo.y}`};
   const MIN=10;
   const ins=[];
   const bR=best(perRuta,score,MIN),bP=best(perPerfil,score,MIN),bF=best(perFuente,score,MIN),bH=best(perDia,r=>r.n?r.cont/r.n:0,MIN);
@@ -3832,7 +3891,7 @@ function openSheet(id,pre){
   document.body.style.overflow="hidden";
   setTimeout(()=>{const el=$(id?"#btnSave":"#f_patente");el&&!id&&el.focus()},30);
 }
-function closeSheet(){$("#sheetHost").innerHTML="";editing=null;document.body.style.overflow=""}
+function closeSheet(){$("#sheetHost").innerHTML="";editing=null;S.ctd=null;document.body.style.overflow=""}
 
 function collect(){
   const o={};
@@ -3923,6 +3982,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.ctdim){S.ctDim=t.dataset.ctdim;lsSet("ansar_ctdim",S.ctDim);render();return}
   if(t.dataset.ctsort){const k=t.dataset.ctsort;if(S.ctSort===k)S.ctDir=-(S.ctDir||-1);else{S.ctSort=k;S.ctDir=k==="k"?1:-1}render();return}
   if(t.dataset.ctexp){ctSaveExp(t);return}
+  if(t.dataset.ctdrill!=null){ctDrill(t.dataset.ctdrill,t.dataset.ctstep||"n");return}
+  if(t.dataset.ctdtab){if(S.ctd){S.ctd.step=t.dataset.ctdtab;ctdRender();const b=document.querySelector(`#sheet [data-ctdtab="${t.dataset.ctdtab}"]`);if(b)b.focus()}return}
   if(t.dataset.sgv){S.sgf.vista=t.dataset.sgv;render();return}
   if(t.dataset.sgconf){const g=S.sgMap&&S.sgMap.get(t.dataset.sgconf);if(g){const L=g.last,a=[L.marca,L.modelo].filter(Boolean).join(" ")||"auto",tt=hoy(),c=g.prox===tt?"hoy":g.prox===sgPlus(tt,1)?"mañana":"el "+fmtD(g.prox);copyText(`Hola, te escribo de Ansar Automotriz para confirmar la tasación de tu ${a} ${c}. ¿Sigue en pie a la hora que acordamos? La tasación es referencial y sin compromiso.`,"Mensaje de confirmación copiado")}return}
   if(t.dataset.rsem!=null){S.rendSem=Number(t.dataset.rsem);render();return}
@@ -3955,7 +4016,7 @@ document.addEventListener("click",e=>{
   if(t.id==="btnCallSave"){saveCall();return}
   if(t.id==="btnCallDel"){delCall(t);return}
   if(t.id==="btnCallCancel"){S.cfEdit=null;S.cf=cfDefault();render();return}
-  if(t.dataset.call){const c=S.llamadas.find(x=>x._id===t.dataset.call);if(c){S.cfEdit=c._id;S.gopen.call_form=true;S.cf={...cfDefault(),...Object.fromEntries(Object.keys(cfDefault()).map(k=>[k,c[k]??""]))};S.cf.veh=[c.marca,c.modelo,c.anio].filter(Boolean).join(" ");S.cf._proxManual=true;render();const f=$("#z-callform");if(f)f.scrollIntoView({block:"start"});checkTel()}return}
+  if(t.dataset.call){if(S.ctd)closeSheet();const c=S.llamadas.find(x=>x._id===t.dataset.call);if(c){S.cfEdit=c._id;S.gopen.call_form=true;S.cf={...cfDefault(),...Object.fromEntries(Object.keys(cfDefault()).map(k=>[k,c[k]??""]))};S.cf.veh=[c.marca,c.modelo,c.anio].filter(Boolean).join(" ");S.cf._proxManual=true;render();const f=$("#z-callform");if(f)f.scrollIntoView({block:"start"});checkTel()}return}
   if(t.dataset.cman){callMandato(t.dataset.cman,t);return}
   if(t.dataset.toauto){const c=S.llamadas.find(x=>x._id===t.dataset.toauto);if(c&&c.radarId&&S.radarMap&&S.radarMap[c.radarId]){rAuto(c.radarId,(NIVEL[c.resultado]??0)>=5);return}if(c)openSheet(null,{...((NIVEL[c.resultado]??0)>=5?{mandatoFirmado:true,fechaMandato:c.fecha||hoy(),estado:"En preparación",proximaAccion:"Preparar y publicar"}:{}),marca:c.marca||"",modelo:c.modelo||"",anio:c.anio||"",propNombre:c.contacto||"",propTelefono:c.telefono||"",precioPropietario:c.precioPide||"",responsable:c.consignador||"",notas:"Desde llamada del "+fmtD(c.fecha)+" ("+(c.ruta||"")+(c.fuente?", "+c.fuente:"")+")"+(c.notas?": "+c.notas:"")});return}
   if(t.dataset.mes!==undefined&&!t.dataset.open){S.mes=Number(t.dataset.mes);ensureCalls();render();return}
@@ -4002,7 +4063,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.delp!==undefined){const l=S.equipo.slice();l.splice(Number(t.dataset.delp),1);saveTeam(l);return}
 });
 document.addEventListener("click",e=>{if(e.target.id==="sheet")closeSheet()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&editing)closeSheet();if(e.key==="Enter"&&!e.isComposing&&e.target&&e.target.tagName==="INPUT"&&e.target.id!=="c_veh"&&e.target.closest&&e.target.closest("#callForm")){e.preventDefault();saveCall()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(editing||S.ctd))closeSheet();if(e.key==="Enter"&&!e.isComposing&&e.target&&e.target.tagName==="INPUT"&&e.target.id!=="c_veh"&&e.target.closest&&e.target.closest("#callForm")){e.preventDefault();saveCall()}});
 document.addEventListener("input",e=>{
   if(e.target.dataset&&e.target.dataset.sgnota){(S.sgform[e.target.dataset.sgnota]=S.sgform[e.target.dataset.sgnota]||{}).nota=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.hbus){S.hbusQ=e.target.value;clearTimeout(S.rbusT);S.rbusT=setTimeout(()=>{render();const el=document.getElementById("hbus");if(el){el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch(_){}}},280);return}

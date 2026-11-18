@@ -300,6 +300,7 @@ tr.rdsel td{background:var(--sunk)}
 .rcard.flash{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .claim{background:var(--info-soft);color:var(--info)} .claim.mine{background:var(--accent-soft);color:var(--accent)}
 .pill.bandera{background:#fff;color:#15201D;border:1.5px solid #15201D;font-weight:700}
+.pill.nuevo{background:#0A84FF;color:#fff;border:1.5px solid #0A84FF;font-weight:700}
 .pill.rem{background:var(--warn-soft);color:var(--warn)} .pill.rem.due{background:var(--bad-soft);color:var(--bad)}
 .rrem{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;font-weight:600;font-size:14px;color:var(--ink);max-width:100%}
 .banner.rem{border-color:var(--bad);background:var(--bad-soft);display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -2619,7 +2620,7 @@ function rCard(r){
      <span class="rsm"><span class="rt">${esc(rModelo(r))} <span class="ry">${esc(r.anio||"")}</span></span>
       <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
      <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}"${r.medFuente?` title="Media de ${esc(r.medFuente)}${r.n?" · "+esc(r.n)+" avisos":""}"`:""}>${vsLbl}${r.medFuente&&/referencial/.test(r.medFuente)?" · ref. ML":""}</span>`:r.sinMedia?`<span class="vs" title="Menos de 4 avisos comparables: sin media de mercado">sin media</span>`:""}</span>
-     <span class="rsf">${banderaHoy(r)?`<span class="pill bandera" title="Marcado para contactar hoy">⚐ Para contactar hoy</span>`:""}${srcPill(r)}${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
+     <span class="rsf">${banderaHoy(r)?`<span class="pill bandera" title="Marcado para contactar hoy">⚐ Para contactar hoy</span>`:""}${avisoNuevo(r)?`<span class="pill nuevo" title="Aviso recién publicado, cargado el ${esc(fmtD(r.avisoNuevo))}">✦ Aviso nuevo</span>`:""}${srcPill(r)}${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
      <span class="rchev" aria-hidden="true"></span>
     </summary>
     <div class="rexp">
@@ -2649,6 +2650,8 @@ function mezclaHtml(pend){
 const rProx=r=>{if(r.proximaFecha)return r.proximaFecha;if(!r.ultimoContacto)return "";const x=pd(r.ultimoContacto);if(!x)return "";x.setDate(x.getDate()+1);return ds(x)};
 /* Bandera blanca: aviso marcado para contactar hoy (banderaHoy = fecha). Vence sola al día siguiente y se quita al contactarlo, retirarlo o marcarlo no contactar. */
 const banderaHoy=r=>r.banderaHoy===hoy()&&rNivel(r)<0&&!r.noContactar&&r.estadoAviso!=="no publicado";
+/* Bandera "Aviso nuevo": carga manual de avisos recién publicados (avisoNuevo = fecha de carga). Dura 5 días y se quita al contactarlo, retirarlo o marcarlo no contactar. */
+const avisoNuevo=r=>!!r.avisoNuevo&&r.avisoNuevo>=sgPlus(hoy(),-5)&&rNivel(r)<0&&!r.noContactar&&r.estadoAviso!=="no publicado";
 const seguirHoy=r=>{const n=rNivel(r),p=rProx(r);return (n===2||(n===0&&(Number(r.nContactos)||0)<3))&&!r.noContactar&&r.estadoAviso!=="no publicado"&&!!p&&p<=hoy()};
 /* ---------- Filtros personales del Radar (se guardan por consignador en este navegador) ---------- */
 const RFX_DEF={q:"",trans:"",pmin:"",pmax:"",adesde:"",kmax:"",src:"",sub:"",liq:"",smin:"",comuna:"",media:"",ord:""};
@@ -2719,7 +2722,7 @@ function vRadar(team){
   if(F.quien==="mios")arr=arr.filter(r=>{const c=rClaim(r);return (c&&c.mine)||(!!cons&&r.consignador===cons)});
   const X=rfx(team),nAntes=arr.length,baseArr=arr;arr=rfxApply(arr,X,virt);
   const sk=r=>Number(virt&&r.rateC!=null&&r.rateC!==""?r.rateC:r.puntaje)||0;
-  const byScore=(a,b)=>(banderaHoy(b)?1:0)-(banderaHoy(a)?1:0)||sk(b)-sk(a)||(b.fechaRadar||"").localeCompare(a.fechaRadar||"");
+  const byScore=(a,b)=>(banderaHoy(b)?1:0)-(banderaHoy(a)?1:0)||(avisoNuevo(b)?1:0)-(avisoNuevo(a)?1:0)||sk(b)-sk(a)||(b.fechaRadar||"").localeCompare(a.fechaRadar||"");
   arr.sort(F.vista==="gest"||F.vista==="cerr"||KV[F.vista]?(a,b)=>(b.ultimoContacto||"").localeCompare(a.ultimoContacto||"")||byScore(a,b):F.vista==="hoy"?(a,b)=>rProx(a).localeCompare(rProx(b))||byScore(a,b):byScore);
   if(X.ord)arr=rfxSort(arr,X);
   /* Buscador: encuentra un vehículo específico en todo el Radar (cualquier estado, piso y virtual), sin importar la vista ni los filtros. */

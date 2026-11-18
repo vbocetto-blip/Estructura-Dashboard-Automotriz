@@ -300,6 +300,9 @@ tr.rdsel td{background:var(--sunk)}
 .rcard.flash{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .claim{background:var(--info-soft);color:var(--info)} .claim.mine{background:var(--accent-soft);color:var(--accent)}
 .pill.bandera{background:#fff;color:#15201D;border:1.5px solid #15201D;font-weight:700}
+.rfix{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-end;border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin:6px 0}
+.rfix select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 8px;color:var(--ink);max-width:100%}
+.rfix small{flex-basis:100%;font-size:12px;color:var(--muted)}.rfix .rfixh{color:var(--ink)}
 .pill.nuevo{background:#0A84FF;color:#fff;border:1.5px solid #0A84FF;font-weight:700}
 .pill.rem{background:var(--warn-soft);color:var(--warn)} .pill.rem.due{background:var(--bad-soft);color:var(--bad)}
 .rrem{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;font-weight:600;font-size:14px;color:var(--ink);max-width:100%}
@@ -2608,6 +2611,9 @@ function rCard(r){
   const rm=remOf(r),myRem=rm&&rm.a===rCons();
   const remPill=rm?`<span class="pill rem${rm.at<=Date.now()?" due":""}">Volver a llamar ${hhmm(new Date(rm.at))}${rm.a?" · "+esc(String(rm.a).split(" ")[0]):""}</span>`:"";
   const remCtl=!S.canWrite||!activo||otro?"":`<select class="rrem" data-rmin="${id}" aria-label="Volver a llamar dentro de"><option value="">${myRem?"Cambiar recordatorio…":"Volver a llamar dentro de…"}</option>${REM_OPTS.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select>${myRem?`<button type="button" class="btn" data-rclr="${id}">Quitar recordatorio</button>`:""}`;
+  const fixOn=S.canWrite&&!otro&&(rNivel(r)>=0||r.noContactar||r.estadoAviso==="no publicado");
+  const fixCur=r.noContactar?"__nc":r.estadoAviso==="no publicado"&&rNivel(r)<0?"__nopub":(r.ultimoResultado||"");
+  const fix=fixOn?`<div class="rfix"><label class="sgdl" for="r_fix_${id}">Corregir estado<select id="r_fix_${id}" data-rfixsel="${id}"><option value="">Estado correcto…</option><option value="__pend" ${(S.rfix||{})[r._id]==="__pend"?"selected":""}>Volver a pendiente · sin contacto</option>${r.estadoAviso==="no publicado"?`<option value="__pub" ${(S.rfix||{})[r._id]==="__pub"?"selected":""}>El aviso sigue publicado</option>`:""}${RRES.filter(([v])=>v!=="Agendó tasación"&&v!==fixCur).map(([v,l])=>`<option value="${esc(v)}" ${(S.rfix||{})[r._id]===v?"selected":""}>${esc(l)}</option>`).join("")}</select></label><button type="button" class="btn" data-rfix="${id}">Cambiar estado</button><small>Corrige un estado mal marcado sin sumar un contacto nuevo. Para agendar tasación, vuelve a pendiente y usa “Agendar tasación”.</small>${Array.isArray(r.estadoCambios)&&r.estadoCambios.length?`<small class="rfixh">Último cambio: ${esc(r.estadoCambios[r.estadoCambios.length-1].de)} → ${esc(r.estadoCambios[r.estadoCambios.length-1].a)} · ${esc(String(r.estadoCambios[r.estadoCambios.length-1].por||"").split(" ")[0])} · ${fmtD(String(r.estadoCambios[r.estadoCambios.length-1].en||"").slice(0,10))}</small>`:""}</div>`:"";
   const ropen=!!S.gopen["rc_"+r._id];
   const score=useC?r.rateC:r.puntaje,hasSc=score!=null&&score!=="";
   const dias=r.diasPublicado!=null&&r.diasPublicado!==""?Number(r.diasPublicado):null;
@@ -2626,7 +2632,7 @@ function rCard(r){
     <div class="rexp">
      ${r.ver?`<p class="rver">${esc(r.ver)}</p>`:""}
      ${r.pros||r.contras?`<div class="rpc">${r.pros?`<div class="pro"><b>Pros</b>${esc(r.pros)}</div>`:""}${r.contras?`<div class="con"><b>Contras</b>${esc(r.contras)}</div>`:""}</div>`:""}
-     ${r.ultimoResultado==="Tiene prenda"&&!r.noContactar?`<p class="rbusy">Con prenda: pide el certificado de anotaciones y el saldo de la deuda antes de tasar. Se puede consignar solo si el pago de la prenda queda resuelto en la venta; confírmalo en Ansar.</p>`:""}${last}${busy}
+     ${r.ultimoResultado==="Tiene prenda"&&!r.noContactar?`<p class="rbusy">Con prenda: pide el certificado de anotaciones y el saldo de la deuda antes de tasar. Se puede consignar solo si el pago de la prenda queda resuelto en la venta; confírmalo en Ansar.</p>`:""}${last}${busy}${fix}
      <div class="racts">${copy}${quick}${claimBtn}<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>${remCtl}${rNivel(r)>=0&&rNivel(r)<5&&S.canWrite&&!S.soloVirtual&&!r.noContactar&&!r.pedidoId?`<button type="button" class="btn manbtn" data-rman="${id}">✓ Mandato firmado</button>`:""}${rNivel(r)>=3&&S.canWrite&&!S.soloVirtual?`<button type="button" class="btn" data-rauto="${id}">${rNivel(r)>=5&&!autoDeRadar(r)?"Ingresar a Autos":"Pasar a Autos"}</button>`:""}${S.canWrite&&!S.soloVirtual&&activo&&!otro&&rNivel(r)<0&&!r.pedidoId?`<button type="button" class="btn ghost" data-rteam="${id}">${esVirt(r)?"Mover a Piso":"Mover a Virtual"}</button>`:""}</div>
      ${reg}
      <details class="rmore" data-gopen="rm_${id}" ${S.gopen["rm_"+r._id]?"open":""}><summary>Más detalles</summary>${detalle}${guias}</details>
@@ -2936,6 +2942,31 @@ async function regRadar(id,btn,quick){
     await ref.set(data);S.writeProbe=true;S.tas=null;
     await rRef(id).update({ultimoResultado:f.res,nivel,ultimoContacto:fecha,consignador:cons,asignado:cons,asignadoEn:now,ultimaLlamadaId:ref.id,...(tel?{telefono:telFmt(tel),telefonoN:normTel(tel)}:{}),...(nom?{contacto:nom}:{}),proximaFecha:prox,...(r.recordarEn&&Date.parse(r.recordarEn)<=Date.now()?{recordarEn:"",recordarA:"",recordarMin:""}:{}),nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
     window.__ansarGestion=Date.now()+60000;lsSet("ansar_cons",cons);delete S.rform[id];render();toast((quick?"Marcado como contactado":"Registrado en Llamadas")+" · pasó a "+dest);
+  }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
+}
+/* Corregir el estado de un aviso del radar (ej. se marcó Descartado por error). No crea una llamada nueva:
+   corrige la última llamada registrada y deja historial en estadoCambios. */
+async function fixRadar(id,btn){
+  if(!S.db){toast("Sin conexión a la base del equipo");return}
+  const r=S.radar.find(x=>x._id===id);if(!r)return;
+  const v=(S.rfix||{})[id];if(!v){toast("Elige el estado correcto");const el=$("#r_fix_"+id);if(el)el.focus();return}
+  const nivel=v.startsWith("__")?null:(NIVEL[v]??0);
+  if(nivel!=null&&nivel>=2&&!r.telefono){toast("Este aviso no tiene teléfono: vuelve a pendiente y registra el contacto con el teléfono");return}
+  const now=new Date().toISOString(),quien=rCons()||miNombre()||"";
+  const de=r.noContactar&&r.ultimoResultado!=="Pidió no ser contactado"?"No contactar":(r.ultimoResultado||(r.estadoAviso==="no publicado"?"Ya no publicado":"Pendiente"));
+  const a=v==="__pend"?"Pendiente":v==="__pub"?"Sigue publicado":v;
+  const plus1=(()=>{const x=pd(hoy());x.setDate(x.getDate()+1);return ds(x)})();
+  const prox=v==="No contesta"||v==="Interesado · seguimiento"||v==="Tiene prenda"?plus1:"";
+  const upd={estadoCambios:[...(Array.isArray(r.estadoCambios)?r.estadoCambios:[]),{de,a,por:quien,en:now}].slice(-20),updatedAt:now,updatedBy:S.uid||null};
+  if(v==="__pend")Object.assign(upd,{nivel:"",ultimoResultado:"",noContactar:false,proximaFecha:"",asignado:"",asignadoEn:"",...(r.estadoAviso==="no publicado"?{estadoAviso:"activo"}:{})});
+  else if(v==="__pub")Object.assign(upd,{estadoAviso:"activo"});
+  else Object.assign(upd,{nivel,ultimoResultado:v,noContactar:v==="Pidió no ser contactado",proximaFecha:prox});
+  btn.disabled=true;btn.textContent="Guardando…";
+  try{
+    await rRef(id).update(upd);S.writeProbe=true;
+    if(nivel!=null&&r.ultimaLlamadaId){try{const cref=S.db.collection(callCol(r)).doc(r.ultimaLlamadaId),cs=await cref.get();
+      if(cs.exists)await cref.update({resultado:v,nivel,noContactar:v==="Pidió no ser contactado",proximaFecha:prox,corregidoDe:de,corregidoEn:now,corregidoPor:quien,updatedAt:now,updatedBy:S.uid||null})}catch(e2){console.warn("corregir llamada",e2)}}
+    S.tas=null;delete (S.rfix||{})[id];render();toast(`Estado corregido: ${de} → ${a}`);
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
 }
 function onRadarSnap(snap,col){
@@ -4007,6 +4038,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.rfree){rFree(t.dataset.rfree,t);return}
   if(t.dataset.rquick){regRadar(t.dataset.rquick,t,true);return}
   if(t.dataset.rreg){regRadar(t.dataset.rreg,t);return}
+  if(t.dataset.rfix){fixRadar(t.dataset.rfix,t);return}
   if(t.dataset.rauto){rAuto(t.dataset.rauto);return}
   if(t.dataset.rteam){rMove(t.dataset.rteam,t);return}
   if(t.dataset.rclr){rRemClear(t.dataset.rclr,t,false);return}
@@ -4099,6 +4131,7 @@ document.addEventListener("change",e=>{
   if(e.target.dataset&&e.target.dataset.sgrt){sgRutSave(e.target.dataset.sgrt,e.target.dataset.item,e.target.checked);return}
   if(e.target.dataset&&e.target.dataset.sgcons){S.sgf.cons=e.target.value;lsSet("ansar_sgcons",S.sgf.cons);render();return}
   if(e.target.dataset&&e.target.dataset.rmin){rRemind(e.target.dataset.rmin,e.target.value,e.target);return}
+  if(e.target.dataset&&e.target.dataset.rfixsel){(S.rfix=S.rfix||{})[e.target.dataset.rfixsel]=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.rres){const id=e.target.dataset.rres;(S.rform[id]=S.rform[id]||{}).res=e.target.value;const ct=document.getElementById("r_cita_"+id);if(ct){ct.hidden=e.target.value!=="Agendó tasación";if(!ct.hidden){const i=ct.querySelector("input");if(i)i.focus()}}{const ab=document.querySelector(`[data-ragen="${CSS.escape(id)}"]`);if(ab)ab.setAttribute("aria-pressed",String(e.target.value==="Agendó tasación"))}return}
   if(e.target.dataset&&e.target.dataset.rcf){(S.rform[e.target.dataset.rcf]=S.rform[e.target.dataset.rcf]||{}).cf=e.target.value;return}
   if(e.target.dataset&&e.target.dataset.rch){(S.rform[e.target.dataset.rch]=S.rform[e.target.dataset.rch]||{}).ch=e.target.value;return}

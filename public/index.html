@@ -300,6 +300,7 @@ tr.rdsel td{background:var(--sunk)}
 .rcard.flash{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .claim{background:var(--info-soft);color:var(--info)} .claim.mine{background:var(--accent-soft);color:var(--accent)}
 .pill.bandera{background:#fff;color:#15201D;border:1.5px solid #15201D;font-weight:700}
+.sgreg2{display:grid!important;gap:8px}.sgreg2 .sgq button{font-size:13px}.sghint2{font-size:12px;color:var(--muted)}
 .ebus{display:grid;gap:8px;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--sunk);margin-bottom:12px}
 .elist{display:grid;gap:8px}.erow2{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .ehd{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}.ehd small{color:var(--muted);font-size:12.5px;flex:1 1 200px}
@@ -3204,6 +3205,8 @@ function sgCad(g){
 }
 function sgPri(g){
   const t=hoy(),why=[];let p=0;
+  /* Ya gestionado hoy y con fecha futura: sale de "Para hoy" hasta que llegue su fecha. */
+  if(g.last.fecha===t&&g.prox&&g.prox>t)return {p:0,why:["Gestionado hoy · vuelve el "+fmtD(g.prox)]};
   if(g.etapa>=3&&g.prox===t){p=110;why.push("Tasación o visita hoy: confirma la hora")}
   else if(g.etapa>=3&&g.prox&&g.prox===sgPlus(t,1)){p=70;why.push("Tasación mañana: confirma hoy")}
   if(g.prox&&g.prox<t){const d=dias(g.prox,t);p=Math.max(p,100+Math.min(30,d));why.push(`Seguimiento vencido hace ${d} d`)}
@@ -3244,7 +3247,12 @@ function sgCard(x){
   const proxTxt=g.prox?`<span${g.prox<t?' style="color:var(--bad);font-weight:600"':g.prox===t?' style="color:var(--warn);font-weight:600"':""}>${esTas?"Tasación":"Próximo contacto"} ${fmtD(g.prox)}${g.prox<t?" · vencido":g.prox===t?" · hoy":""}</span>`:`<span style="color:var(--bad);font-weight:600">${esTas?"Tasación sin fecha":"Sin próxima fecha"}</span>`;
   const nota=[...g.cs].reverse().map(c=>sgNota(c.notas)).filter(Boolean)[0]||"";
   const def=f.prox??(esTas?(g.prox&&g.prox>=t?g.prox:""):sgCad(g));
-  const reg=!S.canWrite?"":`<div class="rreg"><select id="sg_res_${sid}" data-sgres="${esc(g.k)}" aria-label="Resultado del seguimiento"><option value="">Resultado del seguimiento…</option>${RRES.map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><label class="sgdl" for="sg_prox_${sid}">Próxima fecha<input type="date" id="sg_prox_${sid}" data-sgprox="${esc(g.k)}" value="${esc(def)}"></label><label class="sgdl rcita" id="sg_hc_${sid}" ${f.res==="Agendó tasación"?"":"hidden"}>Hora de la tasación<input type="time" id="sg_hora_${sid}" data-sghora="${esc(g.k)}" step="900" value="${esc(f.hora||"")}"></label><input id="sg_nota_${sid}" type="text" data-sgnota="${esc(g.k)}" value="${esc(f.nota||"")}" placeholder="qué dijo, objeción, hora acordada" autocomplete="off"><button type="button" class="btn primary" data-sgreg="${esc(g.k)}">Registrar</button></div>`;
+  const ejN=sgDestino(g,"No contesta"),ejI=sgDestino(g,"Interesado · seguimiento");
+  const reg=!S.canWrite?"":`<div class="rreg sgreg2"><input id="sg_nota_${sid}" type="text" data-sgnota="${esc(g.k)}" value="${esc(f.nota||"")}" placeholder="nota opcional: qué dijo, objeción, hora acordada" autocomplete="off">
+   <div class="chips sgq" role="group" aria-label="Resultado del seguimiento">${RRES.map(([v,l])=>`<button type="button" data-sgq="${esc(g.k)}" data-sgqv="${esc(v)}" aria-pressed="${f.res===v}" title="Registra y pasa a: ${esc(sgDestino(g,v).txt)}">${esc(l)}</button>`).join("")}</div>
+   <small class="sghint2">Un toque registra y deriva el caso: sale de Para hoy hasta su fecha (No contesta → ${esc(ejN.txt)} · Interesado → ${esc(ejI.txt)}). Los cierres pasan a Cerrados o Mandatos. Para otra fecha, cámbiala antes de tocar.</small>
+   <label class="sgdl" for="sg_prox_${sid}">Otra fecha<input type="date" id="sg_prox_${sid}" data-sgprox="${esc(g.k)}" min="${t}" value="${esc(f.prox??"")}"></label>
+   ${f.res==="Agendó tasación"?`<label class="sgdl rcita" id="sg_hc_${sid}">Hora de la tasación<input type="time" id="sg_hora_${sid}" data-sghora="${esc(g.k)}" step="900" value="${esc(f.hora||"")}"></label><button type="button" class="btn primary" data-sgreg="${esc(g.k)}">Guardar tasación</button><small class="sghint2">Pon el día en “Otra fecha” y la hora: queda en la Agenda.</small>`:""}</div>`;
   const hist=`<details class="pmsg" data-gopen="sgh_${sid}" ${S.gopen["sgh_"+sid]?"open":""}><summary>Historial · ${g.seg} seguimiento${g.seg===1?"":"s"} (${g.cs.length} contacto${g.cs.length===1?"":"s"})</summary><div class="pbody"><ul class="insights">${g.cs.map((c,i)=>[i,c]).reverse().map(([i,c])=>`<li><span class="pill ${i?"st-Tasación":"gap ok"} num">${i?"Seguimiento "+i:"Contacto inicial"}</span> <b>${fmtD(c.fecha)}</b> · ${esc(c.consignador||"")} · ${esc(c.resultado||"")}${sgNota(c.notas)?` · <span style="color:var(--muted)">${esc(sgNota(c.notas))}</span>`:""}</li>`).join("")}</ul></div></details>`;
   return `<article class="rcard" id="sg_${sid}">
    <div class="rrail"><span class="sc num">${x.sc.total}</span><span class="rl">puntaje</span><span class="bd ${band[1]}">${band[0]}</span><span class="rl num sgp">${Math.round(x.pr*100)}% mandato</span></div>
@@ -3431,12 +3439,23 @@ function vSeg(){
     return `<section id="sgpanel" class="sgpanel" aria-label="${head[0]}"><div class="sgph"><div><h2>${head[0]}</h2><p>${head[1]}</p></div><button type="button" class="btn sm" data-sgt="${F.tile}">Cerrar</button></div>${body}</section>`;
   })()}`;
 }
-async function regSeg(k,btn){
+/* Próxima fecha sugerida y destino de cada resultado del seguimiento (un toque registra y deriva). */
+function sgDestino(g,res){
+  const t=hoy(),h=n=>sgHabil(sgPlus(t,n)),nv=NIVEL[res]??0;
+  if(res==="No contesta")return {prox:h(1),txt:"reintento "+fmtD(h(1))};
+  if(res==="Interesado · seguimiento"){const d=sgCad(g);return {prox:d,txt:"seguimiento "+fmtD(d)}}
+  if(res==="Tiene prenda")return {prox:h(3),txt:"revisar prenda "+fmtD(h(3))};
+  if(res==="Tasación hecha")return {prox:h(1),txt:"cerrar mandato "+fmtD(h(1))};
+  if(res==="Agendó tasación")return {prox:"",txt:"Agenda"};
+  if(nv>=5)return {prox:"",txt:"Mandatos"};
+  return {prox:"",txt:"Cerrados"};
+}
+async function regSeg(k,btn,resO,proxO){
   if(!S.db){toast("Sin conexión a la base del equipo");return}
   const g=S.sgMap&&S.sgMap.get(k);if(!g)return;
   const sid=sgId(k),f=S.sgform[k]||{},cons=rCons();
-  const res=f.res||($("#sg_res_"+sid)||{}).value||"";
-  let prox=f.prox!==undefined?f.prox:(($("#sg_prox_"+sid)||{}).value||"");
+  const res=resO||f.res||($("#sg_res_"+sid)||{}).value||"";
+  let prox=proxO!==undefined?proxO:f.prox!==undefined?f.prox:(($("#sg_prox_"+sid)||{}).value||"");
   const nota=f.nota!==undefined?f.nota:(($("#sg_nota_"+sid)||{}).value||"");
   if(!cons){toast("Elige quién contacta");const el=$("#sg_cons");if(el)el.focus();return}
   if(!res){toast("Elige el resultado del seguimiento");return}
@@ -3455,7 +3474,7 @@ async function regSeg(k,btn){
     const ref=S.db.collection(L._col==="virtualLlamadas"?"virtualLlamadas":"llamadas").doc();await ref.set(data);S.writeProbe=true;S.tas=null;
     if(L.radarId&&r)await rRef(L.radarId).update({ultimoResultado:res,nivel,ultimoContacto:fecha,consignador:cons,ultimaLlamadaId:ref.id,proximaFecha:prox,nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
     lsSet("ansar_cons",cons);delete S.sgform[k];
-    window.__ansarGestion=Date.now()+60000;toast(cierra?(nivel>=5?"Mandato registrado · sale del seguimiento":"Registrado · sale del seguimiento"):`Registrado · próximo contacto ${fmtD(prox)}`);safeRender();
+    window.__ansarGestion=Date.now()+60000;toast(cierra?(nivel>=5?"Mandato registrado · pasa a Mandatos":"Registrado · pasa a Cerrados"):res==="Agendó tasación"?`Tasación agendada ${fmtD(prox)} · pasa a la Agenda`:`Registrado · sale de Para hoy hasta el ${fmtD(prox)}`);safeRender();
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
 }
 function sgAuto(k){
@@ -4068,6 +4087,9 @@ document.addEventListener("click",e=>{
   if(t.dataset.sgcap){S.sgf.capf=S.sgf.capf===t.dataset.sgcap?"":t.dataset.sgcap;render();if(S.sgf.capf)requestAnimationFrame(()=>{const l=document.getElementById("sgtbl");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}
   if(t.dataset.sgo){S.sgf.orig=t.dataset.sgo;render();return}
   if(t.dataset.sgreg){regSeg(t.dataset.sgreg,t);return}
+  if(t.dataset.sgq&&t.dataset.sgqv){const k=t.dataset.sgq,v=t.dataset.sgqv,g=S.sgMap&&S.sgMap.get(k);if(!g)return;const f=(S.sgform[k]=S.sgform[k]||{});
+    if(v==="Agendó tasación"){f.res=v;if(f.prox===undefined)f.prox="";render();const el=document.getElementById("sg_prox_"+sgId(k));if(el)el.focus();return}
+    const d=sgDestino(g,v),prox=d.prox?(f.prox||d.prox):"";f.res=v;regSeg(k,t,v,prox);return}
   if(t.dataset.sgtel){sgSaveTel(t.dataset.sgtel,t);return}
   if(t.dataset.sgauto){sgAuto(t.dataset.sgauto);return}
   if(t.dataset.rtr!==undefined){S.rf[t.dataset.team||"pres"].tramo=t.dataset.rtr;render();return}

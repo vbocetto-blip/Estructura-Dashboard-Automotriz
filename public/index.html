@@ -821,7 +821,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
 #ganW .gst{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:2px 0 0}#ganW .gst div{background:var(--sunk);border-radius:8px;padding:6px 8px}#ganW dt{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}#ganW dd{margin:0;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}#ganW dd small{display:block;font-size:11px;font-weight:500;color:var(--muted)}
 #ganW .gmsg{margin:0;font-size:12.5px;border-left:3px solid var(--good);padding:4px 8px;background:var(--sunk);border-radius:4px}#ganW .gtoday{margin:0;font-size:11.5px;color:var(--muted)}
 #ganW .gpill{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);font:inherit;cursor:pointer;min-height:44px}#ganW .gpill b{color:var(--good);font-variant-numeric:tabular-nums}#ganW .gpm{color:var(--muted);font-size:12px}
-#ganW .gfun{list-style:none;margin:0;padding:0;display:grid;gap:6px}#ganW .gfun li{display:grid;grid-template-columns:1fr auto;grid-template-areas:"s b" "m e";gap:0 8px;padding:7px 9px;border:1px solid var(--line);border-radius:10px}#ganW .gfun li span{grid-area:s;font-weight:600}#ganW .gfun li b{grid-area:b;font-variant-numeric:tabular-nums}#ganW .gfun li small{grid-area:m;color:var(--muted);font-size:11.5px}#ganW .gfun li em{grid-area:e;font-style:normal;color:var(--good);font-weight:600;font-size:12px;font-variant-numeric:tabular-nums}#ganW .gval{margin:0;font-size:12.5px}#ganW .gnote{margin:0;font-size:11px;color:var(--muted);line-height:1.35}#ganW .grow small{color:var(--muted);font-weight:400}
+#ganW .gfun{list-style:none;margin:0;padding:0;display:grid;gap:6px}#ganW .gfun li{display:grid;grid-template-columns:1fr auto;grid-template-areas:"s b" "m e";gap:0 8px;padding:7px 9px;border:1px solid var(--line);border-radius:10px}#ganW .gfun li span{grid-area:s;font-weight:600}#ganW .gfun li b{grid-area:b;font-variant-numeric:tabular-nums}#ganW .gfun li small{grid-area:m;color:var(--muted);font-size:11.5px}#ganW .gfun li em{grid-area:e;font-style:normal;color:var(--good);font-weight:600;font-size:12px;font-variant-numeric:tabular-nums}#ganW .gval{margin:0;font-size:12.5px}#ganW .gfun li em.gno{color:var(--muted);font-weight:500}#ganW .gnote{margin:0;font-size:11px;color:var(--muted);line-height:1.35}#ganW .grow small{color:var(--muted);font-weight:400}
 @media (max-width:640px){#ganW{left:8px;bottom:8px}#ganW .gcard{width:min(300px,calc(100vw - 16px))}}
 .rcanal{display:flex;gap:6px;flex-wrap:wrap;width:100%}.rcbtn{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;min-height:34px;cursor:pointer}.rcbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
 .rcan{display:inline-block;margin-top:4px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid var(--line);color:var(--muted)}.rcan.c-llamada{color:var(--good);border-color:currentColor}.rcan.c-mensaje{color:var(--info,#4ea1ff);border-color:currentColor}.rcan.c-marketplace{color:#8fb4f5;border-color:currentColor}
@@ -2787,11 +2787,12 @@ function ganCalc(nom,ym){
   const cobrado=venMes*GAN.auto;
   const pStock=stock*GAN.auto*tasaVen;
   const pTas=(tasAg+tasHe)*vTas;
-  const proy=cobrado+pStock+pTas;
+  const proy=cobrado+pStock;
+  const manProb=(tasAg+tasHe)*tasaMan,porMan=Math.max(1,Math.round(1/tasaMan));
   const hoyC=calls.filter(c=>c.consignador===nom&&c.fecha===t),hoyTas=new Set(hoyC.filter(c=>sgNiv(c)>=3).map(key)).size;
   const y=+ym.slice(0,4),m=+ym.slice(5,7)-1,fin=ds(new Date(y,m+1,0));
   const r10=n=>Math.round(n/10000)*10000;
-  return {tasAg,tasHe,stock,venMes,manMes,tasaMan,tasaVen,vTas:r10(vTas),cobrado,pStock:r10(pStock),pTas:r10(pTas),proy:r10(proy),hoyCont:hoyC.length,hoyTas,quedan:Math.max(0,habiles(t,fin)-1)};
+  return {tasAg,tasHe,stock,venMes,manMes,tasaMan,tasaVen,vTas:r10(vTas),cobrado,pStock:r10(pStock),pTas:r10(pTas),proy:r10(proy),manProb,porMan,hoyCont:hoyC.length,hoyTas,quedan:Math.max(0,habiles(t,fin)-1)};
 }
 function ganNombres(){const s=new Set();(S.segCalls||S.llamadas||[]).forEach(c=>{if(c.consignador)s.add(c.consignador)});return [...s].sort()}
 let ganLast="";
@@ -2812,8 +2813,8 @@ function ganRender(){
   if(g.tasHe>0)msg=`Tienes <b>${g.tasHe}</b> tasaci${g.tasHe>1?"ones hechas":"ón hecha"} sin mandato. Cerrarla${g.tasHe>1?"s":""} es el paso que más acerca tu comisión.`;
   else if(g.tasAg>0)msg=`Tienes <b>${g.tasAg}</b> tasaci${g.tasAg>1?"ones agendadas":"ón agendada"}. Que se haga${g.tasAg>1?"n":""}: ahí empieza tu comisión.`;
   else if(g.stock>0)msg=`Tus ${g.stock} auto${g.stock>1?"s":""} en venta suman ${clp(g.stock*GAN.auto)} al venderse. Agenda una tasación nueva para que no se seque tu embudo.`;
-  else msg=`Cada tasación que agendes hoy vale <b>~${clp(g.vTas)}</b> en proyección. Empieza por una.`;
-  const meta=3,metaV=Math.round(g.vTas*meta/10000)*10000;
+  else msg=`Las tasaciones no se pagan, pero de ahí salen tus mandatos. Agenda una hoy.`;
+  const mpN=Math.round(g.manProb*10)/10,mp=mpN>=1?`≈ ${Math.round(mpN)} mandato${Math.round(mpN)>1?"s":""} probable${Math.round(mpN)>1?"s":""}`:mpN>0?"≈ 1 mandato si cierras":"—";
   const sel=(S.isAdmin&&!window.__ANSAR_SITE&&nombres.length>1)?`<select class="gsel" data-gannom aria-label="Ver comisiones de">${nombres.map(n=>`<option ${n===nom?"selected":""}>${esc(n)}</option>`).join("")}</select>`:`<span class="gnm">${esc(nombre1)}</span>`;
   const html=min?`<button type="button" class="gpill" data-ganmin="0" aria-label="Abrir mis comisiones"><span>💰</span><b>${clp(g.proy)}</b><span class="gpm">proyección</span></button>`:
   `<section class="gcard" aria-label="Mis comisiones">
@@ -2822,14 +2823,14 @@ function ganRender(){
     <div class="gbar" title="Cobrado este mes vs proyección"><i style="width:${pct}%"></i></div>
     <div class="grow"><span>Cobrado en ${mesN} <small>(autos vendidos)</small></span><b>${clp(g.cobrado)}</b></div>
     <ol class="gfun" aria-label="Tu embudo">
-      <li><span>Tasaciones abiertas</span><b>${g.tasAg+g.tasHe}</b><small>${g.tasAg} agendadas · ${g.tasHe} hechas</small><em>${clp(g.pTas)}</em></li>
+      <li><span>Tasaciones abiertas</span><b>${g.tasAg+g.tasHe}</b><small>${g.tasAg} agendadas · ${g.tasHe} hechas · no se pagan</small><em class="gno">${mp}</em></li>
       <li><span>Consignados en venta</span><b>${g.stock}</b><small>se cobran al venderse</small><em>${clp(g.pStock)}</em></li>
       <li><span>Vendidos en ${mesN}</span><b>${g.venMes}</b><small>${clp(GAN.auto)} c/u</small><em>${clp(g.cobrado)}</em></li>
     </ol>
     <p class="gmsg">${msg}</p>
-    <p class="gval">Cada tasación vale <b>~${clp(g.vTas)}</b> · ${meta} más suman <b>~${clp(metaV)}</b></p>
+    <p class="gval">En el equipo, <b>~${g.porMan} tasaciones</b> dan 1 mandato, y cada mandato son <b>${clp(GAN.auto)}</b> al venderse el auto.${g.pTas?` Tus tasaciones abiertas podrían sumar <b>~${clp(g.pTas)}</b> más a tu proyección.`:""}</p>
     <p class="gtoday">Hoy: ${g.hoyCont} contacto${g.hoyCont===1?"":"s"} · ${g.hoyTas} tasaci${g.hoyTas===1?"ón":"ones"} · quedan ${g.quedan} días hábiles</p>
-    <p class="gnote">Se paga al venderse el auto: ${clp(GAN.man)} consignación + ${clp(GAN.ven)} venta. Proyección con tasas del equipo: ${pc(g.tasaMan)} de tasaciones firman mandato y ${pc(g.tasaVen)} de consignados se venden.</p>
+    <p class="gnote">Solo se paga al venderse el auto consignado: ${clp(GAN.man)} consignación + ${clp(GAN.ven)} venta. Las tasaciones no se pagan. La proyección cuenta tus autos en venta con el ${pc(g.tasaVen)} que el equipo logra vender.</p>
   </section>`;
   if(!box){box=document.createElement("div");box.id="ganW";box.setAttribute("role","complementary");document.body.appendChild(box)}
   box.hidden=false;

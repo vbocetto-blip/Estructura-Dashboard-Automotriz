@@ -3066,7 +3066,7 @@ function vRadar(team){
     busDet=Object.keys(GO).map(g=>[g,arr.filter(r=>rGrupo(r)===g).length]).filter(x=>x[1]).map(([g,n])=>`${n} ${n===1&&GN1[g]?GN1[g]:GN[g]}`).join(" · ");
   }
   const hoyDocs=all.filter(r=>r.ultimoContacto===hoy());
-  const porCons=groupBy(hoyDocs,r=>r.consignador).map(x=>`${esc(String(x.k).split(" ")[0])} ${x.n}`).join(" · ");const porCanal=CONTACTO_CANALES.map(([k,ic])=>{const n=hoyDocs.filter(r=>r.ultimoCanal===k&&r.ultimoCanalFecha===hoy()).length;return n?`${ic} ${n}`:""}).filter(Boolean).join(" · ");
+  const porCons=groupBy(hoyDocs,r=>r.consignador).map(x=>`${esc(String(x.k).split(" ")[0])} ${x.n}`).join(" · ");const porCanal=CONTACTO_CANALES.map(([k,ic])=>{const n=hoyDocs.filter(r=>canalDe(r)===k).length;return n?`${ic} ${n}`:""}).filter(Boolean).join(" · ");
   const agen=all.filter(r=>rNivel(r)>=3).length,mand=all.filter(r=>rNivel(r)>=5).length;
   const vistas=[["hoy","Seguimiento hoy"],["pend","Sin contactar"],["gest","En gestión"],["prenda","Con prenda"],["cerr","Cerrados"],["nopub","Ya no publicados"],["todos","Todos"]];
   const nombres=S.virtuales.map(n=>String(n).split(" ")[0]);

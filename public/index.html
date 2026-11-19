@@ -2859,7 +2859,15 @@ const canalIco=c=>(CONTACTO_CANALES.find(x=>x[0]===c)||[])[1]||"";
 function canalTag(r){if(!r.ultimoCanalFecha||!r.ultimoCanal)return "";return `<span class="rcan c-${esc(String(r.ultimoCanal).toLowerCase())}" title="Canal del último contacto">${canalIco(r.ultimoCanal)} ${esc(r.ultimoCanal)} · ${r.ultimoCanalFecha===hoy()?"hoy":fmtD(r.ultimoCanalFecha)}</span>`}
 function canalChips(id,r,f){const v=f.canal||canalDef(r);return `<div class="rcanal" role="group" aria-label="Canal del contacto">${CONTACTO_CANALES.map(([k,ic,l])=>`<button type="button" class="rcbtn" data-rcanal="${esc(id)}" data-v="${k}" aria-pressed="${v===k}">${ic} ${l}</button>`).join("")}</div>`}
 /* Contactados: los avisos agrupados por el canal del contacto (llamada, mensaje o Marketplace). */
-function canalDe(r){return r.ultimoCanal&&(!r.ultimoCanalFecha||r.ultimoCanalFecha===r.ultimoContacto)?r.ultimoCanal:""}
+function canalDe(r){
+  if(r.ultimoCanal&&(!r.ultimoCanalFecha||r.ultimoCanalFecha===r.ultimoContacto))return r.ultimoCanal;
+  /* Contactos anteriores al campo canal: se deduce del portal y de la nota del registro, sin guardar nada. */
+  if(r.src==="Facebook Marketplace")return "Marketplace";
+  const all=[...(S.segCalls||[]),...(S.llamadas||[])];const c=r.ultimaLlamadaId&&all.find(x=>x._id===r.ultimaLlamadaId);
+  if(c&&c.canal)return c.canal;
+  if(c&&/Mensaje enviado por el portal/i.test(c.notas||""))return "Mensaje";
+  return "";
+}
 function canalGrupos(arr){
   const G=[...CONTACTO_CANALES.map(([k,ic,l])=>({k,t:ic+" "+l})),{k:"",t:"Sin canal anotado"}];
   const res=G.map(g=>({...g,items:arr.filter(r=>canalDe(r)===g.k)})).filter(g=>g.items.length);

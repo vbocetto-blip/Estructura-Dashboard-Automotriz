@@ -803,6 +803,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .rneg .rbar2{position:relative;height:8px;border-radius:4px;background:var(--sunk);margin:6px 0 2px}.rneg .rbar2 i{position:absolute;top:0;bottom:0;background:var(--accent-soft);border-left:2px solid var(--accent);border-right:2px solid var(--accent)}.rneg .rbar2 em{position:absolute;top:-3px;width:3px;height:14px;margin-left:-1px;background:var(--ink);border-radius:2px}
 .rneg ul{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}.rneg .gch{font-size:13.5px;background:var(--accent-soft);border-left:3px solid var(--accent);padding:7px 10px;border-radius:4px}
 .rneg .mut{color:var(--muted);font-size:12px}
+.rnegp{display:block;font-size:12.5px;margin-top:2px;color:var(--muted);font-variant-numeric:tabular-nums}.rnegp b{font-weight:700}.rnegp.ok b{color:var(--good)}.rnegp.mid b,.rnegp.mid{color:var(--warn)}.rnegp.no b{color:var(--bad)}
 /* ===== Menú Más ===== */
 .mas{position:relative}.mas>summary{list-style:none;cursor:pointer;user-select:none}.mas>summary::-webkit-details-marker{display:none}
 .mas>summary.on{border-color:var(--accent);color:var(--accent)}
@@ -2677,7 +2678,7 @@ function rCard(r){
     <summary class="rsum">
      <span class="rsc ${b?b[1]:"tar"}" title="${b?esc(b[0]):r.sinMedia?"Sin media de mercado: no se puede calcular el puntaje":"Sin puntaje"}">${hasSc?`<b class="num">${esc(score)}</b>`:r.sinMedia?`<b style="font-size:11px">s/m</b>`:"–"}</span>
      <span class="rsm"><span class="rt">${esc(rModelo(r))} <span class="ry">${esc(r.anio||"")}</span></span>
-      <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
+      <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${negMini(r)}${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
      <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}"${r.medFuente?` title="Media de ${esc(r.medFuente)}${r.n?" · "+esc(r.n)+" avisos":""}"`:""}>${vsLbl}${r.medFuente&&/referencial/.test(r.medFuente)?" · ref. ML":""}</span>`:r.sinMedia?`<span class="vs" title="Menos de 4 avisos comparables: sin media de mercado">sin media</span>`:""}</span>
      <span class="rsf">${banderaHoy(r)?`<span class="pill bandera" title="Marcado para contactar hoy">⚐ Para contactar hoy</span>`:""}${avisoNuevo(r)?`<span class="pill nuevo" title="Aviso recién publicado, cargado el ${esc(fmtD(r.avisoNuevo))}">✦ Aviso nuevo</span>`:""}${srcPill(r)}${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
      <span class="rchev" aria-hidden="true"></span>
@@ -2713,6 +2714,18 @@ function negComps(r){
   negCache.m.set(ck,out);return out;
 }
 function negLiq(r){const L=(S.crit&&S.crit.liquidez)||{},k=NEG_N(r.marca+" "+r.modelo);const has=a=>(a||[]).some(x=>k.startsWith(NEG_N(x)));if(has(L.A))return "A";if(has(L.B))return "B";return /audi|bmw|volvo|dodge|ram|mercedes|porsche|jeep|lexus|mini|haval|gac|chery|changan|ssangyong|daihatsu|opel|lifan|jac|dfsk|baic|zx/i.test(r.marca||"")?"C":"B"}
+function negMini(r){
+  const P=Number(r.precio)||0;if(!P)return "";
+  const COM=Number(S.crit&&S.crit.comisionMin)||1500000,c=negComps(r),M=c.media;
+  const cierre=Number(r.precioNeg)||Math.round(P*(1-(Number(r.descEsperado)||0.05)));
+  if(!M)return `<span class="rnegp mid">Sin media (${c.n} comp.) · tasar para ver si deja ${clp(COM)}</span>`;
+  const vs=Math.round((P/M-1)*100),cmax=M-COM;
+  let cls,txt;
+  if(cierre<=cmax){cls="ok";txt="Compra: margen ~"+clp(M-cierre)}
+  else if(P>M*1.15){cls="no";txt="Ajustar precio"}
+  else{cls="ok";txt="Consignar: deja "+clp(COM)}
+  return `<span class="rnegp ${cls}"><b>${txt}</b> · media ${clp(M)} (${vs>0?"+":""}${vs}%) · compra máx ${clp(cmax)}</span>`;
+}
 function negHtml(r){
   const P=Number(r.precio)||0;if(!P)return "";
   const COM=Number(S.crit&&S.crit.comisionMin)||1500000;

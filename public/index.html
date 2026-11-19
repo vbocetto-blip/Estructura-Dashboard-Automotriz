@@ -808,6 +808,20 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .rtl .tbtn{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:3px 10px;text-decoration:none;cursor:pointer;min-height:28px;display:inline-flex;align-items:center}.rtl .tbtn:hover{border-color:var(--accent)}.rtl .tbtn.wa{border-color:#25D366;color:#1e9e50}
 .rtl .tor{font-size:11px;font-weight:500;color:var(--muted)}
 .rtl.add{font-weight:500}.rtl .tin{font:inherit;font-size:13px;border:1px dashed var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:3px 10px;min-height:28px;width:170px}.rtl .tin:focus{border-style:solid;border-color:var(--accent);outline:none}
+/* Mis comisiones: tabla flotante */
+#ganW{position:fixed;left:16px;bottom:16px;z-index:70;max-width:calc(100vw - 32px)}
+#ganW .gcard{width:300px;max-width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.35);padding:12px 14px;display:grid;gap:8px;font-size:13px}
+#ganW header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}#ganW header>div{display:grid;gap:2px}
+#ganW .gk{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}#ganW .gnm{font-weight:700;font-size:14px}
+#ganW .gsel{font:inherit;font-weight:700;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:2px 6px;max-width:190px}
+#ganW .gx{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;width:32px;height:32px;font-size:18px;line-height:1;cursor:pointer}
+#ganW .gbig{display:flex;align-items:baseline;gap:8px}#ganW .gbig b{font-size:28px;font-variant-numeric:tabular-nums;color:var(--good);letter-spacing:-.02em}#ganW .gbig span{color:var(--muted)}
+#ganW .gbar{height:8px;border-radius:4px;background:var(--sunk);overflow:hidden}#ganW .gbar i{display:block;height:100%;background:var(--good);border-radius:4px;transition:width .6s ease}
+#ganW .grow{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums}#ganW .grow span{color:var(--muted)}
+#ganW .gst{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:2px 0 0}#ganW .gst div{background:var(--sunk);border-radius:8px;padding:6px 8px}#ganW dt{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}#ganW dd{margin:0;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}#ganW dd small{display:block;font-size:11px;font-weight:500;color:var(--muted)}
+#ganW .gmsg{margin:0;font-size:12.5px;border-left:3px solid var(--good);padding:4px 8px;background:var(--sunk);border-radius:4px}#ganW .gtoday{margin:0;font-size:11.5px;color:var(--muted)}
+#ganW .gpill{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);font:inherit;cursor:pointer;min-height:44px}#ganW .gpill b{color:var(--good);font-variant-numeric:tabular-nums}#ganW .gpm{color:var(--muted);font-size:12px}
+@media (max-width:640px){#ganW{left:8px;bottom:8px}#ganW .gcard{width:min(300px,calc(100vw - 16px))}}
 /* ===== Menú Más ===== */
 .mas{position:relative}.mas>summary{list-style:none;cursor:pointer;user-select:none}.mas>summary::-webkit-details-marker{display:none}
 .mas>summary.on{border-color:var(--accent);color:var(--accent)}
@@ -2738,6 +2752,77 @@ document.addEventListener("change",e=>{
   try{rRef(id).update({telefono:telFmt(v),telefonoN:d,telOrigen:"Copiado del aviso por "+quien+" · "+fmtD(hoy()),updatedAt:new Date().toISOString(),updatedBy:S.uid||null});toast("Teléfono guardado")}catch(err){toast("No se pudo guardar el teléfono")}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches&&e.target.matches("input[data-tsave]")){e.preventDefault();e.target.blur()}});
+
+/* ===== Mis comisiones: tabla flotante por consignador. $100.000 por consignación (mandato firmado) y $150.000 por venta del auto que consignó. Se recalcula sola cada pocos segundos. ===== */
+const GAN={man:100000,ven:150000,probVentaMes:0.35};
+function ganCalc(nom,ym){
+  const calls=(S.segCalls&&S.segCalls.length?S.segCalls:S.llamadas||[]);
+  const inM=f=>String(f||"").slice(0,7)===ym,key=c=>c.radarId||c.telefonoN||c._id,t=hoy();
+  const mine=calls.filter(c=>c.consignador===nom);
+  const uniq=(arr)=>{const s=new Set();arr.forEach(c=>s.add(key(c)));return s.size};
+  const mes=mine.filter(c=>inM(c.fecha));
+  const man=uniq(mes.filter(c=>sgNiv(c)>=5)),tasAg=uniq(mes.filter(c=>sgNiv(c)===3)),tasHe=uniq(mes.filter(c=>sgNiv(c)===4));
+  const hoyC=mine.filter(c=>c.fecha===t),hoyCont=hoyC.length,hoyTas=uniq(hoyC.filter(c=>sgNiv(c)>=3));
+  // quién consignó cada auto: el consignador del aviso o de la llamada con mandato
+  const credito=a=>{const r=a.radarId&&S.radarMap&&S.radarMap[a.radarId];if(r&&r.consignador)return r.consignador;const c=calls.find(x=>a.radarId&&x.radarId===a.radarId&&sgNiv(x)>=5);return c?c.consignador:""};
+  const autos=(S.autos||[]).filter(a=>credito(a)===nom);
+  const ven=autos.filter(a=>a.estado==="Vendido"&&inM(a.fechaVenta)).length;
+  const stock=autos.filter(a=>a.estado!=="Vendido"&&(a.mandatoFirmado||/stock|publicad|vitrina|consign/i.test(a.estado||""))).length;
+  // casos que siguen abiertos en tasación (agendada o hecha) sin mandato
+  const rad=(S.radar||[]).filter(r=>r.consignador===nom&&!r.noContactar&&rNivel(r)>=3&&rNivel(r)<5);
+  const abiertos=new Set(rad.map(r=>r._id)).size;
+  // tasa real del equipo: de los casos que llegaron a tasación, cuántos firmaron
+  const allT=new Set(),allM=new Set();calls.forEach(c=>{const v=sgNiv(c);if(v>=3)allT.add(key(c));if(v>=5)allM.add(key(c))});
+  const tasa=allT.size>=8?Math.min(0.6,Math.max(0.15,allM.size/allT.size)):0.3;
+  const ganado=man*GAN.man+ven*GAN.ven;
+  const enCamino=Math.round(abiertos*tasa)*GAN.man+stock*GAN.ven;
+  const y=+ym.slice(0,4),m=+ym.slice(5,7)-1,ini=ym+"-01",fin=ds(new Date(y,m+1,0));
+  const hTot=habiles(ini,fin)||1,hPas=Math.max(1,Math.min(hTot,habiles(ini,t>fin?fin:t)));
+  const ritmoMan=Math.round(man/hPas*hTot);
+  const proy=ganado+Math.max(Math.max(0,ritmoMan-man)*GAN.man,Math.round(abiertos*tasa)*GAN.man)+Math.round(stock*GAN.probVentaMes)*GAN.ven;
+  return {man,ven,tasAg,tasHe,hoyCont,hoyTas,stock,abiertos,tasa,ganado,enCamino,proy:Math.round(proy/10000)*10000,ritmoMan,hTot,hPas,quedan:Math.max(0,hTot-hPas)};
+}
+function ganNombres(){const s=new Set();(S.segCalls||S.llamadas||[]).forEach(c=>{if(c.consignador)s.add(c.consignador)});return [...s].sort()}
+let ganLast="";
+function ganRender(){
+  if(!S.accesoListo||!(S.segCalls||S.llamadas))return;
+  let box=document.getElementById("ganW");
+  const nombres=ganNombres();
+  const yo=miNombre()||rCons()||"";
+  let nom=(S.isAdmin&&!window.__ANSAR_SITE)?(S.ganNom||lsGet("ansar_gannom")||yo||nombres[0]||""):yo;
+  if(!nom){if(box)box.hidden=true;return}
+  const ym=hoy().slice(0,7),g=ganCalc(nom,ym),min=lsGet("ansar_ganmin")==="1";
+  const mesN=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"][+ym.slice(5,7)-1];
+  const pct=g.proy?Math.min(100,Math.round(g.ganado/g.proy*100)):0;
+  const nombre1=String(nom).split(" ")[0];
+  let msg;
+  if(g.abiertos>0)msg=`Tienes ${g.abiertos} tasaci${g.abiertos>1?"ones":"ón"} abierta${g.abiertos>1?"s":""}: cada una que firmes suma <b>${clp(GAN.man)}</b>.`;
+  else if(g.man===0)msg=`Tu primer mandato del mes son <b>${clp(GAN.man)}</b>. Agenda una tasación hoy.`;
+  else msg=`Vas en ${g.man} mandato${g.man>1?"s":""}. Al ritmo de hoy cierras <b>${g.ritmoMan}</b> este mes.`;
+  const sel=(S.isAdmin&&!window.__ANSAR_SITE&&nombres.length>1)?`<select class="gsel" data-gannom aria-label="Ver comisiones de">${nombres.map(n=>`<option ${n===nom?"selected":""}>${esc(n)}</option>`).join("")}</select>`:`<span class="gnm">${esc(nombre1)}</span>`;
+  const html=min?`<button type="button" class="gpill" data-ganmin="0" aria-label="Abrir mis comisiones"><span>💰</span><b>${clp(g.ganado)}</b><span class="gpm">${mesN}</span></button>`:
+  `<section class="gcard" aria-label="Mis comisiones">
+    <header><div><span class="gk">Mis comisiones · ${mesN}</span>${sel}</div><button type="button" class="gx" data-ganmin="1" aria-label="Minimizar">–</button></header>
+    <div class="gbig"><b>${clp(g.ganado)}</b><span>ganado</span></div>
+    <div class="gbar" title="Ganado vs proyección del mes"><i style="width:${pct}%"></i></div>
+    <div class="grow"><span>Proyección del mes</span><b>${clp(g.proy)}</b></div>
+    <div class="grow"><span>En camino</span><b>${clp(g.enCamino)}</b></div>
+    <dl class="gst">
+      <div><dt>Mandatos</dt><dd>${g.man}<small>${clp(g.man*GAN.man)}</small></dd></div>
+      <div><dt>Ventas</dt><dd>${g.ven}<small>${clp(g.ven*GAN.ven)}</small></dd></div>
+      <div><dt>Tasaciones</dt><dd>${g.tasAg+g.tasHe}<small>${g.tasHe} hechas</small></dd></div>
+      <div><dt>En stock</dt><dd>${g.stock}<small>${clp(g.stock*GAN.ven)} al vender</small></dd></div>
+    </dl>
+    <p class="gmsg">${msg}</p>
+    <p class="gtoday">Hoy: ${g.hoyCont} contacto${g.hoyCont===1?"":"s"} · ${g.hoyTas} tasaci${g.hoyTas===1?"ón":"ones"} · quedan ${g.quedan} días hábiles</p>
+  </section>`;
+  if(!box){box=document.createElement("div");box.id="ganW";box.setAttribute("role","complementary");document.body.appendChild(box)}
+  box.hidden=false;
+  if(html!==ganLast){const f=document.activeElement&&box.contains(document.activeElement);if(f&&document.activeElement.tagName==="SELECT")return;box.innerHTML=html;ganLast=html}
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-ganmin]");if(!b)return;lsSet("ansar_ganmin",b.dataset.ganmin);ganLast="";ganRender()});
+document.addEventListener("change",e=>{if(e.target.matches&&e.target.matches("select[data-gannom]")){S.ganNom=e.target.value;lsSet("ansar_gannom",S.ganNom);ganLast="";ganRender()}});
+setInterval(()=>{try{ganRender()}catch(_){}},4000);
 let telPurgeDone="";
 function telPurge(){
   if(!S.isAdmin||!S.db||telPurgeDone===hoy())return;telPurgeDone=hoy();

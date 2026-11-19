@@ -807,6 +807,7 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .rtl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:5px;font-size:13.5px;font-weight:700}.rtl.off{font-weight:500;color:var(--muted);font-size:12px}
 .rtl .tbtn{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:3px 10px;text-decoration:none;cursor:pointer;min-height:28px;display:inline-flex;align-items:center}.rtl .tbtn:hover{border-color:var(--accent)}.rtl .tbtn.wa{border-color:#25D366;color:#1e9e50}
 .rtl .tor{font-size:11px;font-weight:500;color:var(--muted)}
+.rtl.add{font-weight:500}.rtl .tin{font:inherit;font-size:13px;border:1px dashed var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:3px 10px;min-height:28px;width:170px}.rtl .tin:focus{border-style:solid;border-color:var(--accent);outline:none}
 /* ===== Menú Más ===== */
 .mas{position:relative}.mas>summary{list-style:none;cursor:pointer;user-select:none}.mas>summary::-webkit-details-marker{display:none}
 .mas>summary.on{border-color:var(--accent);color:var(--accent)}
@@ -2720,12 +2721,23 @@ function negLiq(r){const L=(S.crit&&S.crit.liquidez)||{},k=NEG_N(r.marca+" "+r.m
 /* ===== Teléfono del dueño en la vista previa del aviso. Solo números públicos del aviso (texto o botón WhatsApp/Llamar visible sin login) o ingresados por el equipo. Se oculta con "No contactar" y se borra 30 días después de cerrar o dar de baja. ===== */
 function telLine(r){
   if(r.noContactar)return `<span class="rtl off">No contactar: número oculto</span>`;
-  const raw=r.telefono||r.telefonoN||"";if(!telOk(raw))return "";
+  const raw=r.telefono||r.telefonoN||"";
+  if(!telOk(raw)){if(!S.canWrite||rNivel(r)>=5)return "";return `<span class="rtl add" data-tline="1"><a class="tbtn" href="${esc(r.url||"#")}" target="_blank" rel="noopener noreferrer">Ver número en el aviso ↗</a><input type="tel" inputmode="tel" class="tin" data-tsave="${esc(r._id)}" placeholder="pega el número aquí" aria-label="Pegar teléfono del dueño" autocomplete="off"></span>`}
   const d=normTel(raw),full="56"+(d.length===8?"9"+d:d),auto=rModelo(r)+(r.anio?" "+r.anio:"");
   const nom=String(rCons()||"").trim().split(" ")[0];
   const msg=`Hola, ¿hablo con el dueño del ${auto} publicado en ${r.src||"internet"}? ${nom?"Soy "+nom+", de":"Te escribo de"} Ansar Automotriz en La Serena. Si prefieres que no te contactemos, me avisas y no te escribimos más.`;
   return `<span class="rtl" data-tline="1"><span class="num">📞 ${esc(telFmt(raw))}</span><button type="button" class="tbtn" data-tcopy="${esc(telFmt(raw))}" aria-label="Copiar teléfono">Copiar</button><a class="tbtn" href="tel:+${full}" aria-label="Llamar">Llamar</a><a class="tbtn wa" href="https://wa.me/${full}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp">WhatsApp</a>${r.telOrigen?`<span class="tor">${esc(r.telOrigen)}</span>`:""}</span>`;
 }
+
+/* Guardar el teléfono pegado en la vista previa del aviso (Enter o al salir del campo). */
+document.addEventListener("change",e=>{
+  const i=e.target.closest&&e.target.closest("input[data-tsave]");if(!i)return;
+  const id=i.dataset.tsave,v=i.value.trim();if(!v)return;
+  if(!telOk(v)){toast("Número no válido: usa 9 dígitos, ej. 9 1234 5678");return}
+  const d=normTel(v),quien=(miNombre()||rCons()||"el equipo").split(" ")[0];
+  try{rRef(id).update({telefono:telFmt(v),telefonoN:d,telOrigen:"Copiado del aviso por "+quien+" · "+fmtD(hoy()),updatedAt:new Date().toISOString(),updatedBy:S.uid||null});toast("Teléfono guardado")}catch(err){toast("No se pudo guardar el teléfono")}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches&&e.target.matches("input[data-tsave]")){e.preventDefault();e.target.blur()}});
 let telPurgeDone="";
 function telPurge(){
   if(!S.isAdmin||!S.db||telPurgeDone===hoy())return;telPurgeDone=hoy();

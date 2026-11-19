@@ -2917,7 +2917,8 @@ const SRCP={"Facebook Marketplace":["mkp","⚑ Marketplace"],"Mercado Libre":["s
 function srcPill(r){const v=SRCP[r.src];if(!r.src)return "";const tt=(r.lote&&/^apify-fb/.test(r.lote)?"Rastreo de Marketplace del "+fmtD(r.fechaRadar):"Aviso de "+r.src)+(r.fechaRadar?" · en el radar desde "+fmtD(r.primerRadar||r.fechaRadar):"");return `<span class="pill ${v?v[0]:"sot"}" title="${esc(tt)}">${esc(v?v[1]:r.src)}</span>`}
 function vRadar(team){
   const virt=team==="virt",F=S.rf[team],cons=rCons(),ro=S.canWrite?"":"disabled";
-  const all=S.radar.filter(r=>!r.pedidoId&&(virt?esVirt(r):!esVirt(r)));
+  const viejo=r=>{const a=parseInt(r.anio,10);return !!a&&a<2015};const allEq=S.radar.filter(r=>!r.pedidoId&&(virt?esVirt(r):!esVirt(r)));const nViejos=allEq.filter(viejo).length;
+  const all=S.verViejos?allEq:allEq.filter(r=>!viejo(r));
   const cnt=g=>g==="hoy"?all.filter(seguirHoy).length:all.filter(r=>rGrupo(r)===g).length;
   const pend=all.filter(r=>rGrupo(r)==="pend"),tomados=pend.filter(r=>rClaim(r)).length;
   const KV={hoyc:["Contactados hoy",r=>r.ultimoContacto===hoy()],tas:["Tasaciones agendadas o hechas",r=>rNivel(r)>=3],man:["Mandatos firmados",r=>rNivel(r)>=5]};
@@ -2972,6 +2973,7 @@ function vRadar(team){
       <label><span>Motor</span><select data-rms="1" data-team="${team}">${[["","Todos"],...MOTORES.map(m=>[m,m])].map(([k,l])=>`<option value="${k}" ${F.motor===k?"selected":""}>${l}</option>`).join("")}</select></label>
       <button type="button" class="mkpbtn" data-rmkp="${team}" aria-pressed="${rfx(team).src==="Facebook Marketplace"}">⚑ Solo Marketplace <span class="num">${(F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista)).filter(r=>r.src==="Facebook Marketplace").length}</span></button>
       <button type="button" class="mkpbtn" data-rsub="${team}" aria-pressed="${rfx(team).sub==="Alta Gama"}">◆ Alta Gama <span class="num">${(F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista)).filter(r=>r.subtema==="Alta Gama").length}</span></button>
+      <button type="button" class="mkpbtn" data-rold="1" aria-pressed="${!!S.verViejos}" title="Los avisos anteriores a 2015 están ocultos, no borrados">${S.verViejos?"Ocultar":"Ver"} anteriores a 2015 <span class="num">${nViejos}</span></button>
       <label><span>Antigüedad</span><select data-rtrs="1" data-team="${team}">${[["","Toda"],...TRAMOS,["Otros","Otros / sin dato"]].map(([k,l])=>`<option value="${k}" ${(F.tramo||"")===k?"selected":""}>${l}${k?" ("+all.filter(r=>rGrupo(r)==="pend"&&(k==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===k)).length+")":""}</option>`).join("")}</select></label>
     </div>
     ${mezclaHtml(pend)}
@@ -4229,6 +4231,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.v){S.view=t.dataset.v;ensureCalls();if(S.view==="reloj")relojCargar(true);render();window.scrollTo(0,0);return}
   if(t.dataset.rv){S.rf[t.dataset.team||"pres"].vista=t.dataset.rv;render();return}
   if(t.dataset.rmkp){const tm=t.dataset.rmkp,X=rfx(tm);X.src=X.src==="Facebook Marketplace"?"":"Facebook Marketplace";rfxSave(tm);render();return}
+  if(t.dataset.rold){S.verViejos=!S.verViejos;render();return}
   if(t.dataset.rsub){const tm=t.dataset.rsub,X=rfx(tm);X.sub=X.sub==="Alta Gama"?"":"Alta Gama";rfxSave(tm);render();return}
   if(t.dataset.rfxclr){const tm=t.dataset.rfxclr;S.rfx[rfxKey(tm)]={...RFX_DEF};rfxSave(tm);render();return}
   if(t.dataset.rvk){const F=S.rf[t.dataset.team||"pres"];F.vista=t.dataset.rvk;F.quien="";F.motor="";F.tramo="";render();requestAnimationFrame(()=>{const l=document.getElementById("rvkb")||document.querySelector(".rlist")||document.querySelector("main .empty");if(l)l.scrollIntoView({behavior:"smooth",block:"start"})});return}

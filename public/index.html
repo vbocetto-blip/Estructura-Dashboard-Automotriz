@@ -804,6 +804,9 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .rneg ul{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}.rneg .gch{font-size:13.5px;background:var(--accent-soft);border-left:3px solid var(--accent);padding:7px 10px;border-radius:4px}
 .rneg .mut{color:var(--muted);font-size:12px}
 .rnegp{display:block;font-size:12.5px;margin-top:2px;color:var(--muted);font-variant-numeric:tabular-nums}.rnegp b{font-weight:700}.rnegp.ok b{color:var(--good)}.rnegp.mid b,.rnegp.mid{color:var(--warn)}.rnegp.no b{color:var(--bad)}
+.rtl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:5px;font-size:13.5px;font-weight:700}.rtl.off{font-weight:500;color:var(--muted);font-size:12px}
+.rtl .tbtn{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:3px 10px;text-decoration:none;cursor:pointer;min-height:28px;display:inline-flex;align-items:center}.rtl .tbtn:hover{border-color:var(--accent)}.rtl .tbtn.wa{border-color:#25D366;color:#1e9e50}
+.rtl .tor{font-size:11px;font-weight:500;color:var(--muted)}
 /* ===== Menú Más ===== */
 .mas{position:relative}.mas>summary{list-style:none;cursor:pointer;user-select:none}.mas>summary::-webkit-details-marker{display:none}
 .mas>summary.on{border-color:var(--accent);color:var(--accent)}
@@ -2678,7 +2681,7 @@ function rCard(r){
     <summary class="rsum">
      <span class="rsc ${b?b[1]:"tar"}" title="${b?esc(b[0]):r.sinMedia?"Sin media de mercado: no se puede calcular el puntaje":"Sin puntaje"}">${hasSc?`<b class="num">${esc(score)}</b>`:r.sinMedia?`<b style="font-size:11px">s/m</b>`:"–"}</span>
      <span class="rsm"><span class="rt">${esc(rModelo(r))} <span class="ry">${esc(r.anio||"")}</span></span>
-      <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${negMini(r)}${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
+      <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${negMini(r)}${telLine(r)}${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
      <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}"${r.medFuente?` title="Media de ${esc(r.medFuente)}${r.n?" · "+esc(r.n)+" avisos":""}"`:""}>${vsLbl}${r.medFuente&&/referencial/.test(r.medFuente)?" · ref. ML":""}</span>`:r.sinMedia?`<span class="vs" title="Menos de 4 avisos comparables: sin media de mercado">sin media</span>`:""}</span>
      <span class="rsf">${banderaHoy(r)?`<span class="pill bandera" title="Marcado para contactar hoy">⚐ Para contactar hoy</span>`:""}${avisoNuevo(r)?`<span class="pill nuevo" title="Aviso recién publicado, cargado el ${esc(fmtD(r.avisoNuevo))}">✦ Aviso nuevo</span>`:""}${srcPill(r)}${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
      <span class="rchev" aria-hidden="true"></span>
@@ -2714,6 +2717,26 @@ function negComps(r){
   negCache.m.set(ck,out);return out;
 }
 function negLiq(r){const L=(S.crit&&S.crit.liquidez)||{},k=NEG_N(r.marca+" "+r.modelo);const has=a=>(a||[]).some(x=>k.startsWith(NEG_N(x)));if(has(L.A))return "A";if(has(L.B))return "B";return /audi|bmw|volvo|dodge|ram|mercedes|porsche|jeep|lexus|mini|haval|gac|chery|changan|ssangyong|daihatsu|opel|lifan|jac|dfsk|baic|zx/i.test(r.marca||"")?"C":"B"}
+/* ===== Teléfono del dueño en la vista previa del aviso. Solo números públicos del aviso (texto o botón WhatsApp/Llamar visible sin login) o ingresados por el equipo. Se oculta con "No contactar" y se borra 30 días después de cerrar o dar de baja. ===== */
+function telLine(r){
+  if(r.noContactar)return `<span class="rtl off">No contactar: número oculto</span>`;
+  const raw=r.telefono||r.telefonoN||"";if(!telOk(raw))return "";
+  const d=normTel(raw),full="56"+(d.length===8?"9"+d:d),auto=rModelo(r)+(r.anio?" "+r.anio:"");
+  const nom=String(rCons()||"").trim().split(" ")[0];
+  const msg=`Hola, ¿hablo con el dueño del ${auto} publicado en ${r.src||"internet"}? ${nom?"Soy "+nom+", de":"Te escribo de"} Ansar Automotriz en La Serena. Si prefieres que no te contactemos, me avisas y no te escribimos más.`;
+  return `<span class="rtl" data-tline="1"><span class="num">📞 ${esc(telFmt(raw))}</span><button type="button" class="tbtn" data-tcopy="${esc(telFmt(raw))}" aria-label="Copiar teléfono">Copiar</button><a class="tbtn" href="tel:+${full}" aria-label="Llamar">Llamar</a><a class="tbtn wa" href="https://wa.me/${full}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp">WhatsApp</a>${r.telOrigen?`<span class="tor">${esc(r.telOrigen)}</span>`:""}</span>`;
+}
+let telPurgeDone="";
+function telPurge(){
+  if(!S.isAdmin||!S.db||telPurgeDone===hoy())return;telPurgeDone=hoy();
+  const lim=Date.now()-30*864e5;
+  (S.radar||[]).forEach(r=>{
+    if(!(r.telefono||r.telefonoN))return;
+    const cerrado=r.noContactar||r.estadoAviso==="no publicado"||rNivel(r)===1;
+    const t=Date.parse(r.updatedAt||r.ultimoContacto||r.fechaRadar||"");
+    if(cerrado&&t&&t<lim){try{rRef(r._id).update({telefono:"",telefonoN:"",telOrigen:"",telBorradoEn:hoy()})}catch(_){}}
+  });
+}
 function negMini(r){
   const P=Number(r.precio)||0;if(!P)return "";
   const COM=Number(S.crit&&S.crit.comisionMin)||1500000,c=negComps(r),M=c.media;
@@ -3154,7 +3177,7 @@ function onRadarSnap(snap,col){
   }
   S.radarMap=next;S.radar=Object.values(next);S.radarAt=new Date();S.radarErr=null;
   if(!snap.metadata.fromCache){S.radarLoaded=true;S.colLoaded[col]=true}
-  syncVirt();
+  syncVirt();try{telPurge()}catch(_){}
   if(msgs.length)toast(msgs.length>1?`${msgs[0]} (y ${msgs.length-1} más)`:msgs[0]);
   safeRender();
   setTimeout(remTick,0);
@@ -4172,6 +4195,7 @@ document.addEventListener("keydown",e=>{const mm=$("#mas");if(e.key==="Escape"&&
 document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.classList&&d.classList.contains("cad-d"))lsSet("ansar_cadd",d.open?"1":"0")},true);
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
+  if(t.dataset.tcopy){e.preventDefault();e.stopPropagation();copyText(t.dataset.tcopy,"Teléfono copiado");return}
   /* Radar (piso y virtual): agendar la tasación al registrar el contacto, sin buscarla en la lista de resultados. */
   if(t.dataset.ragen){const id=t.dataset.ragen,f=(S.rform[id]=S.rform[id]||{}),on=f.res!=="Agendó tasación";f.res=on?"Agendó tasación":"";
     const sel=document.getElementById("r_res_"+id);if(sel)sel.value=f.res;

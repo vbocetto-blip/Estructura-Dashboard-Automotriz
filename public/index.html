@@ -822,6 +822,8 @@ main h2{transition:letter-spacing .6s var(--ease)}
 #ganW .gmsg{margin:0;font-size:12.5px;border-left:3px solid var(--good);padding:4px 8px;background:var(--sunk);border-radius:4px}#ganW .gtoday{margin:0;font-size:11.5px;color:var(--muted)}
 #ganW .gpill{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);font:inherit;cursor:pointer;min-height:44px}#ganW .gpill b{color:var(--good);font-variant-numeric:tabular-nums}#ganW .gpm{color:var(--muted);font-size:12px}
 @media (max-width:640px){#ganW{left:8px;bottom:8px}#ganW .gcard{width:min(300px,calc(100vw - 16px))}}
+.rcanal{display:flex;gap:6px;flex-wrap:wrap;width:100%}.rcbtn{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;min-height:34px;cursor:pointer}.rcbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.rcan{display:inline-block;margin-top:4px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid var(--line);color:var(--muted)}.rcan.c-llamada{color:var(--good);border-color:currentColor}.rcan.c-mensaje{color:var(--info,#4ea1ff);border-color:currentColor}.rcan.c-marketplace{color:#8fb4f5;border-color:currentColor}
 /* ===== Menú Más ===== */
 .mas{position:relative}.mas>summary{list-style:none;cursor:pointer;user-select:none}.mas>summary::-webkit-details-marker{display:none}
 .mas>summary.on{border-color:var(--accent);color:var(--accent)}
@@ -2679,7 +2681,7 @@ function rCard(r){
   const copy=!activo||otro?"":r.pedidoId?`<button type="button" class="btn primary" data-rcopy="${id}" data-k="Pedido">Copiar mensaje: Cliente busca</button>`:(r.motor?`<button type="button" class="btn primary" data-rcopy="${id}" data-k="${esc(r.ruta==="Consignación por tiempo"||r.ruta==="Ajuste de precio"?r.ruta:r.motor)}">Copiar mensaje: ${esc(r.ruta==="Consignación por tiempo"||r.ruta==="Ajuste de precio"?r.ruta:r.motor)}</button><button type="button" class="btn" data-rcopy="${id}" data-k="${esc(alt)}">Alternativo: ${esc(alt)}</button>`:`<button type="button" class="btn" data-rcopy="${id}" data-k="Consignar">Copiar mensaje: Consignar</button>`);
   const quick=!S.canWrite||!activo||otro||rNivel(r)>=0?"":`<button type="button" class="btn" data-rquick="${id}">Ya le escribí</button>`;
   const busy=otro?`<p class="rbusy">Lo está contactando ${esc(cl.by)}. Si en 24 horas no registra nada, el aviso se libera solo.</p>`:"";
-  const reg=r.noContactar||!S.canWrite||otro?"":`<div class="rreg"><select id="r_res_${id}" data-rres="${id}" aria-label="Resultado del contacto"><option value="">Resultado del contacto…</option>${RRES.map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><button type="button" class="btn ragen" data-ragen="${id}" aria-pressed="${f.res==="Agendó tasación"}" title="Deja el contacto como tasación agendada y pide día y hora. La cita queda en la Agenda.">Agendar tasación</button><label class="sgdl rcita" id="r_cita_${id}" ${f.res==="Agendó tasación"?"":"hidden"}>Día y hora de la tasación<input type="date" data-rcf="${id}" min="${hoy()}" value="${esc(f.cf||"")}" aria-label="Día de la tasación"><input type="time" data-rch="${id}" step="900" value="${esc(f.ch||"")}" aria-label="Hora de la tasación"></label><input id="r_tel_${id}" data-rtel="${id}" type="tel" inputmode="tel" value="${esc(f.tel??r.telefono??((S.pm[r._id]||{}).tel||""))}" placeholder="teléfono del dueño" aria-label="Teléfono o WhatsApp del dueño" autocomplete="off" class="rtel"><input id="r_nom_${id}" data-rnom="${id}" type="text" value="${esc(f.nom??r.contacto??((S.pm[r._id]||{}).nombre||""))}" placeholder="nombre (opcional)" aria-label="Nombre del dueño" autocomplete="off" class="rnom"><input id="r_nota_${id}" data-rnota="${id}" type="text" value="${esc(f.nota||"")}" placeholder="nota opcional: qué respondió, objeción" autocomplete="off"><button type="button" class="btn primary" data-rreg="${id}">Registrar${rCons()?" como "+esc(String(rCons()).split(" ")[0]):""}</button></div>`;
+  const reg=r.noContactar||!S.canWrite||otro?"":`<div class="rreg">${canalChips(id,r,f)}<select id="r_res_${id}" data-rres="${id}" aria-label="Resultado del contacto"><option value="">Resultado del contacto…</option>${RRES.map(([v,l])=>`<option value="${esc(v)}" ${f.res===v?"selected":""}>${esc(l)}</option>`).join("")}</select><button type="button" class="btn ragen" data-ragen="${id}" aria-pressed="${f.res==="Agendó tasación"}" title="Deja el contacto como tasación agendada y pide día y hora. La cita queda en la Agenda.">Agendar tasación</button><label class="sgdl rcita" id="r_cita_${id}" ${f.res==="Agendó tasación"?"":"hidden"}>Día y hora de la tasación<input type="date" data-rcf="${id}" min="${hoy()}" value="${esc(f.cf||"")}" aria-label="Día de la tasación"><input type="time" data-rch="${id}" step="900" value="${esc(f.ch||"")}" aria-label="Hora de la tasación"></label><input id="r_tel_${id}" data-rtel="${id}" type="tel" inputmode="tel" value="${esc(f.tel??r.telefono??((S.pm[r._id]||{}).tel||""))}" placeholder="teléfono del dueño" aria-label="Teléfono o WhatsApp del dueño" autocomplete="off" class="rtel"><input id="r_nom_${id}" data-rnom="${id}" type="text" value="${esc(f.nom??r.contacto??((S.pm[r._id]||{}).nombre||""))}" placeholder="nombre (opcional)" aria-label="Nombre del dueño" autocomplete="off" class="rnom"><input id="r_nota_${id}" data-rnota="${id}" type="text" value="${esc(f.nota||"")}" placeholder="nota opcional: qué respondió, objeción" autocomplete="off"><button type="button" class="btn primary" data-rreg="${id}">Registrar${rCons()?" como "+esc(String(rCons()).split(" ")[0]):""}</button></div>`;
   const rm=remOf(r),myRem=rm&&rm.a===rCons();
   const remPill=rm?`<span class="pill rem${rm.at<=Date.now()?" due":""}">Volver a llamar ${hhmm(new Date(rm.at))}${rm.a?" · "+esc(String(rm.a).split(" ")[0]):""}</span>`:"";
   const remCtl=!S.canWrite||!activo||otro?"":`<select class="rrem" data-rmin="${id}" aria-label="Volver a llamar dentro de"><option value="">${myRem?"Cambiar recordatorio…":"Volver a llamar dentro de…"}</option>${REM_OPTS.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select>${myRem?`<button type="button" class="btn" data-rclr="${id}">Quitar recordatorio</button>`:""}`;
@@ -2696,7 +2698,7 @@ function rCard(r){
     <summary class="rsum">
      <span class="rsc ${b?b[1]:"tar"}" title="${b?esc(b[0]):r.sinMedia?"Sin media de mercado: no se puede calcular el puntaje":"Sin puntaje"}">${hasSc?`<b class="num">${esc(score)}</b>`:r.sinMedia?`<b style="font-size:11px">s/m</b>`:"–"}</span>
      <span class="rsm"><span class="rt">${esc(rModelo(r))} <span class="ry">${esc(r.anio||"")}</span></span>
-      <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${negMini(r)}${telLine(r)}${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
+      <span class="rsub num">${r.km?Number(r.km).toLocaleString("es-CL")+" km":"km s/d"}${r.comuna?" · "+esc(r.comuna):""}${dias!=null?" · "+dias+" d publicado":""}</span>${negMini(r)}${telLine(r)}${canalTag(r)}${seguirHoy(r)?`<span class="rsub" style="color:var(--bad);font-weight:600">${rProx(r)<hoy()?"Vencido desde "+fmtD(rProx(r)):"Toca hoy"} · ${esc(r.ultimoResultado||"")} · ${esc(String(r.consignador||"").split(" ")[0])}</span>`:""}</span>
      <span class="rsp"><span class="p num">${clp(r.precio)}</span>${pct!=null?`<span class="vs ${vsCls}"${r.medFuente?` title="Media de ${esc(r.medFuente)}${r.n?" · "+esc(r.n)+" avisos":""}"`:""}>${vsLbl}${r.medFuente&&/referencial/.test(r.medFuente)?" · ref. ML":""}</span>`:r.sinMedia?`<span class="vs" title="Menos de 4 avisos comparables: sin media de mercado">sin media</span>`:""}</span>
      <span class="rsf">${banderaHoy(r)?`<span class="pill bandera" title="Marcado para contactar hoy">⚐ Para contactar hoy</span>`:""}${avisoNuevo(r)?`<span class="pill nuevo" title="Aviso recién publicado, cargado el ${esc(fmtD(r.avisoNuevo))}">✦ Aviso nuevo</span>`:""}${srcPill(r)}${remPill}${tag}${r.noContactar?`<span class="pill gap">No contactar</span>`:r.estadoAviso==="no publicado"?`<span class="pill st-Retirado">Ya no publicado</span>`:r.motor?`<span class="pill m-${esc(r.motor)}">${esc(r.motor)}</span>`:""}${esVirt(r)&&S.view!=="virtual"?`<span class="pill virt">Virtual</span>`:""}</span>
      <span class="rchev" aria-hidden="true"></span>
@@ -2834,6 +2836,13 @@ function telPurge(){
     if(cerrado&&t&&t<lim){try{rRef(r._id).update({telefono:"",telefonoN:"",telOrigen:"",telBorradoEn:hoy()})}catch(_){}}
   });
 }
+
+/* ===== Canal del contacto: llamada, mensaje (WhatsApp/SMS) o Marketplace (Messenger) ===== */
+const CONTACTO_CANALES=[["Llamada","📞","Llamada"],["Mensaje","💬","Mensaje"],["Marketplace","⚑","Marketplace"]];
+const canalDef=r=>r&&r.src==="Facebook Marketplace"?"Marketplace":"Llamada";
+const canalIco=c=>(CONTACTO_CANALES.find(x=>x[0]===c)||[])[1]||"";
+function canalTag(r){if(!r.ultimoCanalFecha||!r.ultimoCanal)return "";return `<span class="rcan c-${esc(String(r.ultimoCanal).toLowerCase())}" title="Canal del último contacto">${canalIco(r.ultimoCanal)} ${esc(r.ultimoCanal)} · ${r.ultimoCanalFecha===hoy()?"hoy":fmtD(r.ultimoCanalFecha)}</span>`}
+function canalChips(id,r,f){const v=f.canal||canalDef(r);return `<div class="rcanal" role="group" aria-label="Canal del contacto">${CONTACTO_CANALES.map(([k,ic,l])=>`<button type="button" class="rcbtn" data-rcanal="${esc(id)}" data-v="${k}" aria-pressed="${v===k}">${ic} ${l}</button>`).join("")}</div>`}
 function negMini(r){
   const P=Number(r.precio)||0;if(!P)return "";
   const COM=Number(S.crit&&S.crit.comisionMin)||1500000,c=negComps(r),M=c.media;
@@ -3025,7 +3034,7 @@ function vRadar(team){
     busDet=Object.keys(GO).map(g=>[g,arr.filter(r=>rGrupo(r)===g).length]).filter(x=>x[1]).map(([g,n])=>`${n} ${n===1&&GN1[g]?GN1[g]:GN[g]}`).join(" · ");
   }
   const hoyDocs=all.filter(r=>r.ultimoContacto===hoy());
-  const porCons=groupBy(hoyDocs,r=>r.consignador).map(x=>`${esc(String(x.k).split(" ")[0])} ${x.n}`).join(" · ");
+  const porCons=groupBy(hoyDocs,r=>r.consignador).map(x=>`${esc(String(x.k).split(" ")[0])} ${x.n}`).join(" · ");const porCanal=CONTACTO_CANALES.map(([k,ic])=>{const n=hoyDocs.filter(r=>r.ultimoCanal===k&&r.ultimoCanalFecha===hoy()).length;return n?`${ic} ${n}`:""}).filter(Boolean).join(" · ");
   const agen=all.filter(r=>rNivel(r)>=3).length,mand=all.filter(r=>rNivel(r)>=5).length;
   const vistas=[["hoy","Seguimiento hoy"],["pend","Sin contactar"],["gest","En gestión"],["prenda","Con prenda"],["cerr","Cerrados"],["nopub","Ya no publicados"],["todos","Todos"]];
   const nombres=S.virtuales.map(n=>String(n).split(" ")[0]);
@@ -3040,7 +3049,7 @@ function vRadar(team){
   <div class="kpis">
     <button type="button" class="kpi kpib${cnt("hoy")?" hl":""}" data-rvk="hoy" data-team="${team}" aria-pressed="${F.vista==="hoy"}" aria-label="Ver los ${cnt("hoy")} avisos con seguimiento para hoy"><span class="l">Seguimiento hoy</span><span class="v num">${cnt("hoy")}</span><span class="s">próxima fecha vencida · ver cuáles</span></button>
     <button type="button" class="kpi kpib" data-rvk="pend" data-team="${team}" aria-pressed="${F.vista==="pend"}" aria-label="Ver los ${pend.length} avisos sin contactar"><span class="l">Sin contactar</span><span class="v num">${pend.length}</span><span class="s">${pend.length-tomados} libres · ${tomados} tomados · ver cuáles</span></button>
-    <button type="button" class="kpi kpib" data-rvk="hoyc" data-team="${team}" aria-pressed="${F.vista==="hoyc"}" aria-label="Ver los ${hoyDocs.length} avisos contactados hoy"><span class="l">Contactados hoy</span><span class="v num">${hoyDocs.length}</span><span class="s">${porCons||"nadie todavía"} · ver cuáles</span></button>
+    <button type="button" class="kpi kpib" data-rvk="hoyc" data-team="${team}" aria-pressed="${F.vista==="hoyc"}" aria-label="Ver los ${hoyDocs.length} avisos contactados hoy"><span class="l">Contactados hoy</span><span class="v num">${hoyDocs.length}</span><span class="s">${porCanal?porCanal+" · ":""}${porCons||"nadie todavía"} · ver cuáles</span></button>
     <button type="button" class="kpi kpib" data-rvk="tas" data-team="${team}" aria-pressed="${F.vista==="tas"}" aria-label="Ver las ${agen} tasaciones"><span class="l">Tasaciones</span><span class="v num">${agen}</span><span class="s">agendadas o hechas · ver cuáles</span></button>
     <button type="button" class="kpi kpib hl" data-rvk="man" data-team="${team}" aria-pressed="${F.vista==="man"}" aria-label="Ver los ${mand} mandatos"><span class="l">Mandatos</span><span class="v num">${mand}</span><span class="s">${virt?"virtuales":"desde el radar"} · ver cuáles</span></button>
   </div>
@@ -3202,7 +3211,7 @@ async function rFree(id,btn){
 async function regRadar(id,btn,quick){
   if(!S.db){toast("Sin conexión a la base del equipo");return}
   const r=S.radar.find(x=>x._id===id);if(!r)return;
-  const f=quick?{res:"No contesta",nota:"Mensaje enviado por el portal"}:(S.rform[id]||{}),cons=rCons();
+  const f=quick?{res:"No contesta",nota:"Mensaje enviado por el portal",canal:r.src==="Facebook Marketplace"?"Marketplace":"Mensaje"}:(S.rform[id]||{}),cons=rCons();const canal=f.canal||canalDef(r);
   if(!cons){toast("Elige quién contacta");const el=$("[data-rcons]");if(el)el.focus();return}
   if(!f.res){toast("Elige el resultado del contacto");return}
   const cl=rClaim(r);if(cl&&!cl.mine){toast("Lo está contactando "+cl.by);return}
@@ -3220,12 +3229,12 @@ async function regRadar(id,btn,quick){
   const dest=f.res==="Pidió no ser contactado"?"Cerrados":f.res==="Tiene prenda"?"Con prenda":nivel===1||nivel>=5?"Cerrados":"En gestión";
   const now=new Date().toISOString();
   const data={fecha,consignador:cons,ruta:"Propio",fuente:r.src||"Radar",telefono:tel?telFmt(tel):"",telefonoN:normTel(tel),contacto:nom,perfil:r.perfil||"",marca:r.marca||"",modelo:r.modelo||"",anio:r.anio===""||r.anio==null?"":Number(r.anio),precioPide:Number(r.precio)||"",resultado:f.res,nivel,proximaFecha:prox,...(f.res==="Agendó tasación"?{horaCita:f.ch}:{}),
-    notas:[(f.nota||"").trim(),"Radar: "+(r.url||"")].filter(Boolean).join(" · "),noContactar:f.res==="Pidió no ser contactado",radarId:id,...(r.pedidoId?{pedidoId:r.pedidoId}:{}),equipo:esVirt(r)?"Virtual":"Presencial",creadoPor:S.uid||null,creadoEn:now,updatedAt:now,updatedBy:S.uid||null};
+    notas:[(f.nota||"").trim(),"Radar: "+(r.url||"")].filter(Boolean).join(" · "),canal,noContactar:f.res==="Pidió no ser contactado",radarId:id,...(r.pedidoId?{pedidoId:r.pedidoId}:{}),equipo:esVirt(r)?"Virtual":"Presencial",creadoPor:S.uid||null,creadoEn:now,updatedAt:now,updatedBy:S.uid||null};
   btn.disabled=true;btn.textContent="Guardando…";
   try{
     const ref=S.db.collection(callCol(r)).doc();
     await ref.set(data);S.writeProbe=true;S.tas=null;
-    await rRef(id).update({ultimoResultado:f.res,nivel,ultimoContacto:fecha,consignador:cons,asignado:cons,asignadoEn:now,ultimaLlamadaId:ref.id,...(tel?{telefono:telFmt(tel),telefonoN:normTel(tel)}:{}),...(nom?{contacto:nom}:{}),proximaFecha:prox,...(r.recordarEn&&Date.parse(r.recordarEn)<=Date.now()?{recordarEn:"",recordarA:"",recordarMin:""}:{}),nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
+    await rRef(id).update({ultimoResultado:f.res,nivel,ultimoContacto:fecha,ultimoCanal:canal,ultimoCanalFecha:fecha,consignador:cons,asignado:cons,asignadoEn:now,ultimaLlamadaId:ref.id,...(tel?{telefono:telFmt(tel),telefonoN:normTel(tel)}:{}),...(nom?{contacto:nom}:{}),proximaFecha:prox,...(r.recordarEn&&Date.parse(r.recordarEn)<=Date.now()?{recordarEn:"",recordarA:"",recordarMin:""}:{}),nContactos:(Number(r.nContactos)||0)+1,noContactar:!!(r.noContactar||data.noContactar),updatedAt:now,updatedBy:S.uid||null});
     window.__ansarGestion=Date.now()+60000;lsSet("ansar_cons",cons);delete S.rform[id];render();toast((quick?"Marcado como contactado":"Registrado en Llamadas")+" · pasó a "+dest);
   }catch(e){btn.disabled=false;btn.textContent="Reintentar";handleWriteErr(e)}
 }
@@ -4343,6 +4352,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.rq!==undefined){S.rf[t.dataset.team||"pres"].quien=t.dataset.rq;render();return}
   if(t.dataset.rtake){rTake(t.dataset.rtake,t);return}
   if(t.dataset.rfree){rFree(t.dataset.rfree,t);return}
+  if(t.dataset.rcanal){const id=t.dataset.rcanal,f=(S.rform[id]=S.rform[id]||{});f.canal=t.dataset.v;t.parentElement.querySelectorAll("[data-rcanal]").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));return}
   if(t.dataset.rquick){regRadar(t.dataset.rquick,t,true);return}
   if(t.dataset.rreg){regRadar(t.dataset.rreg,t);return}
   if(t.dataset.rfix){fixRadar(t.dataset.rfix,t);return}

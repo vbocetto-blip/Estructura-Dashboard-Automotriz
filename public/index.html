@@ -2857,7 +2857,7 @@ const CONTACTO_CANALES=[["Llamada","📞","Llamada"],["Mensaje","💬","Mensaje"
 const canalDef=r=>r&&r.src==="Facebook Marketplace"?"Marketplace":"Llamada";
 const canalIco=c=>(CONTACTO_CANALES.find(x=>x[0]===c)||[])[1]||"";
 function canalTag(r){if(!r.ultimoCanalFecha||!r.ultimoCanal)return "";return `<span class="rcan c-${esc(String(r.ultimoCanal).toLowerCase())}" title="Canal del último contacto">${canalIco(r.ultimoCanal)} ${esc(r.ultimoCanal)} · ${r.ultimoCanalFecha===hoy()?"hoy":fmtD(r.ultimoCanalFecha)}</span>`}
-function canalChips(id,r,f){const v=f.canal||canalDef(r);return `<div class="rcanal" role="group" aria-label="Canal del contacto">${CONTACTO_CANALES.map(([k,ic,l])=>`<button type="button" class="rcbtn" data-rcanal="${esc(id)}" data-v="${k}" aria-pressed="${v===k}">${ic} ${l}</button>`).join("")}</div>`}
+function canalChips(id,r,f){const v=f.canal||canalDef(r);return `<div class="rcanal" role="group" aria-label="Canal del contacto">${CONTACTO_CANALES.map(([k,ic,l])=>`<button type="button" class="rcbtn" data-rcanal="${esc(id)}" data-cv="${k}" aria-pressed="${v===k}">${ic} ${l}</button>`).join("")}</div>`}
 /* Contactados: los avisos agrupados por el canal del contacto (llamada, mensaje o Marketplace). */
 function canalDe(r){
   if(r.ultimoCanal&&(!r.ultimoCanalFecha||r.ultimoCanalFecha===r.ultimoContacto))return r.ultimoCanal;
@@ -4335,6 +4335,7 @@ document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.classList&&d.cla
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-mes]");if(!t)return;
   if(t.dataset.tcopy){e.preventDefault();e.stopPropagation();copyText(t.dataset.tcopy,"Teléfono copiado");return}
+  if(t.dataset.rcanal){const id=t.dataset.rcanal,f=(S.rform[id]=S.rform[id]||{});f.canal=t.dataset.cv;t.parentElement.querySelectorAll("[data-rcanal]").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));return}
   /* Radar (piso y virtual): agendar la tasación al registrar el contacto, sin buscarla en la lista de resultados. */
   if(t.dataset.ragen){const id=t.dataset.ragen,f=(S.rform[id]=S.rform[id]||{}),on=f.res!=="Agendó tasación";f.res=on?"Agendó tasación":"";
     const sel=document.getElementById("r_res_"+id);if(sel)sel.value=f.res;
@@ -4386,7 +4387,6 @@ document.addEventListener("click",e=>{
   if(t.dataset.rq!==undefined){S.rf[t.dataset.team||"pres"].quien=t.dataset.rq;render();return}
   if(t.dataset.rtake){rTake(t.dataset.rtake,t);return}
   if(t.dataset.rfree){rFree(t.dataset.rfree,t);return}
-  if(t.dataset.rcanal){const id=t.dataset.rcanal,f=(S.rform[id]=S.rform[id]||{});f.canal=t.dataset.v;t.parentElement.querySelectorAll("[data-rcanal]").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));return}
   if(t.dataset.rquick){regRadar(t.dataset.rquick,t,true);return}
   if(t.dataset.rreg){regRadar(t.dataset.rreg,t);return}
   if(t.dataset.rfix){fixRadar(t.dataset.rfix,t);return}

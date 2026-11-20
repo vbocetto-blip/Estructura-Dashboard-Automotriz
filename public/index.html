@@ -4577,12 +4577,16 @@ render();
   let loaded=0;const timer=setTimeout(()=>{if(loaded<2){S.offline="No se pudo cargar la tabla todavía. Revisa tu conexión; se actualizará sola.";setStatus("err","Sin conexión");render()}},10000);
   const done=()=>{loaded++;if(loaded>=2){clearTimeout(timer);if(S.offline&&S.offline.startsWith("No se pudo")){S.offline=null}S.lastSync=new Date();setStatus("ok",liveTxt())}};
   let a1=false,a2=false;
+  /* Estado de la conexión según cada sincronización: avisa el corte y lo quita solo cuando vuelve la señal. */
+  let pmFail=0;window.addEventListener("pm-sync",ev=>{const ok=ev.detail&&ev.detail.ok;
+    if(ok){pmFail=0;if(S.offline&&/^(Se cortó|No se pudo cargar)/.test(S.offline)){S.offline=null;render()}if(loaded>=2){S.lastSync=new Date();setStatus("ok",liveTxt())}}
+    else if(!(ev.detail&&ev.detail.code==="unauthenticated")){pmFail++;if(pmFail>=2){setStatus("err","Reconectando…");if(!S.offline){S.offline="Se cortó la conexión un momento. Reintentando solo…";render()}}}});
   db.collection("autos").onSnapshot(snap=>{
     S.autos=snap.docs.map(d=>({...d.data(),_id:d.id}));
     if(!snap.metadata.fromCache&&!a1){a1=true;done()}else if(a1){S.lastSync=new Date();setStatus("ok",liveTxt())}
     if(!snap.metadata.fromCache)S.autosListos=true;matchAviso();
     safeRender();
-  },err=>{clearTimeout(timer);setStatus("err","Error al cargar");S.offline="La tabla no se pudo cargar ("+err.code+"). Recarga la página más tarde.";render()});
+  },err=>{clearTimeout(timer);setStatus("err",err.code==="unauthenticated"?"Sesión vencida":"Reconectando…");S.offline=err.code==="unauthenticated"?"Tu sesión venció. Recarga la página e ingresa de nuevo.":"Se cortó la conexión un momento. Reintentando solo…";render()});
   db.collection("semanas").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data());S.semanas=o;if(!snap.metadata.fromCache&&!a2){a2=true;done()}safeRender()},()=>{});
   db.doc("config/equipo").onSnapshot(d=>{S.equipo=(d.exists&&Array.isArray(d.data().miembros))?d.data().miembros:[];safeRender()},()=>{});
   db.collection("pedidos").onSnapshot(onPedSnap,()=>{});

@@ -34,8 +34,11 @@
         }
         loaded = true;
         subs.forEach(s => { try { s.fire(); } catch (e) { console.error(e); } });
+        try { window.dispatchEvent(new CustomEvent("pm-sync", { detail: { ok: true } })); } catch (_) {}
       } catch (e) {
-        subs.forEach(s => s.onErr && s.onErr(e));
+        try { window.dispatchEvent(new CustomEvent("pm-sync", { detail: { ok: false, code: e && e.code } })); } catch (_) {}
+        /* Un corte puntual (señal débil, teléfono bloqueado) no es un error de la tabla: se reintenta solo en el próximo ciclo. Solo la sesión vencida se avisa a las suscripciones. */
+        if (e && e.code === "unauthenticated") subs.forEach(s => s.onErr && s.onErr(e));
       } finally { polling = null; }
     })();
     return polling;

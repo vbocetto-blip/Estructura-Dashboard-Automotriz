@@ -808,6 +808,27 @@ main h2{transition:letter-spacing .6s var(--ease)}
 .rtl .tbtn{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:3px 10px;text-decoration:none;cursor:pointer;min-height:28px;display:inline-flex;align-items:center}.rtl .tbtn:hover{border-color:var(--accent)}.rtl .tbtn.wa{border-color:#25D366;color:#1e9e50}
 .rtl .tor{font-size:11px;font-weight:500;color:var(--muted)}
 .rtl.add{font-weight:500}.rtl .tin{font:inherit;font-size:13px;border:1px dashed var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:3px 10px;min-height:28px;width:170px}.rtl .tin:focus{border-style:solid;border-color:var(--accent);outline:none}
+/* Cuadro del negocio plegable y compacto */
+.rnegd{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.rnegd>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 12px;min-height:40px}
+.rnegd>summary::-webkit-details-marker{display:none}
+.rnegd>summary .rnl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.rnegd>summary .vd{flex:1;min-width:0;font-size:13.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rnegd>summary .vd.ok{color:var(--good)}.rnegd>summary .vd.mid{color:var(--warn)}.rnegd>summary .vd.no{color:var(--bad)}
+.rnegd>summary .rnh{font-size:12px;color:var(--accent);white-space:nowrap}.rnegd>summary .rnh::after{content:" ▾"}
+.rnegd[open]>summary .rnh{font-size:0}.rnegd[open]>summary .rnh::after{content:"Cerrar ▴";font-size:12px}
+.rnegd[open]>summary .vd{white-space:normal}
+.rnegd>.rneg{border:0;border-top:1px solid var(--line);border-radius:0 0 10px 10px;margin:0;padding:10px 12px;gap:8px}
+.rneg .kps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,118px),1fr));gap:6px}
+.rneg .kp{background:var(--sunk);border-radius:8px;padding:6px 8px;display:grid;gap:1px;min-width:0}
+.rneg .kp span{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rneg .kp b{font-size:14px;font-weight:700}.rneg .kp.ok b{color:var(--good)}.rneg .kp.no b{color:var(--bad)}
+.rneg .gch{font-size:13px;padding:6px 10px}
+.rneg .rries{margin:0;font-size:12.5px;color:var(--muted)}.rneg .rries b{color:var(--warn)}
+.rnfull>summary{cursor:pointer;font-size:12.5px;color:var(--accent);padding:2px 0}
+.rnfull[open]>summary{margin-bottom:8px}
+.rnfull .ng{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:8px 14px}
+.rnfull dl{font-size:12.5px}
 /* Mis comisiones: tabla flotante */
 #ganW{position:fixed;left:16px;bottom:16px;z-index:70;max-width:calc(100vw - 32px)}
 #ganW .gcard{width:300px;max-width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.35);padding:12px 14px;display:grid;gap:8px;font-size:13px}
@@ -2706,11 +2727,11 @@ function rCard(r){
      <span class="rchev" aria-hidden="true"></span>
     </summary>
     <div class="rexp">
+     <div class="racts">${copy}${quick}${claimBtn}<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>${remCtl}${rNivel(r)>=0&&rNivel(r)<5&&S.canWrite&&!S.soloVirtual&&!r.noContactar&&!r.pedidoId?`<button type="button" class="btn manbtn" data-rman="${id}">✓ Mandato firmado</button>`:""}${rNivel(r)>=3&&S.canWrite&&!S.soloVirtual?`<button type="button" class="btn" data-rauto="${id}">${rNivel(r)>=5&&!autoDeRadar(r)?"Ingresar a Autos":"Pasar a Autos"}</button>`:""}${S.canWrite&&!S.soloVirtual&&activo&&!otro&&rNivel(r)<0&&!r.pedidoId?`<button type="button" class="btn ghost" data-rteam="${id}">${esVirt(r)?"Mover a Piso":"Mover a Virtual"}</button>`:""}</div>
      ${r.ver?`<p class="rver">${esc(r.ver)}</p>`:""}
-     ${negHtml(r)}
+     ${negHtml(r,id)}
      ${r.pros||r.contras?`<div class="rpc">${r.pros?`<div class="pro"><b>Pros</b>${esc(r.pros)}</div>`:""}${r.contras?`<div class="con"><b>Contras</b>${esc(r.contras)}</div>`:""}</div>`:""}
      ${r.ultimoResultado==="Tiene prenda"&&!r.noContactar?`<p class="rbusy">Con prenda: pide el certificado de anotaciones y el saldo de la deuda antes de tasar. Se puede consignar solo si el pago de la prenda queda resuelto en la venta; confírmalo en Ansar.</p>`:""}${last}${busy}${fix}
-     <div class="racts">${copy}${quick}${claimBtn}<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Abrir aviso ↗</a>${remCtl}${rNivel(r)>=0&&rNivel(r)<5&&S.canWrite&&!S.soloVirtual&&!r.noContactar&&!r.pedidoId?`<button type="button" class="btn manbtn" data-rman="${id}">✓ Mandato firmado</button>`:""}${rNivel(r)>=3&&S.canWrite&&!S.soloVirtual?`<button type="button" class="btn" data-rauto="${id}">${rNivel(r)>=5&&!autoDeRadar(r)?"Ingresar a Autos":"Pasar a Autos"}</button>`:""}${S.canWrite&&!S.soloVirtual&&activo&&!otro&&rNivel(r)<0&&!r.pedidoId?`<button type="button" class="btn ghost" data-rteam="${id}">${esVirt(r)?"Mover a Piso":"Mover a Virtual"}</button>`:""}</div>
      ${reg}
      <details class="rmore" data-gopen="rm_${id}" ${S.gopen["rm_"+r._id]?"open":""}><summary>Más detalles</summary>${detalle}${guias}</details>
     </div>
@@ -2886,7 +2907,7 @@ function negMini(r){
   else{cls="ok";txt="Consignar: deja "+clp(COM)}
   return `<span class="rnegp ${cls}"><b>${txt}</b> · media ${clp(M)} (${vs>0?"+":""}${vs}%) · compra máx ${clp(cmax)}</span>`;
 }
-function negHtml(r){
+function negHtml(r,id){
   const P=Number(r.precio)||0;if(!P)return "";
   const COM=Number(S.crit&&S.crit.comisionMin)||1500000;
   const c=negComps(r),M=c.media;
@@ -2924,10 +2945,10 @@ function negHtml(r){
   else if(M&&cierre<=compraMax)g="Haz una oferta de compra cerca de "+clp(compraObj)+"; su precio ya está "+Math.abs(vsM)+"% "+(vsM<=0?"bajo":"sobre")+" la media.";
   else g="Con nosotros lo vende cerca de "+clp(venta)+" sin recibir desconocidos ni hacer trámites; recibe ~"+clp(recibe)+".";
   const bar=M&&c.min&&c.max&&c.max>c.min?(()=>{const f=v=>Math.max(0,Math.min(100,(v-c.min)/(c.max-c.min)*100));return `<div class="rbar2" title="Rango de comparables: ${clp(c.min)} a ${clp(c.max)}. Franja: 25% a 75%. Marca: este aviso."><i style="left:${f(c.p25)}%;right:${100-f(c.p75)}%"></i><em style="left:${f(P)}%"></em></div><span class="mut">${clp(c.min)} — ${clp(c.max)}</span>`})():"";
-  return `<section class="rneg" aria-label="Cuadro del negocio">
-   <h4><span>Cuadro del negocio</span><span>piso ${clp(COM)} por auto</span></h4>
-   <div class="vd ${cls}">${esc(vd)}</div>
-   <div class="ng">
+  const k=id!=null?id:esc(r._id||"");
+  const kp=(l,v,c)=>`<div class="kp${c?" "+c:""}"><span>${l}</span><b class="num">${v}</b></div>`;
+  const kpis=[kp("Aviso",clp(P)),kp("Media",M?clp(M):"s/d"),M?kp("Vs media",(vsM>0?"+":"")+vsM+"%",vsM<=-5?"ok":vsM>15?"no":""):kp("Comparables",c.n),kp("Cierre probable",clp(cierre)),kp("Compra máx.",compraMax?clp(compraMax):"s/d"),kp("Dueño recibe",clp(recibe))].join("");
+  const full=`<div class="ng">
     <div><b>Precio vs mercado</b><dl>
      <dt>Aviso</dt><dd>${clp(P)}</dd>
      <dt>Media</dt><dd>${M?clp(M):"s/d"}</dd>
@@ -2959,10 +2980,16 @@ function negHtml(r){
      <dt>Tipo</dt><dd>${esc(r.perfil||"s/d")}</dd>
      <dt>Comuna</dt><dd>${esc(r.comuna||"s/d")}</dd></dl></div>
    </div>
-   ${ries.length?`<div><b class="mut">RIESGOS</b><ul>${ries.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}
-   <div class="gch"><b>Gancho:</b> ${esc(g)}</div>
-   <p class="mut">Media recortada de avisos del mismo modelo ±1 año en el Radar. Estimación para orientar la llamada; el valor real sale de la tasación.</p>
-  </section>`;
+   <p class="mut">Media recortada de avisos del mismo modelo ±1 año en el Radar. Estimación para orientar la llamada; el valor real sale de la tasación.</p>`;
+  return `<details class="rnegd" data-gopen="rn_${k}" ${S.gopen["rn_"+r._id]?"open":""}>
+   <summary><span class="rnl">Cuadro del negocio</span><span class="vd ${cls}">${esc(vd)}</span><span class="rnh">Ver</span></summary>
+   <section class="rneg" aria-label="Cuadro del negocio">
+    <div class="kps">${kpis}</div>
+    <div class="gch"><b>Gancho:</b> ${esc(g)}</div>
+    ${ries.length?`<p class="rries"><b>Riesgos:</b> ${ries.map(esc).join(" · ")}</p>`:""}
+    <details class="rnfull" data-gopen="rnf_${k}" ${S.gopen["rnf_"+r._id]?"open":""}><summary>Ver todas las cifras · piso ${clp(COM)} por auto</summary>${full}</details>
+   </section>
+  </details>`;
 }
 const esVirt=r=>r.equipo==="virtual";
 /* Los avisos virtuales viven en su propia colección ("virtual") para que las consignadoras virtuales, con acceso de Colaboradora, vean solo eso. */

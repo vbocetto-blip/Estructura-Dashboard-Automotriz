@@ -238,6 +238,7 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .rsel{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.rsel label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 12px;font-size:12.5px;color:var(--muted)}.rsel select{border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--ink);font-weight:600;padding:2px 4px}
 .rmez{margin:8px 2px 0;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}.rmez .off b{color:var(--bad)}
 .pill.mkp{background:#e3efff;color:#0b4fb3;border:1px solid #9cc2f5;font-weight:600}[data-theme="dark"] .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.mkp{background:#13294a;color:#9cc7ff;border-color:#2a5aa0}}
+.rtomh{border:1px solid var(--accent);border-radius:12px;background:var(--accent-soft);padding:10px 12px;display:grid;gap:6px;margin:0 0 10px}.rtomt{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.rtomt select{font:inherit;font-size:13px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}.rtomt .rtomn{font-weight:700;margin-right:auto}
 .rsrcf{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 4px}.rsrcf>span{font-size:12px;color:var(--muted);margin-right:2px}
 .mkpbtn{border:1px solid #9cc2f5;background:transparent;color:#0b4fb3;border-radius:999px;padding:4px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}.mkpbtn[aria-pressed="true"]{background:#0b4fb3;color:#fff;border-color:#0b4fb3}
 .crow{flex-wrap:wrap}.cav{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin:6px 0 2px;width:100%}.cavd{flex:1 1 100%}.cavd summary{cursor:pointer;font-size:13px;color:var(--muted);display:inline-block;padding:3px 10px;border:1px solid var(--line);border-radius:999px}.cavd[open] summary{color:var(--ink);border-color:var(--accent)}.cavdl{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 18px;margin:10px 2px 4px;font-size:14px}.cavdl dt{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.cavdl dd{margin:0}
@@ -3076,8 +3077,13 @@ function vRadar(team){
   const all=S.verViejos?allEq:allEq.filter(r=>!viejo(r));
   const cnt=g=>g==="hoy"?all.filter(seguirHoy).length:all.filter(r=>rGrupo(r)===g).length;
   const pend=all.filter(r=>rGrupo(r)==="pend"),tomados=pend.filter(r=>rClaim(r)).length;
+  /* Mis tomados: panel por consignador con los avisos que tomó y aún no pasan a gestión (siguen en el Radar). */
+  const tomCons=F.tomCons||cons||"";const tomDe=n=>pend.filter(r=>{const c=rClaim(r);return c&&c.by===n});
+  const misT=tomDe(tomCons),misTyo=cons?tomDe(cons):[];
+  const tomPor=[...new Set(pend.map(r=>{const c=rClaim(r);return c?c.by:""}).filter(Boolean))].sort();
+  const venceTxt=l=>{if(!l.length)return "";const t=Math.min(...l.map(r=>rClaim(r).at))+CLAIM_MS-Date.now(),hh=Math.max(0,Math.round(t/3600000));return hh<1?"el primero vence en menos de 1 h":"el primero vence en "+hh+" h"};
   const KV={hoyc:["Contactados hoy",r=>r.ultimoContacto===hoy()],tas:["Tasaciones agendadas o hechas",r=>rNivel(r)>=3],man:["Mandatos firmados",r=>rNivel(r)>=5]};
-  let arr=F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista);
+  let arr=F.vista==="tom"?misT.slice():F.vista==="todos"?all:F.vista==="hoy"?all.filter(seguirHoy):KV[F.vista]?all.filter(KV[F.vista][1]):all.filter(r=>rGrupo(r)===F.vista);
   if(F.motor)arr=arr.filter(r=>r.motor===F.motor);
   if(F.tramo)arr=arr.filter(r=>F.tramo==="Otros"?!TRAMOS.some(t=>t[0]===rTramo(r)):rTramo(r)===F.tramo);
   if(F.quien==="libres")arr=arr.filter(r=>rNivel(r)<0&&!rClaim(r)&&!r.noContactar&&r.estadoAviso!=="no publicado");
@@ -3086,6 +3092,7 @@ function vRadar(team){
   const sk=r=>Number(virt&&r.rateC!=null&&r.rateC!==""?r.rateC:r.puntaje)||0;
   const byScore=(a,b)=>(banderaHoy(b)?1:0)-(banderaHoy(a)?1:0)||(avisoNuevo(b)?1:0)-(avisoNuevo(a)?1:0)||sk(b)-sk(a)||(b.fechaRadar||"").localeCompare(a.fechaRadar||"");
   arr.sort(F.vista==="gest"||F.vista==="cerr"||KV[F.vista]?(a,b)=>(b.ultimoContacto||"").localeCompare(a.ultimoContacto||"")||byScore(a,b):F.vista==="hoy"?(a,b)=>rProx(a).localeCompare(rProx(b))||byScore(a,b):byScore);
+  if(F.vista==="tom")arr.sort((a,b)=>rClaim(a).at-rClaim(b).at);
   if(X.ord)arr=rfxSort(arr,X);
   /* Buscador: encuentra un vehículo específico en todo el Radar (cualquier estado, piso y virtual), sin importar la vista ni los filtros. */
   const Q=String((S.rbus&&S.rbus[team])||"").trim(),buscando=Q.length>=2;let busDet="";
@@ -3109,6 +3116,7 @@ function vRadar(team){
   ${S.radarErr?`<div class="banner">No se pudo cargar el radar (${esc(S.radarErr)}). Toca Actualizar.</div>`:""}
   ${virt&&!S.virtuales.length?`<div class="banner info">Marca quiénes son del equipo virtual en Equipo y reglas.</div>`:""}
   <div class="kpis">
+    ${cons?`<button type="button" class="kpi kpib${misTyo.length?" hl":""}" data-rvk="tom" data-team="${team}" aria-pressed="${F.vista==="tom"}" aria-label="Ver los ${misTyo.length} avisos que tomaste"><span class="l">Mis tomados</span><span class="v num">${misTyo.length}</span><span class="s">${misTyo.length?venceTxt(misTyo)+" · ver":"toca “Lo tomo” en un aviso"}</span></button>`:""}
     <button type="button" class="kpi kpib${cnt("hoy")?" hl":""}" data-rvk="hoy" data-team="${team}" aria-pressed="${F.vista==="hoy"}" aria-label="Ver los ${cnt("hoy")} avisos con seguimiento para hoy"><span class="l">Seguimiento hoy</span><span class="v num">${cnt("hoy")}</span><span class="s">próxima fecha vencida · ver cuáles</span></button>
     <button type="button" class="kpi kpib" data-rvk="pend" data-team="${team}" aria-pressed="${F.vista==="pend"}" aria-label="Ver los ${pend.length} avisos sin contactar"><span class="l">Sin contactar</span><span class="v num">${pend.length}</span><span class="s">${pend.length-tomados} libres · ${tomados} tomados · ver cuáles</span></button>
     <button type="button" class="kpi kpib" data-rvk="hoyc" data-team="${team}" aria-pressed="${F.vista==="hoyc"}" aria-label="Ver los ${hoyDocs.length} avisos contactados hoy"><span class="l">Contactados hoy</span><span class="v num">${hoyDocs.length}</span><span class="s">${porCanal?porCanal+" · ":""}${porCons||"nadie todavía"} · ver cuáles</span></button>
@@ -3136,6 +3144,7 @@ function vRadar(team){
   </section>
   ${buscando?`<div class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span><b class="num">${arr.length}</b> ${arr.length===1?"aviso calza":"avisos calzan"} con “${esc(Q)}” en todo el Radar${busDet?" · "+busDet:""}. La búsqueda no usa la vista ni los filtros.</span><button type="button" class="btn sm" data-rbusclr="${team}">Limpiar búsqueda</button></div>`:""}
   ${!buscando&&rfxN(X)?`<p class="rdet" style="margin:4px 2px">Mis filtros: se muestran <b class="num">${arr.length}</b> de <b class="num">${nAntes}</b> en esta vista.</p>`:""}
+  ${!buscando&&F.vista==="tom"?`<div id="rvkb" class="rtomh"><div class="rtomt"><b>Tomados de</b>${tomPor.length>1||(tomCons&&!tomPor.includes(tomCons))||!cons?`<select data-rtomc="1" data-team="${team}" aria-label="Ver los tomados de otro consignador">${[...new Set([cons,...tomPor].filter(Boolean))].map(n=>`<option value="${esc(n)}" ${n===tomCons?"selected":""}>${esc(n)}${n===cons?" (yo)":""} · ${tomDe(n).length}</option>`).join("")}</select>`:`<span>${esc(tomCons)}</span>`}<span class="num rtomn">${misT.length} ${misT.length===1?"aviso":"avisos"}</span><button type="button" class="btn sm" data-rv="pend" data-team="${team}">Volver a Sin contactar</button></div><p class="rdet" style="margin:0">Aquí están juntos los avisos que tomaste y que todavía no contactas: siguen en el Radar y nadie más los toma. Ábrelos en orden; arriba va el que vence antes (cada toma dura 24 h). Al registrar el contacto pasan a En gestión y salen de esta lista.${misT.length?" "+venceTxt(misT)[0].toUpperCase()+venceTxt(misT).slice(1)+".":""}</p></div>`:""}
   ${!buscando&&KV[F.vista]?`<div id="rvkb" class="banner info" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span>Mostrando: <b>${KV[F.vista][0]}</b> · ${arr.length}</span><button type="button" class="btn sm" data-rv="pend" data-team="${team}">Volver a Sin contactar</button></div>`:""}
   ${!S.radarLoaded&&S.db?`<p class="none">Cargando radar…</p>`:arr.length?`${(()=>{const nb=arr.filter(banderaHoy).length;return nb?`<p class="rbusy" style="margin:0 0 8px"><b>⚐ ${nb} para contactar hoy</b> · van primero en la lista. Toma el que vayas a llamar con “Lo tomo”.</p>`:""})()}${F.vista==="hoyc"&&!buscando?canalGrupos(arr):`<div class="rlist">${arr.map(rCard).join("")}</div>`}`:`<div class="empty"><h3>${buscando?"Ningún aviso calza con la búsqueda. Prueba con menos palabras.":all.length?"Nada en esta vista":(virt?"Los primeros avisos llegan con la próxima carga del radar":"El radar está vacío")}</h3><p>${all.length?"Cambia el filtro para ver otros avisos.":virt?"Cada mañana hábil a las 9:50 llegan aquí avisos propios: particulares de la IV Región con motor Consignar y rate de consignación 70 o más, distintos de los del Radar.":"Cada mañana de lunes a viernes llegan aquí los avisos nuevos de particulares, con precio contra mercado y mensaje listo."}</p></div>`}`;
 }
@@ -4509,6 +4518,7 @@ document.addEventListener("change",e=>{
   if(e.target.dataset&&e.target.dataset.relsel){S.relojSel=e.target.value;S.relojData=null;relojCargar(true);render();return}
   if(e.target.dataset&&e.target.dataset.reldiain){const v=e.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(v)){S.relojDia=v>hoy()?hoy():v;relojCargar(false);render()}return}
   if(e.target.dataset&&e.target.dataset.jor){const x=e.target.dataset;jorGuardar(x.jor,x.k,e.target.value,Number(x.w),e.target.checked);return}
+  if(e.target.dataset&&e.target.dataset.rtomc){S.rf[e.target.dataset.team||"pres"].tomCons=e.target.value;render();return}
   if(e.target.dataset&&(e.target.dataset.rqs||e.target.dataset.rms||e.target.dataset.rtrs)){const F=S.rf[e.target.dataset.team||"pres"];F[e.target.dataset.rqs?"quien":e.target.dataset.rms?"motor":"tramo"]=e.target.value;render();return}
   if(e.target.dataset&&e.target.dataset.rfx){const tm=e.target.dataset.team||"pres",X=rfx(tm);X[e.target.dataset.rfx]=String(e.target.value||"").trim();rfxSave(tm);S.gopen["rfx_"+tm]=true;render();return}
   if(e.target.dataset&&e.target.dataset.xs){S.xf[e.target.dataset.xs]=e.target.value;return}

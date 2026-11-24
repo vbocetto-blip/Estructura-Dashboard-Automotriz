@@ -2899,7 +2899,7 @@ function canalGrupos(arr){
 }
 function negMini(r){
   const P=Number(r.precio)||0;if(!P)return "";
-  const COM=Number(S.crit&&S.crit.comisionMin)||1500000,c=negComps(r),M=c.media;
+  const COM=Number(S.crit&&S.crit.comisionMin)||1500000,c=negComps(r),M=c.media||(Number(r.med)>0?Number(r.med):null);
   const cierre=Number(r.precioNeg)||Math.round(P*(1-(Number(r.descEsperado)||0.05)));
   if(!M)return `<span class="rnegp mid">Sin media (${c.n} comp.) · tasar para ver si deja ${clp(COM)}</span>`;
   const vs=Math.round((P/M-1)*100),cmax=M-COM;
@@ -2912,7 +2912,7 @@ function negMini(r){
 function negHtml(r,id){
   const P=Number(r.precio)||0;if(!P)return "";
   const COM=Number(S.crit&&S.crit.comisionMin)||1500000;
-  const c=negComps(r),M=c.media;
+  const c=negComps(r),mML=!c.media&&Number(r.med)>0,M=c.media||(mML?Number(r.med):null),nC=mML?(Number(r.n)||0):c.n;
   const desc=Number(r.descEsperado)||(r.tramo==="24 horas"?0.03:0.05);
   const cierre=Number(r.precioNeg)||Math.round(P*(1-desc));
   const prob=r.probNeg!=null&&r.probNeg!==""?Number(r.probNeg):null;
@@ -2939,6 +2939,7 @@ function negHtml(r,id){
   if(M&&P>M*1.15)ries.push("Precio muy sobre la media: dueño con expectativa alta");
   if(an&&an<2013)ries.push("Año antiguo: menos financiamiento para el comprador");
   if(!M)ries.push("Menos de 4 comparables ("+c.n+"): la media no es confiable");
+  if(mML&&nC<5)ries.push("Media de Mercado Libre con pocos avisos ("+nC+"): tómala como referencia");
   if(r.ultimoResultado==="Tiene prenda")ries.push("Tiene prenda");
   const s=String(r.senal||"");
   let g;
@@ -2946,16 +2947,16 @@ function negHtml(r,id){
   else if(/Apuro/.test(s))g="Va apurado: ofrécele "+(M&&cierre<=compraMax?"compra directa a "+clp(cierre)+", pago al firmar":"vender rápido sin mostrarlo él")+".";
   else if(M&&cierre<=compraMax)g="Haz una oferta de compra cerca de "+clp(compraObj)+"; su precio ya está "+Math.abs(vsM)+"% "+(vsM<=0?"bajo":"sobre")+" la media.";
   else g="Con nosotros lo vende cerca de "+clp(venta)+" sin recibir desconocidos ni hacer trámites; recibe ~"+clp(recibe)+".";
-  const bar=M&&c.min&&c.max&&c.max>c.min?(()=>{const f=v=>Math.max(0,Math.min(100,(v-c.min)/(c.max-c.min)*100));return `<div class="rbar2" title="Rango de comparables: ${clp(c.min)} a ${clp(c.max)}. Franja: 25% a 75%. Marca: este aviso."><i style="left:${f(c.p25)}%;right:${100-f(c.p75)}%"></i><em style="left:${f(P)}%"></em></div><span class="mut">${clp(c.min)} — ${clp(c.max)}</span>`})():"";
+  const bar=!mML&&M&&c.min&&c.max&&c.max>c.min?(()=>{const f=v=>Math.max(0,Math.min(100,(v-c.min)/(c.max-c.min)*100));return `<div class="rbar2" title="Rango de comparables: ${clp(c.min)} a ${clp(c.max)}. Franja: 25% a 75%. Marca: este aviso."><i style="left:${f(c.p25)}%;right:${100-f(c.p75)}%"></i><em style="left:${f(P)}%"></em></div><span class="mut">${clp(c.min)} — ${clp(c.max)}</span>`})():"";
   const k=id!=null?id:esc(r._id||"");
   const kp=(l,v,c)=>`<div class="kp${c?" "+c:""}"><span>${l}</span><b class="num">${v}</b></div>`;
-  const kpis=[kp("Aviso",clp(P)),kp("Media",M?clp(M):"s/d"),M?kp("Vs media",(vsM>0?"+":"")+vsM+"%",vsM<=-5?"ok":vsM>15?"no":""):kp("Comparables",c.n),kp("Cierre probable",clp(cierre)),kp("Compra máx.",compraMax?clp(compraMax):"s/d"),kp("Dueño recibe",clp(recibe))].join("");
+  const kpis=[kp("Aviso",clp(P)),kp("Media",M?clp(M):"s/d"),M?kp("Vs media",(vsM>0?"+":"")+vsM+"%",vsM<=-5?"ok":vsM>15?"no":""):kp("Comparables",nC),kp("Cierre probable",clp(cierre)),kp("Compra máx.",compraMax?clp(compraMax):"s/d"),kp("Dueño recibe",clp(recibe))].join("");
   const full=`<div class="ng">
     <div><b>Precio vs mercado</b><dl>
      <dt>Aviso</dt><dd>${clp(P)}</dd>
      <dt>Media</dt><dd>${M?clp(M):"s/d"}</dd>
-     ${M?`<dt>Rango medio</dt><dd>${clp(c.p25)} – ${clp(c.p75)}</dd><dt>Vs media</dt><dd>${vsM>0?"+":""}${vsM}%</dd>`:""}
-     <dt>Comparables</dt><dd>${c.n}</dd></dl>${bar}</div>
+     ${M&&!mML?`<dt>Rango medio</dt><dd>${clp(c.p25)} – ${clp(c.p75)}</dd>`:""}${M?`<dt>Vs media</dt><dd>${vsM>0?"+":""}${vsM}%</dd>`:""}
+     <dt>Comparables</dt><dd>${nC}${mML?" · ML":""}</dd></dl>${bar}</div>
     <div><b>Negociación</b><dl>
      <dt>Cierre probable</dt><dd>${clp(cierre)}</dd>
      <dt>Descuento</dt><dd>${Math.round((1-cierre/P)*100)}%</dd>
@@ -2982,7 +2983,7 @@ function negHtml(r,id){
      <dt>Tipo</dt><dd>${esc(r.perfil||"s/d")}</dd>
      <dt>Comuna</dt><dd>${esc(r.comuna||"s/d")}</dd></dl></div>
    </div>
-   <p class="mut">Media recortada de avisos del mismo modelo ±1 año en el Radar. Estimación para orientar la llamada; el valor real sale de la tasación.</p>`;
+   <p class="mut">${mML?"Media: "+esc(r.medFuente||"Mercado Libre nacional")+". El Radar aún no tiene 4 comparables de este modelo.":"Media recortada de avisos del mismo modelo ±1 año en el Radar."} Estimación para orientar la llamada; el valor real sale de la tasación.</p>`;
   return `<details class="rnegd" data-gopen="rn_${k}" ${S.gopen["rn_"+r._id]?"open":""}>
    <summary><span class="rnl">Cuadro del negocio</span><span class="vd ${cls}">${esc(vd)}</span><span class="rnh">Ver</span></summary>
    <section class="rneg" aria-label="Cuadro del negocio">

@@ -78,6 +78,41 @@ main{padding-block:8px 80px;display:grid;gap:20px}
 .sec-head h2{font-size:24px}
 .sec-head p{margin:0;color:var(--muted);font-size:13.5px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.pl-hero{position:relative;overflow:hidden;border-radius:calc(var(--r) + 6px);padding:18px 18px 14px;margin:0 0 14px;color:#fff;background:radial-gradient(120% 140% at 0% 0%,#1FB892 0%,#0D6656 45%,#0B2E4A 100%);box-shadow:0 10px 30px rgba(13,102,86,.28)}
+.pl-hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 70%);pointer-events:none}
+.pl-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.pl-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);padding:3px 9px;border-radius:999px}
+.pl-hi{font-family:var(--f-display);font-size:15px;opacity:.9}
+.pl-main{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.pl-ring{position:relative;width:132px;height:132px;flex:none}
+.pl-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.pl-rbg{fill:none;stroke:rgba(255,255,255,.18);stroke-width:11}
+.pl-rfg{fill:none;stroke:#FFD166;stroke-width:11;stroke-linecap:round;animation:plRing 1.4s cubic-bezier(.2,.8,.2,1) both;filter:drop-shadow(0 0 6px rgba(255,209,102,.6))}
+@keyframes plRing{from{stroke-dashoffset:327}}
+.pl-rc{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.pl-rc b{font-family:var(--f-display);font-size:44px;line-height:1}
+.pl-rc span{font-size:12px;opacity:.85}
+.pl-txt{flex:1;min-width:220px}
+.pl-k{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;opacity:.8}
+.pl-txt h3{margin:2px 0 4px;font-family:var(--f-display);font-size:24px;line-height:1.15;color:#fff}
+.pl-txt h3 b{color:#FFD166}
+.pl-s{margin:0 0 10px;font-size:13px;opacity:.92}
+.pl-ms{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.pl-m{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:7px 9px}
+.pl-ml{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;gap:6px}
+.pl-ml b{font-size:16px}.pl-ml i{font-style:normal;opacity:.65;font-size:12px}
+.pl-bar{height:6px;border-radius:9px;background:rgba(255,255,255,.18);margin-top:5px;overflow:hidden}
+.pl-bar span{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#7CF0C9,#FFD166);animation:plBar 1.2s ease-out both}
+@keyframes plBar{from{width:0}}
+.pl-week{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:14px}
+.pl-d{display:grid;grid-template-rows:auto auto auto 34px;justify-items:center;gap:1px;padding:7px 4px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid transparent;font-size:11px}
+.pl-d.hoy{background:rgba(255,255,255,.2);border-color:#FFD166}
+.pl-d.fut{opacity:.6}
+.pl-dn{font-weight:600}.pl-dv{font-family:var(--f-display);font-size:20px;line-height:1.1}.pl-dm{opacity:.75}
+.pl-db{width:10px;height:34px;border-radius:6px;background:rgba(255,255,255,.18);display:flex;align-items:flex-end;overflow:hidden;margin-top:3px}
+.pl-db i{display:block;width:100%;background:#FFD166;border-radius:6px}
+.pl-d.ok .pl-db i{background:#7CF0C9}.pl-d.ok .pl-dn::after{content:" ✓";color:#7CF0C9}
+@media (max-width:520px){.pl-ring{width:108px;height:108px}.pl-rc b{font-size:36px}.pl-txt h3{font-size:20px}}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}
 .kpi .l{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
 .kpi .v{font-family:var(--f-display);font-size:32px;font-weight:700;line-height:1.05}
@@ -3073,7 +3108,7 @@ const SRCP={"Facebook Marketplace":["mkp","⚑ Marketplace"],"Mercado Libre":["s
 function srcPill(r){const v=SRCP[r.src];if(!r.src)return "";const tt=(r.lote&&/^apify-fb/.test(r.lote)?"Rastreo de Marketplace del "+fmtD(r.fechaRadar):"Aviso de "+r.src)+(r.fechaRadar?" · en el radar desde "+fmtD(r.primerRadar||r.fechaRadar):"");return `<span class="pill ${v?v[0]:"sot"}" title="${esc(tt)}">${esc(v?v[1]:r.src)}</span>`}
 function vRadar(team){
   const virt=team==="virt",F=S.rf[team],cons=rCons(),ro=S.canWrite?"":"disabled";
-  const viejo=r=>{const a=parseInt(r.anio,10);return !!a&&a<2015};const allEq=S.radar.filter(r=>!r.pedidoId&&(virt?esVirt(r):!esVirt(r)));const nViejos=allEq.filter(viejo).length;
+  const viejo=r=>{const a=parseInt(r.anio,10);return !!a&&a<2015};const RAD=virt?S.radar:pilotoRadar(S.radar);const allEq=RAD.filter(r=>!r.pedidoId&&(virt?esVirt(r):!esVirt(r)));const nViejos=allEq.filter(viejo).length;
   const all=S.verViejos?allEq:allEq.filter(r=>!viejo(r));
   const cnt=g=>g==="hoy"?all.filter(seguirHoy).length:all.filter(r=>rGrupo(r)===g).length;
   const pend=all.filter(r=>rGrupo(r)==="pend"),tomados=pend.filter(r=>rClaim(r)).length;
@@ -3098,7 +3133,7 @@ function vRadar(team){
   const Q=String((S.rbus&&S.rbus[team])||"").trim(),buscando=Q.length>=2;let busDet="";
   if(buscando){
     const ws=rfxTxt(Q).split(/\s+/).filter(Boolean),GN={pend:"sin contactar",gest:"en gestión",prenda:"con prenda",cerr:"cerrados",nopub:"ya no publicados"},GN1={cerr:"cerrado",nopub:"ya no publicado"},GO={pend:0,gest:1,prenda:2,cerr:3,nopub:4};
-    arr=(S.soloVirtual?all:S.radar.filter(r=>!r.pedidoId)).filter(r=>{const h=rfxTxt([r.marca,r.modelo,r.ver,r.anio,r.comuna,r.contacto,r.src,r.consignador,r.subtema,r._id,r.url].join(" "))+" "+String(r.telefonoN||r.telefono||"").replace(/\D/g,"");return ws.every(w=>h.includes(w))});
+    arr=(S.soloVirtual?all:RAD.filter(r=>!r.pedidoId)).filter(r=>{const h=rfxTxt([r.marca,r.modelo,r.ver,r.anio,r.comuna,r.contacto,r.src,r.consignador,r.subtema,r._id,r.url].join(" "))+" "+String(r.telefonoN||r.telefono||"").replace(/\D/g,"");return ws.every(w=>h.includes(w))});
     arr.sort((a,b)=>(GO[rGrupo(a)]??9)-(GO[rGrupo(b)]??9)||byScore(a,b));
     busDet=Object.keys(GO).map(g=>[g,arr.filter(r=>rGrupo(r)===g).length]).filter(x=>x[1]).map(([g,n])=>`${n} ${n===1&&GN1[g]?GN1[g]:GN[g]}`).join(" · ");
   }
@@ -3115,6 +3150,7 @@ function vRadar(team){
   return `<section class="sec-head"><h2>${titulo}</h2><p><span class="rlive"><i></i>En vivo${S.radarAt?" · actualizado "+hhmm(S.radarAt):""}</span> · avisos nuevos de lunes a viernes, 9:50</p></section>
   ${S.radarErr?`<div class="banner">No se pudo cargar el radar (${esc(S.radarErr)}). Toca Actualizar.</div>`:""}
   ${virt&&!S.virtuales.length?`<div class="banner info">Marca quiénes son del equipo virtual en Equipo y reglas.</div>`:""}
+  ${!virt&&pilotoOn()?pilotoHero(allEq):""}
   <div class="kpis">
     ${cons?`<button type="button" class="kpi kpib${misTyo.length?" hl":""}" data-rvk="tom" data-team="${team}" aria-pressed="${F.vista==="tom"}" aria-label="Ver los ${misTyo.length} avisos que tomaste"><span class="l">Mis tomados</span><span class="v num">${misTyo.length}</span><span class="s">${misTyo.length?venceTxt(misTyo)+" · ver":"toca “Lo tomo” en un aviso"}</span></button>`:""}
     <button type="button" class="kpi kpib${cnt("hoy")?" hl":""}" data-rvk="hoy" data-team="${team}" aria-pressed="${F.vista==="hoy"}" aria-label="Ver los ${cnt("hoy")} avisos con seguimiento para hoy"><span class="l">Seguimiento hoy</span><span class="v num">${cnt("hoy")}</span><span class="s">próxima fecha vencida · ver cuáles</span></button>
@@ -3175,6 +3211,42 @@ async function rRemClear(id,btn,snooze){
 function remMine(){const me=rCons();if(!me)return [];return S.radar.map(r=>({r,rm:remOf(r)})).filter(x=>x.rm&&x.rm.a===me).sort((a,b)=>a.rm.at-b.rm.at)}
 function remBanners(){
   return remMine().filter(x=>x.rm.at<=Date.now()).map(({r})=>`<div class="banner rem" role="alert"><b>⏰ Volver a llamar: ${esc(rModelo(r))} ${esc(r.anio||"")} · programado ${hhmm(new Date(remOf(r).at))}</b><button type="button" class="btn" data-rgo="${esc(r._id)}">Ver aviso</button><button type="button" class="btn" data-rsnz="${esc(r._id)}">+30 min</button><button type="button" class="btn primary" data-rclr="${esc(r._id)}">Ya llamé</button></div>`).join("");
+}
+/* Caso piloto (estudio): panel visual de demostración solo para el administrador. Números ficticios, no se guardan ni cuentan en métricas del equipo. Para apagarlo: PILOTO.activo=false. */
+const PILOTO={activo:true,usuario:"Francisco",
+  /* Los 23 avisos de piso con bandera del 25-nov: en la vista de Francisco se ven como contactados por él hoy. Solo en su pantalla: no se escribe en la base, no crea llamadas ni toca el historial. */
+  ids:"ml-4451786596,fb-1645230114066374,fb-1562134989267062,fb-1715760793512590,yp-33124012,fb-1488532483186654,yp-33029056,fb-986732224049941,ml-4366665020,ml-2378872563,fb-1799545901350697,ml-2391213609,ml-2416453047,ml-2207894031,ml-4417107494,ml-2275608923,ml-2275702139,ml-2305870755,ml-2413676451,ml-4623250100,ml-2371355497,ml-4437189010,ml-2312847879".split(","),
+  /* Resultado simulado de cada uno, en el mismo orden (optimista pero creíble): 9 interesados, 5 tasaciones agendadas, 1 tasación hecha, 5 no contestan, 3 descartes. */
+  res:["Agendó tasación","Interesado · seguimiento","Agendó tasación","Interesado · seguimiento","Tasación hecha","No contesta","Interesado · seguimiento","Agendó tasación","Interesado · seguimiento","No contesta","Contestó · no le interesa","Interesado · seguimiento","Agendó tasación","No contesta","Interesado · seguimiento","Contestó · ya vendió","Interesado · seguimiento","No contesta","Agendó tasación","Interesado · seguimiento","Contestó · no le interesa","No contesta","Interesado · seguimiento"],
+  metas:{1:{c:25,t:4,m:1},2:{c:28,t:4,m:1},3:{c:30,t:5,m:2},4:{c:32,t:5,m:2},5:{c:26,t:4,m:1}},
+  logrados:{1:{c:27,t:4,m:1},2:{c:31,t:5,m:2}}};
+const pilotoOn=()=>PILOTO.activo&&rCons()===PILOTO.usuario;
+function pilotoRadar(list){
+  if(!pilotoOn())return list;
+  const d=hoy(),m=new Date();m.setDate(m.getDate()+1);const man=ds(m);
+  return list.map(r=>{const i=PILOTO.ids.indexOf(r._id);if(i<0||r._col==="virtual")return r;
+    const res=PILOTO.res[i]||"Interesado · seguimiento",niv=(RESULTADOS.find(x=>x[0]===res)||[,2])[1];
+    const canal=r.src==="Facebook Marketplace"?"Marketplace":(i%3===1?"Mensaje":"Llamada");
+    return {...r,_piloto:true,nivel:niv,ultimoResultado:res,ultimoContacto:d,consignador:PILOTO.usuario,nContactos:1,ultimoCanal:canal,ultimoCanalFecha:d,proximaFecha:niv===0||niv===2||niv===3?man:"",asignado:"",asignadoEn:""}});
+}
+function pilotoHero(lista){
+  const d=new Date(),dow=d.getDay(),DN=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const mios=(lista||[]).filter(r=>r.ultimoContacto===hoy()&&r.consignador===PILOTO.usuario);const meta=PILOTO.metas[dow]||PILOTO.metas[3],c=mios.length,pct=Math.min(100,Math.round(c/meta.c*100)),falta=Math.max(0,meta.c-c);
+  const tas=mios.filter(r=>rNivel(r)>=3).length,man=mios.filter(r=>rNivel(r)>=5).length,resp=mios.filter(r=>rNivel(r)>=1).length;
+  const R=52,L=2*Math.PI*R,off=L*(1-pct/100);
+  const bar=(l,v,m)=>`<div class="pl-m"><div class="pl-ml"><span>${l}</span><b class="num">${v}<i>/${m}</i></b></div><div class="pl-bar"><span style="width:${Math.min(100,Math.round(v/m*100))}%"></span></div></div>`;
+  const dias=[1,2,3,4,5].map(k=>{const mt=PILOTO.metas[k],lg=PILOTO.logrados[k],es=k===dow,pas=k<dow&&dow<=5;const v=es?c:pas?(lg?lg.c:mt.c):null;const ok=v!=null&&v>=mt.c;
+    return `<div class="pl-d${es?" hoy":""}${ok?" ok":""}${v==null?" fut":""}"><span class="pl-dn">${DN[k]}</span><span class="pl-dv num">${v==null?"–":v}</span><span class="pl-dm">meta ${mt.c}</span><span class="pl-db"><i style="height:${v==null?0:Math.min(100,Math.round(v/mt.c*100))}%"></i></span></div>`}).join("");
+  const racha=Object.keys(PILOTO.logrados).filter(k=>+k<dow).length;
+  return `<section class="pl-hero" aria-label="Panel piloto de ${esc(PILOTO.usuario)}">
+    <div class="pl-top"><span class="pl-tag">Caso piloto · datos de demostración</span><span class="pl-hi">Hola, ${esc(PILOTO.usuario.split(" ")[0])}</span></div>
+    <div class="pl-main">
+      <div class="pl-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="${R}" class="pl-rbg"/><circle cx="60" cy="60" r="${R}" class="pl-rfg" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/></svg><div class="pl-rc"><b class="num">${c}</b><span>de ${meta.c}</span></div></div>
+      <div class="pl-txt"><p class="pl-k">Contactados hoy</p><h3>${falta?`Vas en <b class="num">${pct}%</b> · faltan <b class="num">${falta}</b> para la meta`:`¡Meta del día cumplida!`}</h3><p class="pl-s">Meta ideal de ${DN[dow]||"hoy"}: <b>${meta.c} contactos</b>, ${meta.t} tasaciones y ${meta.m} ${meta.m===1?"mandato":"mandatos"}.${racha?` Llevas <b>${racha} ${racha===1?"día":"días"}</b> seguidos sobre la meta 🔥`:""}</p>
+        <div class="pl-ms">${bar("Contestaron",resp,Math.round(meta.c*0.6))}${bar("Tasaciones agendadas",tas,meta.t)}${bar("Mandatos",man,meta.m)}</div></div>
+    </div>
+    <div class="pl-week" role="list" aria-label="Metas de la semana">${dias}</div>
+  </section>`;
 }
 function remStrip(team){
   const up=remMine().filter(x=>x.rm.at>Date.now()&&(team==="virt"?esVirt(x.r):!esVirt(x.r)));if(!up.length)return "";

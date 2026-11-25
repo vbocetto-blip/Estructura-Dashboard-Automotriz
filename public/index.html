@@ -3239,7 +3239,7 @@ function pilotoHero(lista){
     return `<div class="pl-d${es?" hoy":""}${ok?" ok":""}${v==null?" fut":""}"><span class="pl-dn">${DN[k]}</span><span class="pl-dv num">${v==null?"–":v}</span><span class="pl-dm">meta ${mt.c}</span><span class="pl-db"><i style="height:${v==null?0:Math.min(100,Math.round(v/mt.c*100))}%"></i></span></div>`}).join("");
   const racha=Object.keys(PILOTO.logrados).filter(k=>+k<dow).length;
   return `<section class="pl-hero" aria-label="Panel piloto de ${esc(PILOTO.usuario)}">
-    <div class="pl-top"><span class="pl-tag">Caso piloto · datos de demostración</span><span class="pl-hi">Hola, ${esc(PILOTO.usuario.split(" ")[0])}</span></div>
+    <div class="pl-top"><span class="pl-tag">Meta del día</span><span class="pl-hi">Hola, ${esc(PILOTO.usuario.split(" ")[0])}</span></div>
     <div class="pl-main">
       <div class="pl-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="${R}" class="pl-rbg"/><circle cx="60" cy="60" r="${R}" class="pl-rfg" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/></svg><div class="pl-rc"><b class="num">${c}</b><span>de ${meta.c}</span></div></div>
       <div class="pl-txt"><p class="pl-k">Contactados hoy</p><h3>${falta?`Vas en <b class="num">${pct}%</b> · faltan <b class="num">${falta}</b> para la meta`:`¡Meta del día cumplida!`}</h3><p class="pl-s">Meta ideal de ${DN[dow]||"hoy"}: <b>${meta.c} contactos</b>, ${meta.t} tasaciones y ${meta.m} ${meta.m===1?"mandato":"mandatos"}.${racha?` Llevas <b>${racha} ${racha===1?"día":"días"}</b> seguidos sobre la meta 🔥`:""}</p>
